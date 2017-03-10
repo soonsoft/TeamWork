@@ -1,0 +1,1096 @@
+﻿@{
+    ViewBag.Title = "系统菜单设置";
+    bool isAdminPage = ViewBag.Applications != null;
+}
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+    @this.RegisterCtrls(
+        "tabPanel",
+        "columnStyle",
+        "gridview",
+        "tools",
+        "form",
+        "colorPicker",
+        "selectionTree",
+        "list",
+        "simpleUploader",
+        "validate"
+    )
+}
+
+@section styles {
+    <style type="text/css">
+        .ctrl-form {
+            width: 264px;
+        }
+
+            .ctrl-form input[type='text'] {
+                width:260px;
+            }
+
+            .ctrl-form select {
+                width:260px;
+            }
+
+        div.tile {
+            position: relative;
+            color: #FFFFFF;
+        }
+
+        div.small {
+            width: 60px;
+            height: 60px;
+        }
+
+        div.medium {
+            width: 128px;
+            height: 128px;
+        }
+
+        div.wide {
+            width: 264px;
+            height: 128px;
+        }
+
+        div.large {
+            width: 264px;
+            height: 264px;
+        }
+
+        div.tile img.tile-icon-small {
+            position:absolute;
+            left: 14px; 
+            top: 14px; 
+            width: 32px; 
+            height: 32px;
+        }
+
+        #previewTile {
+            margin-top:10px;
+            margin-bottom:10px;
+        }
+
+        div.tile-content {
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            right: 0px;
+            bottom: 24px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        div.tile-title {
+            position: absolute;
+            left: 0px;
+            bottom: 0px;
+            width: 100%;
+            height: 24px;
+        }
+
+            div.tile-title span {
+                margin-left: 5px;
+                margin-right: 5px;
+                line-height: 24px;
+            }
+
+        img.tile-icon {
+            position:absolute;
+        }
+
+        div.tile img.small-icon {
+            position:absolute;
+            display:none;
+            width:32px;
+            height:32px;
+            right:5px;
+            bottom:5px;
+        }
+
+        div.tile img.show {
+            display:inline-block;
+        }
+
+        div.menu-order-list {
+            position:absolute;
+            top: 20px;
+            bottom:20px;
+            left:20px;
+            width: 200px;
+        }
+
+            div.menu-order-list .title {
+                height:30px;
+                line-height:30px;
+                width:100%;
+                position: relative;
+                overflow: hidden;
+            }
+
+                div.menu-order-list .title span {
+                    font-size: 16px;
+                }
+
+                div.menu-order-list .title button {
+                    margin-right:5px;
+                    vertical-align:top;
+                    margin-top:3px;
+                    float: right;
+                }
+
+            div.menu-order-list .menu-list {
+                width:100%;
+            }
+    </style>
+}
+
+@section tabs {
+    <li class="tab-item tab-button">
+        <span>菜单管理</span>
+        <i class="pointer"></i>
+    </li>
+    <li class="tab-item tab-button">
+        <span>菜单排序</span>
+        <i class="pointer"></i>
+    </li>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul id="funcTool" class="tools" style="float:right;">
+        @if(isAdminPage) 
+        {
+            <li>
+                <span>应用程序:</span>
+                @Html.DropDownList("apps", (SelectList)ViewBag.Applications)
+            </li>
+            <li>
+                <button id="queryMenu" class="tool-button">查询</button>
+            </li>
+        }
+        <li>
+            <button id="addMenuBtn" class="tool-button button-highlight">新功能</button>
+        </li>
+    </ul>
+    <ul id="funcOrderTool" class="tools" style="float:right;">
+        <li>
+            <button id="updateMenuBtn" class="tool-button button-highlight">保存顺序</button>
+        </li>
+    </ul>
+    <br style="clear:both;" />
+</div>
+
+<div id="tabBodyPanel" class="tab-body-panel">
+    <div id="menuPanel"  class="tab-body">
+        <div id="menuGrid" class="grid-view"></div>
+        <div id="menuInfo" class="ctrl-form">
+            <div id="previewTile" class="tile medium"></div>
+            <form id="menuForm">
+                <dl class="fold-panel">
+                    <dt>功能信息</dt>
+                    <dd>
+                        <label>功能编号</label><span class="required">*</span>
+                        <br />
+                        <input id="functionCode" name="functionCode" type="text" />
+                        <br />
+                        <label>功能名称</label><span class="required">*</span>
+                        <br />
+                        <input id="functionName" name="functionName" type="text" />
+                        <br />
+                        <label>上级菜单</label>
+                        <br />
+                        <input id="parentFuncId" name="parentFuncId" type="text" class="select-text" />
+                        <br />
+                        <label>状态</label>
+                        <br />
+                        <input id="functionEnabled" type="checkbox" checked="checked" />
+                        <label for="functionEnabled" class="switch-text">启用</label>
+                    </dd>
+                    <dt>菜单信息</dt>
+                    <dd>
+                        <label>菜单关键字</label>
+                        <br />
+                        <input id="menuKey" name="menuKey" type="text" />
+                        <br />
+                        <label>磁贴大小</label>
+                        <br />
+                        <select id="menuSize" name="menuSize">
+                            <option value="small">小</option>
+                            <option value="medium" selected="selected">中</option>
+                            <option value="wide">宽</option>
+                            <option value="large">大</option>
+                        </select>
+                        <br />
+                        <label>图标</label>
+                        <br />
+                        <input id="menuIcon" name="menuIcon" type="text" style="width:226px" />
+                        <a id="iconUploaderBtn" href="javascript:void(0)" class="image-button button-upload" title="上传" style="vertical-align:top; margin-left:5px;"></a>
+                        <br />
+                        <label>磁贴背景色</label>
+                        <br />
+                        <input id="bgColor" name="bgColor" type="text" value="#123456" />
+                        <br />
+                        <label>菜单URL</label>
+                        <br />
+                        <input id="menuUrl" name="menuUrl" type="text" />
+                        <br />
+                        <label>显示为磁贴</label>
+                        <br />
+                        <input id="isTile" type="checkbox" checked="checked" />
+                        <label for="isTile" class="switch-text">是</label>
+                    </dd>
+                </dl>
+            </form>
+        </div>
+        <input id="menuSave" type="button" class="button background-highlight" style="margin-right:5px;" value="保存" />
+        <input id="menuDelete" type="button" class="button" value="删除" />
+    </div>
+    <div id="menuOrderPanel" class="tab-body" style="overflow:auto"></div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            var codeSpliter = "_";
+            var tabManager = null;
+            @JavascriptCodeHelper.BooleanStatement("isAdminPage", isAdminPage)
+            var pageLogic = window.pageLogic = {
+                init: {
+                    theme: function () {
+                        var setViewColor = function (e, info) {
+                            pageLogic.menuCtrlPanel.hide();
+                        };
+                        ui.themeChanged(setViewColor);
+                    },
+                    beforeCtrls: function () {
+                        tabManager = ui.tab.createTabManager(function(e, index) {
+                            if (index === 0) {
+                                this.tryCallLoadFunc(index, pageLogic.loadMenus, pageLogic);
+                            } else if (index === 1) {
+                                functionCodeManager.reset();
+                                functionCodeManager.fillFirstList();
+                            }
+                        });
+                        tabManager.addTools("funcTool", "funcOrderTool");
+                        this.tab = ui.tab.createTabs({
+                            tabPanelId: "headerTags",
+                            bodyPanelId: "tabBodyPanel"
+                        });
+                        this.tab.changing($.proxy(tabManager.tabChanging, tabManager));
+                        this.tab.changed($.proxy(tabManager.tabChanged, tabManager));
+
+                        //分类折叠表单
+                        $(".fold-panel").foldPanel();
+                        //表单面板
+                        this.menuCtrlPanel =
+                            $("#menuInfo").toCtrlPanel({
+                                parent: "menuPanel",
+                                width: 300
+                            });
+                        this.menuCtrlPanel
+                            .buttonAppend("menuSave")
+                            .buttonAppend("menuDelete");
+                        this.menuCtrlPanel.showed(function () {
+                            if (!pageLogic.uploadIsShow) {
+                                $("#uploadBtn").css("display", "inline-block");
+                                pageLogic.uploadIsShow = true;
+                            }
+                        });
+                        this.menuCtrlPanel.hided(function () {
+                            pageLogic.menuGrid.cancelSelection();
+                        });
+
+                        var gridOption = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: ["Size", "Icon", "BGColor"], text: "图标", len: 61, handler: gridFormatter.iconFormatter },
+                                { column: "FunctionCode", text: "功能编号", len: 120 },
+                                { column: "FunctionName", text: "功能名称", len: 120 },
+                                { column: "MenuKey", text: "菜单关键字", len: 120 },
+                                { column: "Theme", text: "主题", len: 120 },
+                                { column: "Url", text: "Url", len: 240, handler: gridFormatter.urlFormatter },
+                                { column: "IsTile", text: "显示为磁贴", len: 100, align: "center", handler: ui.ColumnStyle.cfnp.getFormatBoolean("是", "否") },
+                                { column: "Enabled", text: "状态", len: 50, align: "center", handler: ui.ColumnStyle.cfnp.getFormatBoolean("启用", "禁用") },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "a",
+                                multiple: false
+                            },
+                            pager: {
+                                disabled: true
+                            }
+                        };
+                        this.menuGrid = $("#menuGrid").setGridview(gridOption);
+                        this.menuGrid.selected(function (e, element, data) {
+                            menuManager.onUpdating(data.rowData);
+                        });
+                        this.menuGrid.deselected(function (e, element, data) {
+                            if (menuManager.isUpdate) {
+                                pageLogic.menuCtrlPanel.hide();
+                            }
+                        });
+                        this.menuGrid.rebind(function (e) {
+                            pageLogic.menuCtrlPanel.hide();
+                        });
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - masterpage.toolbar.height;
+
+                            pageLogic.tab.setBodyHeight(height);
+                            pageLogic.menuGrid.setHeight(height);
+                            pageLogic.menuCtrlPanel.setSizeLocation();
+
+                            functionCodeManager.updateHeight(height);
+
+                            pageLogic.tab.setBodiesLocation();
+                            pageLogic.tab.restore();
+                        });
+                    },
+                    afterCtrls: function () {
+                        //上级菜单
+                        pageLogic.funcTree = $("#parentFuncId").setSelectTree({
+                            multiple: false,
+                            valueField: "FunctionId",
+                            textField: "FunctionName",
+                            parentField: "ParentFuncId",
+                            layoutPanel: $("#menuInfo").parent(),
+                            canSelectNode: true
+                        });
+                        pageLogic.funcTree.selected(formatFunctionCode);
+                        //颜色选择
+                        pageLogic.colorPicker = $("#bgColor").colorPicker();
+                        pageLogic.colorPicker.selected(function (e, color) {
+                            $("#previewTile").css("background-color", color);
+                        });
+
+                        this.functionEnabled = $("#functionEnabled").switchButton();
+                        this.functionEnabled.changed(function() {
+                            if(this.checked()) {
+                                this.switchBox.next().text("启用");
+                            } else {
+                                this.switchBox.next().text("禁用");
+                            }
+                        });
+
+                        this.isTile = $("#isTile").switchButton();
+                        this.isTile.changed(function() {
+                            var tile = $("#previewTile");
+                            if (this.checked()) {
+                                this.switchBox.next().text("是");
+                                tile.css("display", "block");
+                            } else {
+                                this.switchBox.next().text("否");
+                                tile.css("display", "none");
+                            }
+                        });
+
+                        var uploader = $("#iconUploaderBtn").setSimpleUploader({
+                            url: "/File/MenuIconUpload",
+                            filter: "*.png"
+                        });
+                        uploader.uploaded(function(e, fileInfo) {
+                            $("#menuIcon").val(fileInfo.FilePath);
+                            if (pageLogic.isTile.checked()) {
+                                tileManager.updateInner();
+                            }
+                        });
+                        uploader.error(function(e, errorMsg) {
+                            ui.msgshow(errorMsg, true);
+                        });
+
+                        pageLogic.menuValidate = $("#menuForm").setValidate({
+                            rules: {
+                                functionCode: {
+                                    required: true, custom: {
+                                        method: checkFunctionCode
+                                    }
+                                },
+                                functionName: { required: true, maxlength: 50 }
+                            },
+                            messages: {
+                                functionCode: {
+                                    custom: "菜单编号不能重复"
+                                }
+                            }
+                        });
+                    },
+                    events: function () {
+                        $("#menuSize").change(function (e) {
+                            tileManager.updateInner();
+                        });
+
+                        if (isAdminPage) {
+                            $("#queryMenu").click(function (e) {
+                                pageLogic.loadMenus();
+                            });
+                        }
+                        $("#addMenuBtn").click($.proxy(menuManager.onAdding, menuManager));
+                        $("#parentFuncIdClear").click(function (e) {
+                            pageLogic.funcTree.cancelSelection();
+                            $("#functionCode").val(functionCodeManager.getNewFunctionCode());
+                            return false;
+                        });
+                        $("#menuSave").click($.proxy(menuManager.onSave, menuManager));
+                        $("#menuDelete").click($.proxy(menuManager.onDelete, menuManager));
+                        $("#updateMenuBtn").click($.proxy(functionCodeManager.updateFunctionCode, functionCodeManager));
+                    },
+                    loadData: function() {
+                        this.tab.setIndex(0, false);
+                    }
+                },
+
+                loadMenus: function () {
+                    var data = null;
+                    if (isAdminPage) {
+                        data = {
+                            applicationName: $("#apps").val()
+                        };
+                    }
+                    ui.ajax.ajaxPost(
+                        "/Setting/LoadMenus",
+                        data || null,
+                        function (success) {
+                            if (success) {
+                                pageLogic.menuGrid.createGridBody(success);
+                                pageLogic.funcTree.setData(success);
+                            } else {
+                                pageLogic.menuGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载系统菜单失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                createMenu: function (data, callback, caller) {
+                    data = {
+                        menu: data,
+                        applicationName: null
+                    };
+                    if (isAdminPage) {
+                        data.applicationName = $("#apps").val();
+                    }
+                    ui.ajax.ajaxPostOnce(
+                        "menuSave",
+                        "/Setting/CreateMenu",
+                        data,
+                        function (success) {
+                            caller = caller || pageLogic;
+                            if (success.Result) {
+                                callback.call(caller, success.Data);
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("创建菜单失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                updateMenu: function (data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "menuSave",
+                        "/Setting/UpdateMenu",
+                        { menu: data },
+                        function (success) {
+                            if (success.Result) {
+                                caller = caller || pageLogic;
+                                callback.call(caller, success.Data);
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("更新菜单失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                deleteMenu: function (functionId, menuId) {
+                    var data = {
+                        functionId: functionId,
+                        menuId: menuId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Setting/DeleteMenu",
+                        data,
+                        function (success) {
+                            if (success.Result) {
+                                pageLogic.loadMenus();
+                            } else {
+                                ui.msgshow("没有删除任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("删除菜单失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                updateFunctionCode: function (newFunctionCodes) {
+                	var data = {
+                		newFunctionCodes: newFunctionCodes
+                	};
+                	if (isAdminPage) {
+                        data = {
+                            applicationName: $("#apps").val()
+                        };
+                    }
+                	ui.ajax.ajaxPostOnce(
+                        "updateMenuBtn",
+                        "/Setting/UpdateFunctionCode",
+                        data,
+                        function (success) {
+                            if (success.Result) {
+                            	functionCodeManager.reset();
+                                pageLogic.menuGrid.createGridBody(success.Menus);
+                                pageLogic.funcTree.setData(success.Menus);
+                                functionCodeManager.fillFirstList();
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("更新菜单编号失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+            var gridFormatter = {
+                iconFormatter: function (content, columnObj) {
+                    var bgColor = content[2];
+                    var icon = content[1];
+                    var elem = null;
+                    if (typeof bgColor !== "string" || bgColor.length == 0) {
+                        return elem;
+                    }
+                    if (typeof icon !== "string" || icon.length == 0) {
+                        return elem;
+                    }
+                    elem = $("<div class='tile small' />");
+                    elem.css("background-color", content[2]);
+                    var icon = $("<img class='tile-icon-small' />");
+                    icon.prop("src", content[1]);
+                    elem.append(icon);
+                    return elem;
+                },
+                urlFormatter: function (content, columnObj) {
+                    if (!content)
+                        return null;
+                    var a = $("<a target='_blank' />").text(content);
+                    a.prop("href", content);
+                    return a;
+                }
+            };
+
+            var formatFunctionCode = function (e, elem, treeData) {
+                var parentCode = treeData.data.FunctionCode;
+                var code = 0;
+                if ($.isArray(treeData.data.children)) {
+                    code = treeData.data.children.length;
+                }
+                code++;
+                code = parentCode + "_" + ui.str.integerFormat(code, 2);
+                $("#functionCode").val(code);
+
+                this.element.val(treeData.data.FunctionName);
+            };
+
+            var checkFunctionCode = function (value, element) {
+                var flag = true;
+                var i, len;
+                var dataTable = pageLogic.menuGrid.dataTable;
+                var selectData = pageLogic.menuGrid.getCurrentSelection();
+                if (!dataTable) {
+                    return false;
+                }
+                for (i = 0, len = dataTable.length; i < len; i++) {
+                    if (dataTable[i].FunctionCode === value) {
+                        flag = false;
+                        break;
+                    }
+                }
+                if (menuManager.isUpdate) {
+                    return flag || (selectData ? selectData.rowData.FunctionCode == value : false);
+                } else {
+                    return flag;
+                }
+            };
+
+            var tileManager = {
+                defaultIcon: "/Content/icons/settings.png",
+                tileType: {
+                    small: "small",
+                    medium: "medium",
+                    wide: "wide",
+                    large: "large"
+                },
+                tileSize: {
+                    small: { width: 60, height: 60, iconSize: 32 },
+                    medium: { width: 128, height: 128, iconSize: 64 },
+                    wide: { width: 264, height: 128, iconSize: 64 },
+                    large: { width: 264, height: 264, iconSize: 64 }
+                },
+                updateInner: function () {
+                    var tile = $("#previewTile");
+                    for (var key in this.tileType) {
+                        tile.removeClass(key);
+                    }
+
+                    var tmd = {
+                        title: $("#functionName").val() || "title text",
+                        icon: $("#menuIcon").val() || this.defaultIcon,
+                        type: $("#menuSize").val()
+                    };
+                    tile.addClass(tmd.type);
+                    tile.html("");
+
+                    var titleHeight = 24;
+                    var th = 0;
+                    var size = this.tileSize[tmd.type];
+                    //内容显示区
+                    var content = null;
+                    //标题显示区
+                    var title = null;
+                    var span = null;
+                    if (tmd.type !== this.tileType.small) {
+                        content = $("<div class='tile-content'/>");
+                        tile.append(content);
+
+                        title = $("<div class='tile-title'/>");
+                        span = $("<span />");
+                        span.text(tmd.title);
+                        title.append(span);
+                        tile.append(title);
+
+                        if (tmd.icon) {
+                            smallIcon = $("<img class='small-icon' />");
+                            smallIcon.prop("src", tmd.icon);
+                            tile.append(smallIcon);
+                        }
+
+                        th = titleHeight;
+                    } else {
+                        tile.prop("title", tmd.title);
+                    }
+                    //图标显示
+                    var icon = null;
+                    if (tmd.icon) {
+                        icon = $("<img class='tile-icon' />");
+                        icon.prop("src", tmd.icon);
+                        icon.css({
+                            "width": size.iconSize + "px",
+                            "height": size.iconSize + "px",
+                            "left": (size.width - size.iconSize) / 2 + "px",
+                            "top": (size.height - th / 2 - size.iconSize) / 2 + "px"
+                        });
+                        if (content) {
+                            content.append(icon);
+                        } else {
+                            tile.append(icon);
+                        }
+                    }
+                }
+            };
+
+            var menuManager = {
+                formReset: function () {
+                    var color = ui.theme.getCurrentColor();
+                    $("#menuForm")[0].reset();
+                    pageLogic.menuValidate.clearErrorStyle();
+
+                    $("#previewTile").css({
+                        "display": "block",
+                        "background-color": color
+                    });
+                    pageLogic.colorPicker.setColorValue("bgColor", color);
+                    $("#functionCode").val(functionCodeManager.getNewFunctionCode());
+                    pageLogic.funcTree.cancelSelection();
+                    pageLogic.functionEnabled.checked(true);
+                    pageLogic.isTile.checked(true);
+                    tileManager.updateInner();
+                },
+                dataToForm: function (menuData) {
+                    var color = ui.theme.getCurrentColor();
+
+                    $("#functionName").val(menuData.FunctionName);
+                    pageLogic.funcTree.setCurrentSelection({ FunctionId: menuData.ParentFuncId });
+                    $("#functionCode").val(menuData.FunctionCode);
+                    pageLogic.functionEnabled.checked(menuData.Enabled);
+                    $("#menuKey").val(menuData.MenuKey);
+                    $("#theme").val(menuData.Theme);
+                    $("#menuUrl").val(menuData.Url);
+                    pageLogic.isTile.checked(menuData.IsTile);
+                    if (menuData.IsTile) {
+                        $("#menuSize").val(menuData.Size);
+                        $("#previewTile").css("display", "block");
+                    } else {
+                        $("#previewTile").css("display", "none");
+                    }
+                    $("#menuIcon").val(menuData.Icon);
+                    pageLogic.colorPicker.setColorValue($("#bgColor"), menuData.BGColor || color);
+                    tileManager.updateInner();
+                },
+                onAdding: function (e) {
+                    this.formReset();
+
+                    this.isUpdate = false;
+                    pageLogic.menuGrid.cancelSelection();
+                    pageLogic.menuCtrlPanel.show();
+                },
+                onUpdating: function (menuData) {
+                    this.formReset();
+                    this.dataToForm(menuData);
+
+                    this.isUpdate = true;
+                    pageLogic.menuCtrlPanel.show();
+                },
+                onSave: function (e) {
+                    if (!pageLogic.menuValidate.form()) {
+                        return;
+                    }
+                    var data = {
+                        FunctionCode: $("#functionCode").val(),
+                        FunctionName: $("#functionName").val(),
+                        ParentFuncId: null,
+                        Enabled: pageLogic.functionEnabled.checked(),
+                        MenuId: null,
+                        MenuKey: $("#menuKey").val(),
+                        Size: $("#menuSize").val(),
+                        Icon: $("#menuIcon").val() || null,
+                        BGColor: $("#bgColor").val(),
+                        Theme: $("#theme").val(),
+                        Url: $("#menuUrl").val() || null,
+                        IsTile: pageLogic.isTile.checked()
+                    };
+                    var parentData = pageLogic.funcTree.getCurrentSelection();
+                    if (parentData) {
+                        data.ParentFuncId = parentData.FunctionId;
+                    }
+                    if (!data.IsTile) {
+                        data.Size = null;
+                        data.BGColor = null;
+                    }
+                    var row = null;
+                    var callback;
+                    if (this.isUpdate === true) {
+                        row = pageLogic.menuGrid.getCurrentSelection();
+                        data.FunctionId = row.rowData.FunctionId;
+                        data.MenuId = row.rowData.MenuId;
+
+                        callback = function (d) {
+                            pageLogic.loadMenus();
+                            /*
+                            pageLogic.menuGrid.updateRowByIndex(row.rowIndex, d);
+                            pageLogic.funcTree.setData(pageLogic.menuGrid.dataTable);
+                            pageLogic.menuGrid.cancelSelection();
+                            */
+                        };
+                        pageLogic.updateMenu(data, callback, this);
+                    } else {
+                        callback = function (d) {
+                            pageLogic.loadMenus();
+                            /*
+                            pageLogic.menuGrid.insertRow(0, d);
+                            pageLogic.funcTree.setData(pageLogic.menuGrid.dataTable);
+                            this.formReset();
+                            */
+                        };
+                        pageLogic.createMenu(data, callback, this);
+                    }
+                },
+                onDelete: function () {
+                    var row = pageLogic.menuGrid.getCurrentSelection();
+                    if (!row) {
+                        return;
+                    }
+                    if (!window.confirm("是否删除选中的菜单？")) {
+                        return;
+                    }
+                    pageLogic.deleteMenu(row.rowData.FunctionId, row.rowData.MenuId);
+                }
+            };
+
+            var functionCodeManager = {
+                zIndex: 9999,
+                top: 20,
+                left: 20,
+                parentPanel: null,
+                menuList: null,
+                chars: "一二三四五六七八九十",
+                updateMenus: {},
+                getNewFunctionCode: function () {
+                    var treeArr = pageLogic.funcTree.option.data,
+                        code = 0;
+                    if ($.isArray(treeArr)) {
+                        code = treeArr.length;
+                    }
+                    code++;
+                    return ui.str.integerFormat(code, 2);
+                },
+                fillFirstList: function () {
+                    if (!this.menuList) {
+                        this.menuList = [];
+                        this.onMenuItemUp = $.proxy(this.menuItemUp, this);
+                        this.onMenuItemDown = $.proxy(this.menuItemDown, this);
+                        this.parentPanel = $("#menuOrderPanel");
+                        this.createList(0);
+                    }
+
+                    var data = pageLogic.funcTree.option.data;
+                    this.addListItem(0, data);
+                },
+                createList: function (index) {
+                    var panel = $("<div class='menu-order-list' />");
+                    panel.css({
+                        "height": this.panelHeight + "px",
+                        "z-index": this.zIndex--
+                    });
+                    panel.data("index", index);
+
+                    var title = $("<div class='title theme-ctrl-background-color' />");
+                    var up = $("<button class='icon-button theme-ctrl-background-color'><i class='fa fa-arrow-up'></i></button>");
+                    var down = $("<button class='icon-button theme-ctrl-background-color'><i class='fa fa-arrow-down'></i></button>");
+                    up.click(this.onMenuItemUp);
+                    down.click(this.onMenuItemDown);
+                    title.append("<span class='font-highlight'>" + this.chars.charAt(index) + "级菜单</span>");
+                    title.append(up);
+                    title.append(down);
+                    title.append("<div style='clear:right' />");
+
+                    var listPanel = $("<div class='menu-list' />");
+
+                    panel.append(title);
+                    panel.append(listPanel);
+
+                    var obj = {
+                        panel: panel,
+                        list: null,
+                        isShow: false,
+                        isHide: false
+                    };
+                    obj.list = listPanel.setList({
+                        textField: "FunctionName",
+                        width: 200
+                    });
+                    listPanel.css({
+                        "height": (this.panelHeight - 30) + "px"
+                    });
+                    var $this = this;
+                    obj.list.selected(function (e, elem, args) {
+                        var panel = this.listPanel.parent();
+                        $this.show(panel, args.itemData.children);
+                    });
+                    obj.list.deselected(function (e, elem, args) {
+                        var panel = this.listPanel.parent();
+                        $this.hideChildren(panel);
+                    });
+
+                    this.menuList[index] = obj;
+
+                    var prevPanel,
+                        position;
+                    if (index > 0) {
+                        prevPanel = this.menuList[index - 1].panel;
+                        position = prevPanel.position();
+                        panel.css({
+                            "left": position.left + "px"
+                        });
+                    }
+                    this.parentPanel.append(panel);
+                },
+                addListItem: function(index, datalist) {
+                    var i, obj = this.menuList[index];
+                    obj.list.clear();
+                    if (!$.isArray(datalist)) {
+                        return;
+                    }
+                    for (i = 0; i < datalist.length; i++) {
+                        obj.list.add(datalist[i]);
+                    }
+                },
+                updateHeight: function (height) {
+                    this.panelHeight = height - this.left * 2;
+                    if (!this.menuList) {
+                        return;
+                    }
+                    var i, obj;
+                    for (i = 0; i < this.menuList.length; i++) {
+                        obj = this.menuList[i];
+                        obj.list.listPanel.parent().css("height", this.panelHeight + "px");
+                        obj.list.listPanel.css("height", (this.panelHeight - 30) + "px");
+                    }
+                },
+                show: function (panel, data) {
+                    if (!$.isArray(data) || data.length == 0) {
+                        this.hideChildren(panel);
+                        return;
+                    }
+
+                    var index = panel.data("index");
+                    var nextIndex = index + 1;
+                    var obj = this.menuList[nextIndex];
+                    if (!obj) {
+                        this.createList(nextIndex);
+                        obj = this.menuList[nextIndex];
+                        obj.panel.css("display", "none");
+                    }
+
+                    if (obj.isShow) {
+                        this.addListItem(nextIndex, data);
+                        return;
+                    }
+
+                    obj.panel.stop();
+                    obj.isHide = false;
+
+                    obj.isShow = true;
+                    obj.panel.css("display", "block");
+                    var left = panel.position().left + panel.width() + this.left;
+                    var $this = this;
+                    obj.panel.animate({
+                        "left": left + "px"
+                    }, 240, "swing",
+                    function () {
+                        $this.addListItem(nextIndex, data);
+                    });
+                },
+                hideChildren: function(panel) {
+                    var index = panel.data("index");
+                    var i, obj;
+                    for (i = this.menuList.length - 1; i > index; i--) {
+                        obj = this.menuList[i];
+                        if (obj.isShow) {
+                            this.hide(i);
+                        }
+                    }
+                },
+                hide: function (index) {
+                    var obj = this.menuList[index];
+
+                    if (obj.isHide) {
+                        obj.panel.css("display", "none");
+                        return;
+                    }
+
+                    obj.panel.stop();
+                    obj.isShow = false;
+
+                    obj.isHide = true;
+                    var left = this.menuList[--index].panel.position().left;
+                    obj.panel.animate({
+                        "left": left + "px"
+                    }, 240, "swing",
+                    function () {
+                        obj.panel.css("display", "none");
+                    });
+                },
+                menuItemUp: function (e) {
+                    var elem = $(e.target);
+                    if(elem.nodeName() === "I") {
+                        elem = elem.parent();
+                    }
+                    var panel = elem.parent().parent();
+                    var index = panel.data("index");
+                    var obj = this.menuList[index];
+
+                    var item = obj.list.getSelection();
+                    obj.list.moveUp(item.itemData);
+                    this.setUpdateMenu(obj.list);
+                },
+                menuItemDown: function (e) {
+                    var elem = $(e.target);
+                    if(elem.nodeName() === "I") {
+                        elem = elem.parent();
+                    }
+                    var panel = elem.parent().parent();
+                    var index = panel.data("index");
+                    var obj = this.menuList[index];
+
+                    var item = obj.list.getSelection();
+                    obj.list.moveDown(item.itemData);
+                    this.setUpdateMenu(obj.list);
+                },
+                setUpdateMenu: function (list) {
+                    if (!this.updateMenus)
+                        this.updateMenus = {};
+                    var items = list.getAll();
+                    var i, item, code;
+                    for (i = 0; i < items.length; i++) {
+                        item = items[i];
+                        code = this.updateCode(item.FunctionCode, i);
+                        item.FunctionCode = code;
+                        this.updateMenus[item.FunctionId] = code;
+                        this.updateParentCode(code, item.children);
+                    }
+                },
+                updateCode: function (code, i) {
+                    var index = code.lastIndexOf(codeSpliter);
+                    var parentCode = "";
+                    if (index > -1) {
+                        parentCode = code.substring(0, index);
+                        code = code.substring(index + 1);
+                    }
+                    var length = code.length;
+                    code = (i + 1) + "";
+                    for (var j = code.length; j < length; j++) {
+                        code = "0" + code;
+                    }
+                    return parentCode.length > 0 ? parentCode + codeSpliter + code : code;
+                },
+                updateParentCode: function(code, children) {
+                    if (!$.isArray(children) || children.length == 0) {
+                        return;
+                    }
+                    var i, item, childCode, index;
+                    for (i = 0; i < children.length; i++) {
+                        item = children[i];
+                        index = item.FunctionCode.lastIndexOf(codeSpliter);
+                        if (index > -1) {
+                            childCode = item.FunctionCode.substring(index + 1);
+                            childCode = code + codeSpliter + childCode;
+                            item.FunctionCode = childCode;
+                            this.updateMenus[item.FunctionId] = childCode;
+                            this.updateParentCode(childCode, item.children);
+                        }
+                    }
+                },
+                updateFunctionCode: function () {
+                    var updateData = [];
+                    for (var key in this.updateMenus) {
+                        updateData.push([key, this.updateMenus[key]]);
+                    }
+                    if (updateData.length > 0) {
+                        pageLogic.updateFunctionCode(updateData);
+                    }
+                },
+                reset: function () {
+                    this.updateMenus = {};
+                    if (!this.menuList) {
+                        return;
+                    }
+                    var i, item;
+                    for (i = 0; i < this.menuList.length; i++) {
+                        item = this.menuList[i];
+                        item.list.cancelSelection();
+                        if (i == 0) {
+                            continue;
+                        }
+                        item.isShow = false;
+                        item.isHide = false;
+                        item.panel.css({
+                            "display": "none",
+                            "left": this.menuList[i - 1].panel.position().left + "px"
+                        });
+                    }
+                }
+            };
+        })();
+    </script>
+}

@@ -1,0 +1,602 @@
+﻿@{
+    ViewBag.Title = "登录背景图片设置";
+}
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+
+    @this.RegisterCtrls(
+        "button",
+        "flowView",
+        "form",
+        "simpleUploader",
+        "list",
+        "images",
+        "validate"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style type="text/css">
+        .ctrl-form {
+            width: 341px;
+        }
+            .ctrl-form input[type='text'] {
+                width:338px;
+            }
+
+            .ctrl-form select {
+                width:338px;
+            }
+
+            .ctrl-form textarea {
+                width:338px;
+            }
+
+        .ui-list-panel li {
+            height:auto;
+            max-height: 80px;
+            line-height:20px;
+        }
+
+        .image-item {
+            width: 100%;
+            height: auto;
+            position: relative;
+        }
+
+        .image-date {
+            position: absolute;
+            font-weight: bold;
+            color: #FFFFFF;
+            font-size: 16px;
+            width: 60px;
+            height: 30px;
+            right: 10px;
+            top: 5px;
+            text-align: right;
+            filter: alpha(opacity = 70);
+            opacity: .7;
+        }
+
+        .image-name {
+            margin-top: 4px;
+            margin-bottom: 4px;
+            margin-left: 4px;
+            margin-right: 4px;
+            padding: 0px;
+            width: 333px;
+            height: 40px;
+            overflow: hidden;
+            line-height: 1.5em;
+        }
+
+        img.small-image {
+            vertical-align:top;
+            width: 341px;
+            height: 192px;
+            margin:0px;
+            padding:0px;
+        }
+
+        .image-item-edit-button {
+            position: absolute;
+            right: 24px;
+            bottom: 32px;
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-size: 16px;
+            background-color: #000000;
+            filter: alpha(opacity = 60);
+            opacity: .6;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+            .image-item-edit-button:hover {
+                filter: alpha(opacity = 100);
+                opacity: 1;
+            }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul id="imageTool" class="tools" style="float:right;">
+        <li>
+            <button id="addImageBtn" class="tool-button button-highlight">新图片</button>
+        </li>
+        <li>
+            <button id="deleteImageBtn" class="tool-button">删除</button>
+        </li>
+    </ul>
+    <br style="clear:both;" />
+</div>
+
+<div id="imagePanel" class="content-panel" style="position:relative;">
+    <div id="imageView" class="flow-view"></div>
+    <div id="imageInfo" class="ctrl-form">
+        <form id="imageForm">
+            <img id="reviewImage" class="small-image" src="" style="background-color:#666; color:#FFF;" alt="没有图片" />
+            <br />
+            <label>图片名称</label><span class="required">*</span>
+            <br />
+            <input id="imageName" name="imageName" type="text" />
+            <br />
+            <label>图片URL</label>
+            <br />
+            <input id="imageUrl" name="imageUrl" type="text" readonly="readonly" style="width:270px" />
+            <a id="imgUploaderBtn" href="javascript:void(0)" class="image-button button-upload" title="上传" style="vertical-align:top; margin-left:5px;"></a>
+            <br />
+            <label>图片故事</label>
+            <br />
+            <textarea id="discription" name="discription"></textarea>
+            <br />
+            <label>超链接关键字</label>
+            <br />
+            <input id="query" name="query" type="text" />
+            <br />
+            <label>超链接URL</label>
+            <br />
+            <input id="link" name="link" type="text" />
+            <br /><br />
+            <a id="addStory" href="javascript:void(0)" class="image-button button-add" style="margin-bottom: 5px;"></a>
+            <a id="removeStory" href="javascript:void(0)" class="image-button button-minus" style="margin-bottom: 5px; margin-left:5px;"></a>
+            @*<button id="addStory" class="tool-button button-highlight" onclick="return false;">添加</button>
+            <button id="removeStory" class="tool-button" onclick="return false;">移除</button>*@
+            <br />
+            <div id="storyBox"></div>
+        </form>
+    </div>
+    <input id="imageSave" type="button" class="button background-highlight" value="保存" />
+    <input id="imageTop" type="button" class="button" style="margin-right:5px;" value="置顶" />
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        //表单面板
+                        this.imageCtrlPanel =
+                            $("#imageInfo").toCtrlPanel({
+                                parent: "imagePanel", 
+                                width: 380
+                            });
+                        this.imageCtrlPanel
+                            .buttonAppend("imageTop")
+                            .buttonAppend("imageSave");
+                        this.imageCtrlPanel.showed(function () {
+                            if (!pageLogic.uploadIsShow) {
+                                $("#uploadBtn").css("display", "inline-block");
+                                pageLogic.uploadIsShow = true;
+                            }
+                        });
+                        this.imageCtrlPanel.hided(function () {
+                            pageLogic.imageView.cancelSelection();
+                        });
+
+                        this.imageView = $("#imageView").setFlowView({
+                            itemWidth: 341,
+                            itemHeight: 240,
+                            renderItem: gridFormatter.renderImageItem,
+                            pager: {
+                                pageIndex: 1,
+                                pageSize: 15
+                            }
+                        });
+                        this.imageView.selecting(function (e, element, data) {
+                            var source = $(element.context);
+                            if(source.nodeName() === "I") {
+                                source = source.parent();
+                            }
+                            if (!source.hasClass("image-item-edit-button")) {
+                                pageLogic.imageZoomer.show(element.find("img"));
+                                return false;
+                            }
+                        });
+                        this.imageView.selected(function (e, element, data) {
+                            imageManager.onUpdating(data.itemData);
+                        });
+                        this.imageView.deselected(function (e, element, data) {
+                            if (imageManager.isUpdate) {
+                                pageLogic.imageCtrlPanel.hide();
+                            }
+                        });
+                        this.imageView.rebind(function (e) {
+                            pageLogic.imageCtrlPanel.hide();
+                        });
+                        this.imageView.pageTurning(function(e, pageIndex, pageSize) {
+                            pageLogic.loadImages(pageIndex);
+                        });
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40;
+
+                            pageLogic.imageView.setHeight(height);
+                            pageLogic.imageCtrlPanel.setSizeLocation();
+                        });
+                    },
+                    afterCtrls: function () {
+                        this.imageZoomer = ui.images.createImageZoomer({
+                            getNext: function (val) {
+                                var img = this.target;
+                                var item = img.parent().parent();
+
+                                if (val > 0) {
+                                    item = item.next();
+                                } else {
+                                    item = item.prev();
+                                }
+                                if (item.length == 0) {
+                                    return false;
+                                }
+
+                                return item.children(".image-item").children("img");
+                            },
+                            onNext: function () {
+                                return this.option.getNext.call(this, 1) || null;
+                            },
+                            onPrev: function () {
+                                return this.option.getNext.call(this, -1) || null;
+                            },
+                            hasNext: function () {
+                                return !!this.option.getNext.call(this, 1);
+                            },
+                            hasPrev: function () {
+                                return !!this.option.getNext.call(this, -1);
+                            }
+                        });
+                        this.imageZoomer.hided(function(e) {
+                            pageLogic.imageView.cancelSelection();
+                        });
+
+                        var uploader = $("#imgUploaderBtn").setSimpleUploader({
+                            url: "/File/LoginImageUpload",
+                            filter: "*.jpg"
+                        });
+                        uploader.uploaded(function(e, fileInfo) {
+                            $("#imageUrl").val(fileInfo.FilePath);
+                            $("#reviewImage").prop("src", fileInfo.FilePath);
+                        });
+                        uploader.error(function(e, errorMsg) {
+                            ui.msgshow(errorMsg, true);
+                        });
+
+                        var storyBox = pageLogic.storyBox =
+                            $("#storyBox").setList({
+                                width: 338,
+                                formatText: storyManger.storyFormatText
+                            });
+
+                        pageLogic.imageValidate = $("#imageForm").setValidate({
+                            rules: {
+                                imageName: { required: true }
+                            }
+                        });
+                    },
+                    events: function () {
+                        $("#addImageBtn").click($.proxy(imageManager.onAdding, imageManager));
+                        $("#deleteImageBtn").click(imageManager.onDelete);
+                        $("#imageTop").click(function (e) {
+                            imageManager.onSetTop();
+                        });
+                        $("#imageSave").click($.proxy(imageManager.onSave, imageManager));
+
+                        $("#addStory").click(storyManger.addStoryClick);
+                        $("#removeStory").click(storyManger.removeStoryClick);
+                    },
+                    loadData: function() {
+                        this.loadImages();
+                    }
+                },
+
+                loadImages: function () {
+                    if(arguments.length == 0) {
+                        pageLogic.imageView.pageIndex = 1;
+                    }
+                    var data = {
+                        pageIndex: pageLogic.imageView.pageIndex,
+                        pageSize: pageLogic.imageView.pageSize
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Setting/QueryImages",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success) {
+                                pageLogic.imageView.fill(success.Result, success.RowCount);
+                            } else {
+                                pageLogic.imageView.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载登录图片失败，" + error.message, true);
+                        }
+                    );
+                },
+                saveImages: function (data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "imageSave",
+                        "/Setting/SaveImage",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success && success.Result) {
+                                caller = caller || pageLogic;
+                                callback.call(caller, success.Data);
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("保存图片失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                setTop: function (imageId, callback, caller) {
+                    var data = {
+                        imageId: imageId
+                    };
+                    ui.ajax.ajaxPostOnce(
+                        "imageTop",
+                        "/Setting/SetTop",
+                        JSON.stringify(data),
+                        function (success) {
+                            caller = caller || pageLogic;
+                            if (success && success.Result) {
+                                callback.call(caller);
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("图片置顶失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                deleteImages: function (data) {
+                    ui.ajax.ajaxPost(
+                        "/Setting/DeleteImages",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success && success.Result) {
+                                pageLogic.loadImages(
+                                    pageLogic.imageView.pageIndex);
+                            } else {
+                                ui.msgshow("没有删除任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("删除图片失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+            var gridFormatter = {
+                renderImageItem: function (item, index) {
+                    var imgItem = $("<div class='image-item' />");
+                    var img = $("<img alt='' class='small-image' />");
+                    img.prop("src", "data:image/jpg;base64," + item.ImageData);
+                    img.addImageZoomer(pageLogic.imageZoomer);
+                    imgItem.append(img);
+
+                    var dateText = ui.str.dateFormat(ui.str.jsonToDate(item.EndDate), "MM/dd");
+                    dateText = $("<div class='image-date'>" + dateText + "</div>");
+                    imgItem.append(dateText);
+
+                    var text = $("<p class='image-name' />");
+                    text.text(item.ImageName);
+
+                    var editButton = $("<a class='image-item-edit-button background-highlight' />");
+                    editButton.append("<i class='fa fa-pencil'></i>");
+
+                    return [imgItem, text, editButton];
+                },
+                imageFormatter: function (content, columnObj) {
+                    var elem = $("<img alt='' />");
+                    elem.addClass("small-image");
+                    elem.prop("src", "data:image/jpg;base64," + content);
+                    return elem;
+                },
+                hotspotsFormatter: function (content, columnObj, index) {
+                    var elem = $("<p />");
+                    var hotspots = null;
+                    try {
+                        hotspots = $.parseJSON(content);
+                    } catch(error) {
+                        return elem;
+                    }
+                    if (!hotspots) {
+                        return elem;
+                    }
+                    
+                    var i, info, textArr = [];
+                    for (i = 0; i < hotspots.length; i++) {
+                        info = hotspots[i];
+                        if (info.Discription) {
+                            textArr.push(info.Discription);
+                        }
+                        if (info.Link) {
+                            textArr.push("<a href=\"", info.Link, "\" target=\"_blank\">", info.Query, "</a>");
+                        }
+                        textArr.push("<br />");
+                    }
+                    elem.html(textArr.join(""));
+                    return elem;
+                },
+                topOption: function (content, columnObj) {
+                    var elem = $("<a class='link-button'>置顶</a>");
+                    elem.data("imageId", content);
+                    elem.click(function (e) {
+                        var el = $(e.target);
+                        var imageId = el.data("imageId");
+                        alert(imageId);
+                    });
+                    return elem;
+                }
+            };
+
+            var storyManger = {
+                storyFormatText: function(item, index) {
+                    var elem = $("<p />");
+                    var textArr = [];
+                    if (item.Discription) {
+                        textArr.push(item.Discription);
+                    }
+                    if (item.Link) {
+                        textArr.push("<a href=\"", item.Link, "\" target=\"_blank\">", item.Query, "</a>");
+                    }
+                    elem.html(textArr.join(""));
+                    return elem;
+                },
+                addStoryClick: function () {
+                    var discription = $("#discription"),
+                        link = $("#link"),
+                        query = $("#query");
+                    var story = {
+                        Discription: discription.val(),
+                        Link: link.val(),
+                        Query: query.val()
+                    };
+                    if (story.Discription.length == 0) {
+                        return;
+                    }
+
+                    pageLogic.storyBox.add(story);
+                    if (pageLogic.storyBox.count() >= 4) {
+                        $("#addStory").prop("disabled", true);
+                    }
+                    discription.val("");
+                    link.val("");
+                    query.val("");
+                },
+                removeStoryClick: function () {
+                    var data = pageLogic.storyBox.getSelection();
+                    if (!data) {
+                        return;
+                    }
+                    pageLogic.storyBox.removeAt(data.index);
+                    if (pageLogic.storyBox.count() < 4) {
+                        $("#addStory").prop("disabled", false);
+                    }
+                }
+            };
+
+            var imageManager = {
+                formReset: function() {
+                    $("#imageForm")[0].reset();
+                    $("#reviewImage").prop("src", "");
+                    pageLogic.storyBox.clear();
+                },
+                dataToForm: function (data) {
+                    $("#imageForm")[0].reset();
+                    $("#reviewImage").prop("src", "data:image/jpg;base64," + data.ImageData);
+                    $("#imageName").val(data.ImageName);
+                    pageLogic.storyBox.clear();
+                    var hotspots;
+                    try {
+                        hotspots = JSON.parse(data.Hotspots);
+                    } catch (error) {
+                        hotspots = null;
+                    }
+                    var i;
+                    if (hotspots && hotspots.length > 0) {
+                        for (i = 0; i < hotspots.length; i++) {
+                            pageLogic.storyBox.add(hotspots[i]);
+                        }
+                    }
+                },
+                onAdding: function (e) {
+                    this.formReset();
+
+                    this.isUpdate = false;
+                    pageLogic.imageView.cancelSelection();
+                    pageLogic.imageCtrlPanel.show();
+                },
+                onUpdating: function (data) {
+                    this.dataToForm(data);
+
+                    this.isUpdate = true;
+                    pageLogic.imageCtrlPanel.show();
+                },
+                onSave: function (e) {
+                    if (!pageLogic.imageValidate.form()) {
+                        return;
+                    }
+                    var data = {
+                        ImageName: $("#imageName").val(),
+                        ImageUrl: $("#imageUrl").val()
+                    };
+                    var storys = pageLogic.storyBox.getAll();
+                    if (storys.length > 0) {
+                        data.Hotspots = JSON.stringify(storys);
+                    }
+                    var row = null;
+                    var callback;
+                    if (this.isUpdate) {
+                        row = pageLogic.imageView.getCurrentSelection();
+                        data.BingImageId = row.rowData.BingImageId;
+                        data.StartDate = row.rowData.StartDate;
+                        data.EndDate = row.rowData.EndDate;
+
+                        callback = function (d) {
+                            if (!d.ImageData) {
+                                d.ImageData = row.rowData.ImageData;
+                            }
+                            pageLogic.imageView.updateRowByIndex(row.rowIndex, d);
+                            pageLogic.imageView.cancelSelection();
+                        };
+                    } else {
+                        if (data.ImageUrl.length == 0) {
+                            ui.msgshow("还没有上传图片！");
+                            return;
+                        }
+                        data.StartDate = ui.str.dateFormat(new Date(), "yyyy-MM-dd hh:mm:ss");
+                        data.EndDate = data.StartDate;
+
+                        callback = function (d) {
+                            pageLogic.imageView.insertRow(0, d);
+                            this.formReset();
+                        };
+                    }
+                    pageLogic.saveImages(data, callback, this);
+                },
+                onSetTop: function () {
+                    var row = pageLogic.imageView.getCurrentSelection();
+                    var imageId, 
+                        callback;
+                    if (row) {
+                        imageId = row.rowData.BingImageId;
+                        callback = function () {
+                            pageLogic.imageView.removeRowByIndex(row.rowIndex);
+                            pageLogic.imageView.insertRow(0, row.rowData);
+                            pageLogic.imageCtrlPanel.hide();
+                        };
+                        pageLogic.setTop(imageId, callback, this);
+                    }
+                },
+                onDelete: function () {
+                    var imageIdList = pageLogic.imageView.getSelectedValue();
+                    if (imageIdList.length == 0) {
+                        ui.msgshow("您还没有勾选要删除的图片");
+                        return;
+                    }
+                    if (!window.confirm("确定要删除勾选的登录图片吗？")) {
+                        return;
+                    }
+                    pageLogic.deleteImages(imageIdList);
+                }
+            };
+        })();
+    </script>
+}

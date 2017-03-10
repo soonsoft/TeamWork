@@ -1,0 +1,576 @@
+﻿@using STIM.Modules.Widget
+@{
+    ViewBag.Title = "系统登录";
+    Layout = null;
+    LoginImage image = ViewData["Image"] as LoginImage;
+    string infoData = "[]";
+    string imageName = String.Empty;
+    if (image != null)
+    {
+        infoData = image.Hotspots;
+        imageName = image.ImageName;
+    }
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=pixel_value" />
+    <meta name="viewport" content="height=pixel_value" />
+    <title>@ViewBag.Title</title>
+    <link href="/Content/Site.css" rel="stylesheet" />
+    <style type="text/css">
+        body {
+            color: #ffffff;
+            background-color: #585858;
+        }
+
+        input[type='text'], input[type='password'] {
+            height: 24px;
+            border: none 0px;
+            width: 200px;
+            background-color: #BFBFBF;
+        }
+
+            input[type='text']:focus, input[type='password']:focus {
+                background-color: #E6E5E5;
+                color: #000000;
+                text-decoration: none;
+            }
+
+        #loginPanel {
+            position: absolute;
+            background-color: #9eacb3;
+            border: 1px solid #D0D9DD;
+        }
+
+            #loginPanel img.bgImage {
+                position: absolute;
+                left: 0px;
+                top: 0px;
+            }
+
+            #loginPanel div.dynamicBG {
+                position: absolute;
+                left: 0px;
+                top: 0px;
+                width: 100%;
+                height: 100%;
+            }
+
+
+        div#loginForm {
+            position: absolute;
+            top: 0px;
+            bottom: 0px;
+            left: 0px;
+            width: 30%;
+        }
+
+        div.panel-background {
+            position: absolute;
+            width: 100%;
+            top: 0px;
+            bottom: 0px;
+            background-color: #000000;
+            filter: Alpha(opacity=40);
+            opacity: 0.4;
+        }
+
+        div.panel-content {
+            position: absolute;
+            width: 100%;
+            top: 0px;
+            bottom: 0px;
+            overflow: hidden;
+        }
+
+        #loginPanel div.text-shadow {
+            position: absolute;
+            left: 0px;
+            bottom: 0px;
+            right: 0px;
+            height: 123px;
+            background-image: url(/Content/images/loginwt.png);
+            background-position: 0px -85px;
+            background-repeat: repeat-x;
+        }
+
+        #loginPanel div.logo {
+            width: 153px;
+            height: 85px;
+            margin-top: 94px;
+            margin-left: auto;
+            margin-right: auto;
+            background-image: url(/Content/images/loginwt.png);
+            background-position: 0px 0px;
+            background-repeat: no-repeat;
+        }
+
+        #loginPanel div.form-content {
+            bottom: 65px;
+            width: 200px;
+            margin-top: 50%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+            #loginPanel div.form-content span {
+                line-height: 22px;
+            }
+
+            #loginPanel div.form-content .button-panel {
+                width: 100%;
+                text-align: right;
+                margin-top: 22px;
+            }
+
+        #loginPanel div.image-name {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            width: auto;
+            height: auto;
+            font-size: 1.25em;
+        }
+
+        #loginPanel div.tip {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            filter: Alpha(opacity=0);
+            opacity: 0;
+            background-color: #000000;
+            border: 1px solid #FFFFFF;
+        }
+
+        #loginPanel #hotspot {
+            position: absolute;
+            width: 240px;
+            height: auto;
+            display: none;
+            filter: Alpha(opacity=0);
+            opacity: 0;
+        }
+
+            #loginPanel #hotspot p {
+                position: relative;
+                top: 0px;
+                left: 0px;
+                z-index: 102;
+                padding: 10px;
+                margin: 0px;
+                color: #BBBBBB;
+            }
+
+                #loginPanel #hotspot p a {
+                    color: #FFFFFF;
+                    text-decoration: underline;
+                }
+
+            #loginPanel #hotspot div {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                right: 0px;
+                bottom: 0px;
+                z-index: 100;
+                background-color: #000000;
+                filter: Alpha(opacity=60);
+                opacity: 0.6;
+                border: 1px solid #FFFFFF;
+            }
+    </style>
+    <link href="/Content/themes/metro.color/ui.metro.Default.css" rel="stylesheet" />
+
+    <script type="text/javascript" src="/Scripts/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="/Scripts/UI/ui.core.js"></script>
+    <script type="text/javascript" src="/Scripts/Page/ui.messagebox.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $("#username").focus();
+
+            @JavascriptCodeHelper.StringStatement("errorMessage", (string)ViewData["ErrorInfo"])
+            if (errorMessage) {
+                ui.msgshow(errorMessage);
+            }
+
+            window.changeWidth = 1440;
+            window.changeHeight = 960;
+
+            window.smallWidth = 958;
+            window.smallHeight = 512;
+            window.bigWidth = 1366;
+            window.bigHeight = 768;
+
+            imageInfo.hotspot = $("#hotspot");
+            imageInfo.init();
+            var resizeFunc = function () {
+                var width = ui.core.root.clientWidth;
+                var height = ui.core.root.clientHeight;
+                var flag = false;
+                if (width < changeWidth && height < changeHeight) {
+                    if (imageInfo.panelWidth !== smallWidth || imageInfo.panelHeight !== smallHeight) {
+                        imageInfo.panelWidth = smallWidth;
+                        imageInfo.panelHeight = smallHeight;
+                        flag = true;
+                    }
+                } else {
+                    if (imageInfo.panelWidth !== bigWidth || imageInfo.panelHeight !== bigHeight) {
+                        imageInfo.panelWidth = bigWidth;
+                        imageInfo.panelHeight = bigHeight;
+                        flag = true;
+                    }
+                }
+                imageInfo.clientWidth = width;
+                imageInfo.clientHeight = height;
+                imageInfo.setLoginPanelLocation();
+                if (arguments[0] || flag) {
+                    imageInfo.setLoginPanelSize();
+                    imageInfo.initTips();
+                }
+            };
+            window.onresize = resizeFunc;
+            resizeFunc(true);
+
+            if ("@(imageName)" === "璀璨") {
+                window.imageInfo.dynamicBackground();
+            }
+
+            if (hotspots.length == 0) {
+                return;
+            }
+
+            setTimeout(function () {
+                imageInfo.tipsShow(function () {
+                    var $this = this;
+                    setTimeout(function () {
+                        $this.tipsHide();
+                    }, 3000);
+                });
+            }, 1000);
+
+            imageInfo.initMouseMove();
+            imageInfo.initTipsLogic();
+            imageInfo.initHotspotLogic();
+        });
+    </script>
+</head>
+<body>
+    <div id="loginPanel">
+        <img class="bgImage" src="/Account/BGImage" alt="@imageName" />
+        <div class="dynamicBG" id="dynamicBG"></div>
+        <div class="text-shadow"></div>
+        <div class="image-name">@imageName</div>
+        <div id="loginForm">
+            <div class="panel-background"></div>
+            <div class="panel-content">
+                <div class="logo"></div>
+                <div class="form-content">
+                    @using (Html.BeginForm("Login", "Account", new { returnUrl = ViewBag.ReturnUrl }, FormMethod.Post))
+                    {
+                        <span>用户名:</span><br />
+                        <input class="input-text" type="text" id="username" name="username" />
+                        <span>密码:</span><br />
+                        <input class="input-text" type="password" id="password" name="password" />
+                        <div class="button-panel">
+                            <input class="button background-highlight" type="submit" value="登录" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div id="hotspot">
+            <p></p>
+            <div></div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        @JavascriptCodeHelper.RegisterToMvcPage("window.hotspots", infoData, false)
+        ; (function () {
+            if (!window.hotspots) {
+                window.hotspots = [];
+            }
+            var imageInfo = window.imageInfo = {
+                init: function () {
+                    this.loginPanel = $("#loginPanel");
+                    this.loginForm = $("#loginForm");
+                    this.bgImg = this.loginPanel.find(".bgImage");
+                },
+                setLoginPanelLocation: function () {
+                    var left = (this.clientWidth - this.panelWidth) / 2,
+                        top = (this.clientHeight - this.panelHeight) / 2;
+                    if (left < 0) {
+                        left = 0;
+                    }
+                    this.loginPanel.css({
+                        "top": top + "px",
+                        "left": left + "px"
+                    });
+                },
+                setLoginPanelSize: function () {
+                    this.loginPanel.css({
+                        "width": this.panelWidth + "px",
+                        "height": this.panelHeight + "px"
+                    });
+                    this.bgImg.css({
+                        "width": this.panelWidth + "px",
+                        "height": this.panelHeight + "px"
+                    });
+                    this.startLeft = parseInt(this.clientWidth * 0.3, 10);
+                },
+                initTips: function () {
+                    this.tipSize = 34;
+                    var margin = 30,
+                        startLeft = this.startLeft + margin,
+                        startTop = 30 + margin;
+                    var maxLeft = this.panelWidth - startLeft - margin * 2 - this.tipSize,
+                        maxTop = this.panelHeight - startTop - margin * 2 - this.tipSize;
+                    var i = 0;
+                    var tips, tip = null;
+                    var top = 0, left = 0;
+                    var locVals = [];
+                    var check = function (t, l) {
+                        var j = 0, t1 = 0, l1 = 0;
+                        for (j = 0; j < locVals.length; j += 2) {
+                            t1 = locVals[j];
+                            l1 = locVals[j + 1];
+                            if (Math.abs(t1 - t) < 64 && Math.abs(l1 - l) < 64)
+                                return true;
+                        }
+                        return false;
+                    };
+                    if (!this.tips) {
+                        this.tips = $();
+                        for (i = 0; i < hotspots.length; i++) {
+                            this.tips.push($("<div class='tip'></div>").get(0));
+                        }
+                        $("#loginPanel").append(this.tips);
+                    }
+                    for (i = 0; i < this.tips.length; i++) {
+                        do {
+                            top = startTop + parseInt(maxTop * Math.random());
+                            left = startLeft + parseInt(maxLeft * Math.random());
+                        } while (check(top, left));
+                        locVals.push(top);
+                        locVals.push(left);
+                        $(this.tips[i]).css({
+                            "top": top + "px",
+                            "left": left + "px"
+                        });
+                    }
+                },
+                initMouseMove: function () {
+                    var mousemoveFunc = function (e) {
+                        if (this.mousemoveDisabled)
+                            return;
+                        if (!this.mousemoveBegin) {
+                            this.mousemoveBegin = true;
+
+                            var start = this.getCurrentOpacity(this.tips);
+                            this.tipsShow(function () {
+                                var $this = this;
+                                setTimeout(function () {
+                                    if (!$this.mousemoveDisabled) {
+                                        $this.tipsHide();
+                                    }
+                                }, 3000);
+                            }, this.tips, start);
+                        }
+                    };
+                    $(document).bind("mousemove", $.proxy(mousemoveFunc, this));
+                },
+                initTipsLogic: function () {
+                    var mouseoverFunc = function (e) {
+                        this.mousemoveDisabled = true;
+                        var newTips = jQuery(),
+                            spotIndex,
+                            overTip = $(e.target),
+                            curr;
+                        var tip = null;
+                        for (var i = 0; i < this.tips.length; i++) {
+                            tip = this.tips[i];
+                            if (e.target == tip) {
+                                spotIndex = i;
+                                continue;
+                            }
+                            newTips.push(tip);
+                        }
+                        curr = this.getCurrentOpacity(overTip);
+                        if (curr < 40)
+                            this.setElementOpacity(curr, 40 - curr, 40, overTip);
+                        this.tipsHide(undefined, newTips);
+                        this.newTips = newTips;
+                        this.initHotspot($(e.target), spotIndex);
+                        this.hotspotShow();
+
+                    };
+                    var mouseoutFunc = function (e) {
+                        var newTips = this.newTips;
+                        this.tipsShow(function () {
+                            this.mousemoveDisabled = false;
+                        }, newTips);
+                        $this.hotspotHide();
+                    };
+                    this.tips.bind("mouseover", $.proxy(mouseoverFunc, this));
+                    this.tips.bind("mouseout", $.proxy(mouseoutFunc, this));
+                },
+                initHotspotLogic: function () {
+                    var mouseoverFunc = function (e) {
+                        this.mousemoveDisabled = true;
+                        this.tipsHide(undefined, this.newTips);
+                        this.hotspotShow();
+                    };
+                    var mouseoutFunc = function (e) {
+                        var newTips = this.newTips;
+                        this.tipsShow(function () {
+                            this.mousemoveDisabled = false;
+                        }, newTips);
+                        this.hotspotHide();
+                    };
+                    this.hotspot.bind("mouseover", $.proxy(mouseoverFunc, this));
+                    this.hotspot.bind("mouseout", $.proxy(mouseoutFunc, this));
+                },
+                stop: function (handlerName) {
+                    if (this[handlerName]) {
+                        clearInterval(this[handlerName]);
+                        this[handlerName] = undefined;
+                    }
+                },
+                mousemoveBegin: false,
+                mousemoveDisabled: false,
+                setElementOpacity: function (start, step, stop, tips) {
+                    start += step;
+                    var flag = (step > 0) ? start <= stop : start >= stop;
+                    if (flag) {
+                        var css = {
+                            "filter": "Alpha(opacity=" + start + ")",
+                            "opacity": start / 100
+                        };
+                        tips.css(css);
+                    }
+                    return start;
+                },
+                getCurrentOpacity: function (element) {
+                    var start = element.css("opacity");
+                    start = parseFloat(start, 10);
+                    if (isNaN(start))
+                        start = 0;
+                    return parseInt(start * 100);
+                },
+                tipsShow: function (callback, element, start) {
+                    this.stop("tipsShowHandler");
+                    this.stop("tipsHideHandler");
+                    var tips = element || this.tips;
+                    start = start || this.getCurrentOpacity(tips),
+                    stop = 40,
+                    step = 2,
+                    $this = this;
+                    this.tipsShowHandler = setInterval(function () {
+                        start = $this.setElementOpacity(start, step, stop, tips);
+                        if (start >= stop) {
+                            $this.stop("tipsShowHandler");
+                            if (callback)
+                                callback.apply($this);
+                        }
+                    }, 10);
+                },
+                tipsHide: function (callback, element, start) {
+                    this.stop("tipsShowHandler");
+                    this.stop("tipsHideHandler");
+                    this.mousemoveBegin = false;
+
+                    var tips = element || this.tips;
+                    start = start || this.getCurrentOpacity(tips),
+                    stop = 0,
+                    step = -2,
+                    $this = this;
+                    this.tipsHideHandler = setInterval(function () {
+                        start = $this.setElementOpacity(start, step, stop, tips);
+                        if (start <= stop) {
+                            $this.stop("tipsHideHandler");
+                            if (callback)
+                                callback.apply($this);
+                        }
+                    }, 10);
+                },
+                initHotspot: function (target, index) {
+                    var hotspot = this.hotspot,
+                        info = hotspots[index];
+                    if (!info) {
+                        return;
+                    }
+                    var htmlText = [info.Discription];
+                    if (info.Link && info.Query) {
+                        htmlText.push("<a href=\"", info.Link, "\" target=\"_blank\">", info.Query, "</a>");
+                    }
+                    hotspot.find("p").html(htmlText.join(""));
+                    hotspot.css("display", "block");
+
+                    var top = parseFloat(target.css("top"), 10),
+                        left = parseFloat(target.css("left"), 10) + this.tipSize,
+                        width = hotspot[0].offsetWidth,
+                        height = hotspot[0].offsetHeight;
+                    if (top + height > this.panelHeight)
+                        top = top + height - this.tipSize;
+                    if (left + width > this.panelWidth)
+                        left = left - this.tipSize - width;
+                    hotspot.css({
+                        "top": top + "px",
+                        "left": left + "px"
+                    });
+                },
+                hotspotShow: function (target, index) {
+                    this.stop("hotspotShowHandler");
+                    this.stop("hotspotHideHandler");
+                    var start = this.getCurrentOpacity(this.hotspot),
+                        stop = 100,
+                        step = 4,
+                        $this = this;
+                    this.hotspotShowHandler = setInterval(function () {
+                        start = $this.setElementOpacity(start, step, stop, $this.hotspot);
+                        if (start >= stop) {
+                            $this.stop("hotspotShowHandler");
+                        }
+                    }, 15);
+                },
+                hotspotHide: function () {
+                    this.stop("hotspotShowHandler");
+                    this.stop("hotspotHideHandler");
+                    var start = this.getCurrentOpacity(this.hotspot),
+                        stop = 0,
+                        step = -4,
+                        $this = this;
+                    this.hotspotHideHandler = setInterval(function () {
+                        start = $this.setElementOpacity(start, step, stop, $this.hotspot);
+                        if (start <= stop) {
+                            $this.hotspot.css("display", "none");
+                            $this.stop("hotspotHideHandler");
+                        }
+                    }, 15);
+                }
+            };
+        })();
+
+        (function () {
+            window.imageInfo.dynamicBackground = function () {
+                if (ui.core.isSupportCanvas()) {
+                    if (ui.core.isSupportCanvas()) {
+                        $.getScript("/Scripts/UI/ui.effect.js", function () {
+                            var dynamicDiv = $("#dynamicBG"),
+                                canvas = $("<canvas style='width:100%; height: 100%' />");
+                            dynamicDiv.append(canvas);
+                            imageInfo.brilliant = ui.createEffects(canvas, "brilliant", {
+                                lightColor: "#3E5A99",
+                                darkColor: "#19243D"
+                            });
+                            imageInfo.brilliant.start();
+                        });
+                    }
+                }
+            };
+        })();
+
+    </script>
+</body>
+</html>

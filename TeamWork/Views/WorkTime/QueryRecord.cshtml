@@ -1,0 +1,292 @@
+﻿
+@{
+    ViewBag.Title = "工时查询";
+}
+
+@section scriptslink {
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "dateChooser",
+        "selectionList",
+        "selectionTree"
+    )
+}
+
+@section styles {
+    <style type="text/css">
+        .toolbar input, select {
+            width: 100px;
+        }
+
+        .toolbar .toolbar-extend .extend-spliter {
+            height: 64px;
+            margin-top: 8px;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar" style="min-width:1000px;">
+    <ul class="tools">
+        <li>
+            <a id="EmployeeId" class="tool-text-button font-highlight" href="javascript:void(0)">
+                <span>选择员工</span>
+                <i class="fa fa-angle-down"></i>
+            </a>
+        </li>
+    </ul>
+    <div class="toolbar-extend" style="height:80px;">
+        <ul class="tools">
+            <li>
+                <span>项目:</span>
+                <input id="ProjectId" type="text" style="width:160px;" class="select-text" />
+                <br />
+                <span>阶段:</span>
+                <input id="StageId" type="text" style="width:160px;" class="select-text" />
+            </li>
+            <li>
+                <hr class="extend-spliter" />
+            </li>
+            <li>
+                <span>登记时间</span>
+                <input id="startTime" type="text" class="date-text" />
+                ~
+                <input id="endTime" type="text" class="date-text" />
+            </li>
+            <li>
+                <hr class="extend-spliter" />
+            </li>
+            <li>
+                <button id="queryBtn" class="tool-button button-highlight">
+                    <i class="fa fa-search"></i><span>查询</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+</div>
+<div id="workTimeGrid" class="grid-view"></div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+    ; (function () {
+        @JavascriptCodeHelper.JsonStatement("allStages", ViewBag.Stages)
+        @JavascriptCodeHelper.JsonStatement("allProjects", ViewBag.Projects)
+        @JavascriptCodeHelper.JsonStatement("allEmployees", ViewBag.Employees)
+
+        (function () {
+            var i = 0,
+                item = null,
+                stageDict = {};
+            for (; i < allStages.length; i++) {
+                item = allStages[i];
+                if (!stageDict.hasOwnProperty(item.ProjectId)) {
+                    stageDict[item.ProjectId] = [];
+                }
+                stageDict[item.ProjectId].push(item);
+            }
+            allStages = stageDict;
+        })();
+
+        var pageLogic = window.pageLogic = {
+            init: {
+                beforeCtrls: function () {
+                    masterpage.initToolbar("toolbar");
+
+                    var gridOption = {
+                        columns: [
+                            { text: "", column: "RowNumber", len: 40, align: "right", formatter: ui.ColumnStyle.cfn.rowNumber },
+                            { column: "EmployeeName", text: "姓名", len: 80 },
+                            { column: "AttendanceTypeName", text: "出勤类型", len: 70 },
+                            { column: ["BeginTime", "EndTime"], text: "时间", align: "center", len: 200, formatter: formatter.formatTime },
+                            { column: "Hour", text: "耗时", align: "right", len: 60, formatter: ui.ColumnStyle.cfnp.getFormatNumber(1) },
+                            { column: "ProjectName", text: "所属项目", len: 320, formatter: ui.ColumnStyle.cfn.formatParagraph },
+                            { column: "StageName", text: "所属阶段", len: 160 },
+                            { column: "Approved", text: "确认结果", align: "center", len: 80, formatter: ui.ColumnStyle.cfnp.getFormatBoolean("已确认", "未确认") },
+                            { column: "JobContent", text: "工作内容", len: 400, formatter: formatter.jobContent },
+                            { text: "", handler: ui.ColumnStyle.cfn.empty }
+                        ],
+                        selection: {
+                            type: "disabled"
+                        },
+                        pager: {
+                            pageIndex: 1,
+                            pageSize: 100
+                        }
+                    };
+                    var workTimeGrid = pageLogic.workTimeGrid = $("#workTimeGrid").setGridview(gridOption);
+                    workTimeGrid.pageTurning(function (e, pageIndex, pageSize) {
+                        pageLogic.loadWorkTime();
+                    })
+                },
+                layout: function () {
+                    masterpage.resize(function () {
+                        //40 是toolbar的高度
+                        var height = masterpage.contentBodyHeight - masterpage.toolbar.height;
+                        pageLogic.workTimeGrid.setHeight(height);
+                    });
+
+                },
+                afterCtrls: function () {
+                    $("#startTime").dateChooser();
+                    $("#endTime").dateChooser();
+                    //项目
+                    this.projectTree = $("#ProjectId").setSelectTree({
+                        width: 240,
+                        valueField: "ProjectId",
+                        textField: "ProjectName",
+                        parentField: "ParentId",
+                        defaultOpen: true,
+                        data: allProjects
+                    });
+                    this.projectTree.selected(function (e, elem, treeData) {
+                        this.element.val(treeData.data.ProjectName);
+                        formatter.changeStage();
+                    });
+                    this.projectTree.canceled(function (e, elem, data) {
+                        this.element.val("");
+                    });
+                    //阶段
+                    this.stageList = $("#StageId").setSelectList({
+                        valueField: "StageId",
+                        textField: "StageName"
+                    });
+                    this.stageList.selected(function (e, elem, item) {
+                        this.element.val(item.data.StageName);
+                    });
+                    this.stageList.canceled(function (e) {
+                        this.element.val("");
+                    });
+                    //员工
+                    this.employeeTree = $("#EmployeeId").setSelectTree({
+                        width: 203,
+                        valueField: "EmployeeId",
+                        textField: "RealName",
+                        childField: "children",
+                        defaultOpen: true
+                    });
+                    this.employeeTree.selected(function (e, elem, treeData) {
+                        if (treeData.data.EmployeeId === "none") {
+                            this.cancelSelection();
+                        } else {
+                            this.element.children("span").text(treeData.data.RealName);
+                        }
+                        pageLogic.loadWorkTime();
+                    });
+                    this.employeeTree.canceled(function(e) {
+                        this.element.children("span").text("选择员工");
+                    });
+                    this.employeeTree.setData(masterpage.data.employeeList(allEmployees, true));
+                },
+                events: function () {
+                    $("#queryBtn").click(function () {
+                        pageLogic.workTimeGrid.pageIndex = 1;
+                        pageLogic.loadWorkTime();
+                    });
+                    $("#projectClear").click(function (e) {
+                        pageLogic.projectTree.cancelSelection();
+                    });
+                    $("#employeeClear").click(function (e) {
+                        pageLogic.employeeTree.cancelSelection();
+                    });
+                },
+                datas: function () {
+                    pageLogic.loadWorkTime();
+                }
+            },
+
+            loadWorkTime: function () {
+                var data = {
+                    projectId: pageLogic.projectTree.getCurrentSelection(),
+                    stageId: pageLogic.stageList.getCurrentSelection() || null,
+                    employeeId: pageLogic.employeeTree.getCurrentSelection(),
+                    startTime: $("#startTime").val(),
+                    endTime: $("#endTime").val(),
+                    pageIndex: pageLogic.workTimeGrid.pageIndex,
+                    pageSize: pageLogic.workTimeGrid.pageSize
+                };
+                if (data.projectId) {
+                    data.projectId = data.projectId.ProjectId;
+                }
+                if (data.stageId) {
+                    data.stageId = data.stageId.StageId;
+                }
+                if (data.employeeId) {
+                    data.employeeId = data.employeeId.EmployeeId;
+                }
+                ui.ajax.ajaxPost(
+                        "/WorkTime/GetWorkTime",
+                        JSON.stringify(data),
+                        function (success) {
+                            var i,
+                                len,
+                                total;
+                            if (success.RowCount > 0) {
+                                total = {
+                                    RowNumber: "no-count",
+                                    EmployeeName: "工时合计",
+                                    Hour: 0
+                                };
+                                for (i = 0, len = success.Result.length; i < len; i++) {
+                                    total.Hour += success.Result[i].Hour || 0;
+                                }
+                                success.Result.push(total);
+                                pageLogic.workTimeGrid.createGridBody(success.Result, success.RowCount);
+                            } else {
+                                pageLogic.workTimeGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("查询工时信息失败，" + error.message, true);
+                        }
+                    );
+            }
+        };
+
+        var formatter = {
+            formatTime: function (values, column) {
+                var span = $("<span />");
+                var date = null,
+                    time = null,
+                    text = "";
+                if (!values.BeginTime || !values.EndTime) {
+                    return null;
+                }
+                if(values) {
+                    date = ui.str.jsonToDate(values.BeginTime);
+                    text = ui.str.dateFormat(date, "yyyy-MM-dd (HH:mm");
+
+                    date = ui.str.jsonToDate(values.EndTime);
+                    if(date) {
+                        date = ui.str.dateFormat(date, "HH:mm");
+                        text += " - " + date;
+                    }
+                    text += ")";
+                    span.text(text);
+                }
+                return span;
+            },
+
+            changeStage: function () {
+                var projectId = pageLogic.projectTree.getCurrentSelection().ProjectId;
+                var item,
+                    currentStage = [];
+                var stages = allStages[projectId];
+                if (!stages) {
+                    stages = [];
+                }
+                for (var i = 0; i < stages.length; i++) {
+                    currentStage.push(stages[i]);
+                }
+                pageLogic.stageList.setData(currentStage);
+            },
+            jobContent: function (content, column) {
+                var p = $("<p />");
+                if (content) {
+                    p.html(content.replace(/\n/g, "<br />"));
+                }
+                return p;
+            }
+        };
+    })();
+    </script>
+}

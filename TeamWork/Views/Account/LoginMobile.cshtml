@@ -1,0 +1,218 @@
+﻿@using STIM.Modules.Widget
+@{
+    ViewBag.Title = "系统登录";
+    Layout = null;
+    LoginImage image = ViewData["Image"] as LoginImage;
+    string infoData = "[]";
+    string imageName = String.Empty;
+    if (image != null)
+    {
+        infoData = image.Hotspots;
+        imageName = image.ImageName;
+    }
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>@ViewBag.Title</title>
+    <link href="/Content/Site.css" rel="stylesheet" />
+    <link href="/Content/themes/metro.color/ui.metro.Default.css" rel="stylesheet" />
+    <style type="text/css">
+        body {
+            color: #ffffff;
+            background-color: #585858;
+            font-size: 12px;
+        }
+
+        input[type='text'], input[type='password'] {
+            height: 24px;
+            border: none 0px;
+            width: 200px;
+            background-color: #BFBFBF;
+        }
+
+            input[type='text']:focus, input[type='password']:focus {
+                background-color: #E6E5E5;
+                color: #000000;
+                text-decoration: none;
+            }
+
+        #loginPanel {
+            position: absolute;
+            background-color: #9eacb3;
+            overflow: hidden;
+            width: 100%;
+        }
+
+            #loginPanel img#bgImage {
+                position: absolute;
+                left: 0px;
+                top: 0px;
+            }
+
+        div#loginForm {
+            position: absolute;
+            left: 0px;
+            bottom: 0px;
+            width: 100%;
+            height: 100%;
+        }
+
+        div.panel-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            opacity: 0.6;
+        }
+
+        div.panel-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #loginPanel div#logo {
+            position: absolute;
+            width: 153px;
+            height: 85px;
+            background-image: url(/Content/images/loginwt.png);
+            background-position: 0px 0px;
+            background-repeat: no-repeat;
+        }
+
+        #loginPanel div.form-content {
+            position: absolute;
+            bottom: 65px;
+            width: 200px;
+            height: 140px;
+    	    overflow: hidden;
+        }
+
+            #loginPanel div.form-content span {
+                line-height: 22px;
+            }
+
+            #loginPanel div.form-content .button-panel {
+                width: 100%;
+                text-align: right;
+                margin-top: 22px;
+            }
+    </style>
+    <script type="text/javascript" src="/Scripts/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="/Scripts/UI/ui.core.js"></script>
+    <script type="text/javascript" src="/Scripts/UI/ui.browser.js"></script>
+    <script type="text/javascript" src="/Scripts/Page/ui.messagebox.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $("#username").focus();
+
+            @JavascriptCodeHelper.StringStatement("errorMessage", (string)ViewData["ErrorInfo"])
+            if (errorMessage) {
+                ui.msgshow(errorMessage);
+            }
+
+            imageInfo.init();
+            var resizeFunc = function () {
+                var width = ui.core.root.clientWidth;
+                var height = ui.core.root.clientHeight;
+                imageInfo.resize(width, height);
+            };
+            window.onresize = resizeFunc;
+            resizeFunc(true);
+        });
+    </script>
+</head>
+<body>
+    <div id="loginPanel">
+        <img id="bgImage" src="/Account/BGImage" alt="@imageName" />
+        <div id="loginForm">
+            <div class="panel-background"></div>
+            <div class="panel-content">
+                <div id="logo"></div>
+                <div class="form-content">
+                    @using (Html.BeginForm("Login", "Account", new { returnUrl = ViewBag.ReturnUrl }, FormMethod.Post))
+                    {
+                        <span>用户名:</span>
+			             <br />
+                        <input class="input-text" type="text" id="username" name="username" />
+			             <br />
+                        <span>密码:</span>
+			             <br />
+                        <input class="input-text" type="password" id="password" name="password" />
+                        <div class="button-panel">
+                            <input class="button background-highlight" type="submit" value="登录" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        ; (function () {
+            var imageInfo = window.imageInfo = {
+                init: function () {
+                    this.loginPanel = $("#loginPanel");
+                    this.logo = $("#logo");
+                    this.loginForm = this.loginPanel.find(".form-content");
+                    //this.loginForm.css("top", ui.core.root.clientHeight + "px");
+
+                    this.bgImg = $("#bgImage");
+                    this.imgWidth = this.bgImg.width();
+                    this.imgHeight = this.bgImg.height();
+
+                    this.logoWidth = 153;
+                    this.logoHeight = 85;
+
+                    this.formWidth = 200;
+                    this.formHeight = 150;
+                },
+                resize: function(width, height) {
+                    this.clientWidth = width;
+                    this.clientHeight = height;
+
+                    this.loginPanel.css({
+                        "width": width + "px",
+                        "height": height + "px"
+                    });
+                    var temp;
+                    if(height > width) {
+                        this.logo.css({
+                            "top": "60px",
+                            "left": Math.floor((width - this.logoWidth) / 2) + "px"
+                        });
+                        temp = 60 + this.logoHeight + 60;
+                        this.loginForm.css({
+                            "top": Math.floor((height - temp - this.formHeight) / 2 + temp) + "px",
+                            "left": Math.floor((width - this.formWidth) / 2) + "px"
+                        });
+                        this.imgOffsetWidth = Math.floor(this.imgWidth * (height / this.imgHeight));
+                        this.imgOffsetHeight = height;
+                    } else {
+                        this.logo.css({
+                            "top": Math.floor((height - this.logoHeight) / 2) + "px",
+                            "left": Math.floor((width / 2 - this.logoWidth) / 2) + "px"
+                        });
+
+                        this.loginForm.css({
+                            "top": Math.floor((height - this.formHeight) / 2 + 20) + "px",
+                            "left": Math.floor(width / 2 + (width / 2 - this.formWidth) / 2) + "px"
+                        });
+                        this.imgOffsetHeight = Math.floor(this.imgHeight * (width / this.imgWidth));
+                        this.imgOffsetWidth = width;
+                    }
+
+                    this.bgImg.css({
+                        "width": this.imgOffsetWidth + "px",
+                        "height": this.imgOffsetHeight + "px",
+                        "left": Math.floor((this.clientWidth - this.imgOffsetWidth) / 2) + "px"
+                    });
+                }
+            };
+        })();
+    </script>
+</body>
+</html>

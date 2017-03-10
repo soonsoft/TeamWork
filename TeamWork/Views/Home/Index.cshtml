@@ -1,0 +1,422 @@
+﻿@using STIM.Modules.Menu
+@{
+    ViewBag.Title = "首页";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    IUserData currentUser = UserContext.CurrentUser;
+    var menus = currentUser.GetMenus();
+    string bgColor = currentUser.IsBackgroundDark() ? "#3C3F41" : "#F1F1F1";
+    string highlight = ThemeConfig.GetTheme(currentUser.PersonalizeSettings().ThemeId).Color;
+}
+
+@section scriptslink {
+    @this.RegisterCtrls(
+        "tiles",
+        "color",
+        "effect"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style type="text/css">
+        #body {
+            background-color: @bgColor !important;
+        }
+
+        div#dynamicBG {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0px;
+            left: 0px;
+        }
+
+        div.project-statistic {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            color: #FFFFFF;
+        }
+
+        div.project-statistic > div.statistic-title {
+            height: 24px;
+            line-height: 24px;
+            font-size: 14px;
+        }
+
+        div.project-statistic > div.statistic-title span {
+            margin-left: 5px;
+        }
+
+        div.project-statistic ul {
+            padding: 0px;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+            div.project-statistic ul > li {
+                    font-size: 12px;
+                padding: 0px;
+                margin: 0px;
+                list-style: none;
+                overflow: hidden;
+            }
+
+            div.project-statistic ul > li div.stsc-item-name {
+                float: left;
+                width: 60%;
+                margin-top:3px;
+                height: 14px;
+                overflow: hidden;
+            }
+
+                div.project-statistic ul > li div.stsc-item-name span {
+                    margin-left: 5px;
+                }
+
+                div.project-statistic ul > li div.progress {
+                    width: 254px;
+                    height: 4px;
+                    margin-top: 6px;
+                    margin-left: 5px;
+                    margin-right: 5px;
+                    background-color: #8179CA;
+                }
+
+                div.project-statistic ul > li div.progress-value {
+                    height: 100%;
+                    background-color: #2414B2;
+                }
+
+            div.project-statistic ul > li div.stsc-item-value {
+                float: right;
+                width: 30%;
+                margin-top: 3px;
+                height: 14px;
+                overflow: hidden;
+                text-align: right;
+            }
+
+                div.project-statistic ul > li div.stsc-item-value span {
+                    margin-left: 5px;
+                    margin-right: 5px;
+                }
+    </style>
+}
+
+<div id="contentPanel" class="content-panel">
+    <div id="tilesBack" class="tile-back" style="background-color:transparent; z-index:1000;"></div>
+    <div id="dynamicBG"></div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function ($) {
+            @JavascriptCodeHelper.JsonStatement("menus", menus)
+            var pageLogic = window.pageLogic = {
+                init: {
+                    theme: function () {
+                        ui.themeChanged(function (e, info) {
+                            if (pageLogic.wave) {
+                                pageLogic.wave.changeColor(info.Color);
+                            }
+                        });
+                    },
+                    beforeCtrls: function () {
+                        $("#backBtn").css("display", "none");
+
+                        var dynamicDiv = $("#dynamicBG"),
+                            canvas = null;
+                        if (ui.core.isSupportCanvas()) {
+                            $("#staticBG").css("display", "none");
+                            canvas = $("<canvas style='width:100%; height: 100%' />");
+                            dynamicDiv.append(canvas);
+                            pageLogic.wave = ui.createEffects(canvas, "wave", {
+                                speed: 0.01,
+                                waterHeight: 1.6,
+                                level: 0.07,
+                                color: ui.theme.getCurrentColor(),
+                                bgColor: "@bgColor"
+                            });
+                            pageLogic.wave.start();
+                        }
+                        tilesUpdateLogic.initProjectAnimator();
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight,
+                                width = masterpage.contentBodyWidth;
+
+                            if (pageLogic.wave) {
+                                pageLogic.wave.resize(width, height);
+                            }
+
+                            var cssStyle = {
+                                "height": height + "px"
+                            };
+                            $("#tilesBack").css(cssStyle);
+                            if (pageLogic.tiles) {
+                                pageLogic.tiles.resetDisplayHeight(height - 48 - 40);
+                            }
+                        });
+                    },
+                    alterCtrls: function () {
+                        var tilesOption = {
+                            tiles: [
+                                { name: "date", type: "medium", bgColor: "@highlight", title: "日期", icon: "/Content/icons/date.png", link: null },
+                                { name: "time", type: "medium", bgColor: "@highlight", title: "时间", icon: "/Content/icons/time.png", link: null },
+                                { name: "weather", type: "large", bgColor: "#7EA9D8", title: "天气", icon: "/Content/icons/Weather.png", link: null }
+                            ],
+                            updateHandlers: []
+                        };
+                        var updateHandlers = [
+                                { tileNames: ["TodayWorkHour", "Unapproved"], interval: 60, func: tilesUpdateLogic.updateMyWorkDynamicData },
+                                { tileNames: "ProjectCount", interval: 60, func: tilesUpdateLogic.updateProjectDynamicData },
+                                { tileNames: "date", interval: 1440, func: tilesUpdateLogic.updateDate },
+                                { tileNames: "time", interval: 1, func: tilesUpdateLogic.updateTime },
+                                { tileNames: "weather", interval: 60, func: tilesUpdateLogic.updateWeather }
+                        ];
+
+                        var menuOptions = masterpage.getTileOptions(
+                            tilesOption,
+                            updateHandlers,
+                            menus,
+                            "ParentFuncId",
+                            "FunctionId");
+
+                        try {
+                            pageLogic.tiles = $("#tilesBack").renderTiles(
+                                masterpage.contentBodyHeight - 48 - 40,
+                                menuOptions);
+                        } catch (error) {
+                            ui.msgshow(error.message);
+                        }
+                        pageLogic.tiles.updateStart();
+                    },
+                    events: function () {
+                    }
+                }
+            };
+
+            var tilesUpdateLogic = {
+                _findTile: function(title) {
+                    var i, t;
+                    for (i = 0; i < pageLogic.tiles.length; i++) {
+                        t = pageLogic.tiles[i];
+                        if (t.option.title === title) {
+                            return t;
+                        }
+                    }
+                    return null;
+                },
+                updateDate: function(handlerInfo) {
+                    var tiles = pageLogic.tiles[0];
+                    var tile = tiles.getUpdateTile(handlerInfo.index)[0];
+                    tile.updateDate(tiles);
+                },
+                updateTime: function (handlerInfo) {
+                    var tiles = pageLogic.tiles[0];
+                    var tile = tiles.getUpdateTile(handlerInfo.index)[0];
+                    tile.updateTime(tiles);
+                    //注册自动更新
+                    tiles.updateContinue(handlerInfo);
+                },
+                updateWeather: function (handlerInfo) {
+                    ui.ajax.ajaxGet(
+                       "/Weather/WeatherData",
+                       function (success) {
+                           var tiles = pageLogic.tiles[0];
+                           var tile = tiles.getUpdateTile(handlerInfo.index)[0];
+                           tile.updateWeather(tiles, success);
+                       },
+                       function (error) {
+                       }
+                    );
+                },
+                updateMyWorkDynamicData: function (handlerInfo) {
+                    var data = {
+                        key1: "TodayWorkHour",
+                        key2: "Unapproved"
+                    }
+                    var tiles = tilesUpdateLogic._findTile("我的工作");
+                    if (!tiles) {
+                        return;
+                    }
+                    ui.ajax.ajaxPost(
+                       "/Home/UpdateTiles",
+                       data,
+                       function (success) {
+                           if (!success) {
+                               return;
+                           }
+
+                           var tempData = success[data.key1];
+                           var content = [],
+                               i = 0,
+                               len,
+                               temp = tempData[tempData.length - 1];
+
+                           var missCount = 0,
+                               lessCount = 0;
+                           if (!temp) {
+                               content.push("今天还没有登记工时");
+                           } else {
+                               content.push("今天共登记工时" + temp.Hours + "小时");
+                           }
+                           for (i = 0, len = tempData.length - 1; i < len; i++) {
+                               temp = tempData[i];
+                               if (!temp) {
+                                   missCount++;
+                               } else {
+                                   lessCount++;
+                               }
+                           }
+                           if (missCount > 0) {
+                               content.push(ui.str.stringFormat("本月有{0}天没有登记工时", missCount));
+                           }
+                           if (lessCount > 0) {
+                               content.push(ui.str.stringFormat("本月有{0}天工时登记未满8小时", lessCount));
+                           }
+                           if (missCount + lessCount > 5) {
+                               content.push("请注意，本月已经有超过5天的工时存在问题");
+                           }
+                           tiles.updateContent(handlerInfo.next(), content);
+
+                           tempData = success[data.key2];
+                           temp = 0;
+                           content = [];
+                           for (i = 0; i < tempData.length; i++) {
+                               temp += tempData[i].HourCount;
+                               content.push(tempData[i].ProjectName + "：" + tempData[i].HourCount);
+                           }
+
+                           if (temp > 0) {
+                               content.splice(0, 0, "共" + temp + "条待确认的工时记录");
+                           } else {
+                               content.splice(0, 0, "没有需要确认的工时记录");
+                           }
+                           tiles.updateContent(handlerInfo.next(), content);
+                       },
+                       function (error) {
+                       }
+                    );
+                },
+                updateProjectDynamicData: function(handlerInfo) {
+                    var data = {
+                        key3: "ProjectCount"
+                    };
+                    var tiles = tilesUpdateLogic._findTile("项目管理");
+                    if (!tiles) {
+                        return;
+                    }
+                    ui.ajax.ajaxPost(
+                        "/Home/UpdateTiles",
+                       data,
+                       function (success) {
+                           if (!success) {
+                               return;
+                           }
+
+                           var tempData = success[data.key1];
+                           tempData = success[data.key3];
+                           tiles.updateContent(handlerInfo.next(), tilesUpdateLogic.createProjectStatistic(tempData));
+                       },
+                       function (error) {
+
+                       }
+                    );
+                },
+                createProjectStatistic: function (data) {
+                    var that = this;
+                    return function (updatePanel) {
+                        var htmlBuilder = [];
+                        that.createStatisticPanel("项目类型统计", htmlBuilder, data.TypeStatistic);
+                        that.createStatisticPanel("项目状态统计", htmlBuilder, data.StatusStatistic, "left:" + (264 * 1) + "px");
+                        updatePanel.html(htmlBuilder.join(""));
+
+                        that.autoPlayProjectTileUpdateInfo(updatePanel, 10000);
+                    };
+                },
+                createStatisticPanel: function (title, htmlBuilder, data, css) {
+                    var i = 0;
+                    if (ui.core.type(css) === "string" && css.length > 0) {
+                        css = "style='" + css + "'";
+                    } else {
+                        css = ui.str.empty;
+                    }
+                    var total = 0;
+                    for (; i < data.length; i++) {
+                        total += data[i].Value;
+                    }
+                    htmlBuilder.push("<div class='project-statistic'", css, ">");
+                    htmlBuilder.push("<div class='statistic-title'>", "<span>", title, "</span>", "</div>");
+                    htmlBuilder.push("<ul>");
+                    for (i = 0; i < data.length; i++) {
+                        htmlBuilder.push("<li>");
+                        htmlBuilder.push("<div class='stsc-item-name'>", "<span>", data[i].Name, "</span>", "</div>");
+                        htmlBuilder.push("<div class='stsc-item-value'>", "<span>", data[i].Value, "</span>", "</div>");
+                        htmlBuilder.push("<div style='clear:both'></div>");
+                        htmlBuilder.push("<div class='progress'>");
+                        htmlBuilder.push("<div class='progress-value' style='width:", (Math.ceil(data[i].Value / total * 100)), "%'></div>");
+                        htmlBuilder.push("</div>");
+                        htmlBuilder.push("</li>");
+                    }
+                    htmlBuilder.push("</ul>");
+                    htmlBuilder.push("</div>");
+                },
+                initProjectAnimator: function () {
+                    this.projectAnimator = ui.animator(null, {
+                        ease: ui.AnimationStyle.easeTo,
+                        onChange: function (val) {
+                            this.target.css("left", val + "px");
+                        }
+                    }).addTarget(null, {
+                        ease: ui.AnimationStyle.easeTo,
+                        onChange: function (val) {
+                            this.target.css("left", val + "px");
+                        }
+                    });
+                    this.projectAnimator.fps = 60;
+                    this.projectAnimator.duration = 800;
+                },
+                autoPlayProjectTileUpdateInfo: function (updatePanel, interval) {
+                    var that = this;
+                    if (this.projectAutoHandler) {
+                        window.clearInterval(this.projectAutoHandler);
+                    }
+                    this.projectAutoHandler = window.setInterval(function () {
+                        that.beginProjectAnimation(updatePanel);
+                    }, interval || 5000);
+                },
+                beginProjectAnimation: function (updatePanel) {
+                    this.projectAnimator.stop();
+
+                    var width = 264;
+                    var children = updatePanel.children();
+                    var option = this.projectAnimator[0];
+                    var i, first;
+                    for (i = 0; i < children.length; i++) {
+                        option = this.projectAnimator[i];
+                        option.target = $(children[i]);
+                        option.begin = window.parseFloat(option.target.css("left"), 10);
+                        option.end = option.begin - width;
+                        if (option.begin <= 0) {
+                            first = option.target;
+                        }
+                    }
+                    this.projectAnimator.onEnd = function () {
+                        first.css("left", width * (this.length - 1) + "px");
+                    };
+
+                    this.projectAnimator.start();
+                }
+            };
+        })(jQuery);
+    </script>
+}

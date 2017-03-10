@@ -1,0 +1,925 @@
+﻿
+@{
+    ViewBag.Title = "记录工时";
+}
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+    @this.RegisterCtrls(
+        "calendar",
+        "tools",
+        "validate",
+        "button"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style id="dictionaryStyle" type="text/css">
+        a.background-highlight {
+            color: #FFFFFF !important;
+        }
+
+        .filter-tools-item span {
+            margin-left: 24px;
+            margin-right: 24px;
+        }
+
+        #weekCtrlPanel {
+            position: absolute;
+            display: none;
+            width: 240px;
+            height: auto;
+            border-width: 2px;
+            border-style: solid;
+            z-index: 1000;
+        }
+
+            #weekCtrlPanel .worktime-panel {
+                width: 215px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            #weekCtrlPanel span {
+                line-height: 30px;
+            }
+
+                #weekCtrlPanel span.required {
+                    color: #F00921;
+                    margin-left: 3px;
+                }
+
+            #weekCtrlPanel input[type="text"] {
+                width: 211px;
+            }
+
+            #weekCtrlPanel select {
+                width: 215px;
+            }
+
+            #weekCtrlPanel textarea {
+                width: 211px;
+                height: 105px;
+                resize: none;
+            }
+
+            #weekCtrlPanel .button-panel {
+                width: 100%;
+                height: auto;
+                text-align: right;
+                margin-top: 20px;
+                margin-bottom: 20px;
+            }
+
+            #weekCtrlPanel textarea.validate {
+                border-color: #CC0033;
+                background-color: #E57D97;
+                color: #FFFFFF;
+                background-image: none;
+            }
+
+        a.record-button {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 3px;
+            right: 0px;
+        }
+
+        div.view-panel div.fault-item, div.view-panel li.fault-item {
+            background-color:#CC0033;
+        }
+
+        div.hover-view-panel {
+            border-color: #CC0033;
+        }
+
+        div.hover-view-panel span.approved-name {
+            font-size: 14px;
+            line-height: 24px;
+            margin-left: 5px;
+        }
+
+        div.hover-view-panel p.fault-reason {
+            width: 230px;
+            margin-left: 5px;
+            margin-right: 5px;
+            height: auto;
+            line-height: 1.5em;
+        }
+
+        .holiday {
+            color:#BD2D30;
+        }
+
+        a.link-button:active {
+            background-color: transparent;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul class="tools">
+        <li>
+            <a id="prev" class="image-button direct button-left" style="vertical-align: top; margin-top: 8px;"></a>
+        </li>
+        <li>
+            <a id="today" class="image-button button-today" style="vertical-align: top; margin-top: 8px;"></a>
+        </li>
+        <li>
+            <a id="next" class="image-button direct button-right" style="vertical-align: top; margin-top: 8px;"></a>
+        </li>
+        <li>
+            <span id="calendarTitle" class="font-highlight" style="font-size: 16px; line-height: 40px;"></span>
+        </li>
+    </ul>
+    <ul class="tools" style="float:right;">
+        <li>
+            <div id="calendarView" style="margin-top:8px;"></div>
+        </li>
+    </ul>
+    <br style="clear:both;" />
+</div>
+<div id="contentPanel" class="content-panel"></div>
+<div id="weekCtrlPanel" class="unselectable border-highlight theme-ctrl-background-color">
+    <div class="worktime-panel">
+        <form id="worktimeForm">
+            <span>出勤状态</span>
+            <br />
+            @Html.DropDownList("AttendanceType", (SelectList)ViewBag.AttendanceTypes)
+            <br />
+            <span>项目</span>
+            <br />
+            @Html.DropDownList("ProjectId", (SelectList)ViewBag.ProjectSelectList, new { style = "width: 147px;" })
+            <a id="allProjects" href="javascript:void(0)" class="link-button border-highlight font-highlight theme-ctrl-background-color" style="width:60px;">全部</a>
+            <br />
+            <span>项目阶段</span>
+            <br />
+            <input id="StageId" name="StageId" type="hidden" />
+            <input id="StageName" name="StageName" type="text" readonly="readonly" />
+            <br />
+            <span>活动描述</span>
+            <br />
+            <textarea id="JobContent" name="JobContent" rows="0" cols="0"></textarea>
+            <div class="button-panel">
+                <input id="workTimeSave" type="button" class="button background-highlight" value="保存" />
+                <input id="workTimeCancel" type="button" class="button" value="取消" />
+            </div>
+        </form>
+    </div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            @JavascriptCodeHelper.JsonStatement("worktimeSetting", ViewBag.WorkTimeSetting)
+            @JavascriptCodeHelper.JsonStatement("projectsData", ViewBag.Projects)
+            var allProjectsData = null;
+            var projectsData2KeyArray = function (data) {
+                var temp = new ui.keyArray();
+                if (!data) {
+                    return;
+                }
+                var i = 0,
+                    len = data.length,
+                    p;
+                for (; i < len; i++) {
+                    p = data[i];
+                    temp.set(p.ProjectId, p);
+                }
+                return temp;
+            };
+            var projects = projectsData = projectsData2KeyArray(projectsData);
+            var pageLogic = window.pageLogic = {
+                //页面初始化
+                init: {
+                    //主题切换
+                    themes: function () {
+
+                    },
+                    //在布局计算前创建控件
+                    beforeCtrls: function () {
+                        pageLogic.calendar = $("#contentPanel").setCalendar({
+                            views: ["YearView", "MonthView", "WeekView"],
+                            defaultView: "WeekView",
+                            sundayFirst: true,
+                            unitTime: 30
+                        });
+                        pageLogic.calendar.viewChanged(function (e, view) {
+                            $("#calendarTitle").text(view.getTitle());
+                            var panel = null;
+                            if (this.isView(view, "WeekView")) {
+                                if (!view.weekCtrlPanel) {
+                                    view.weekCtrlPanel = $("#weekCtrlPanel");
+                                    view.hourPanel.append(view.weekCtrlPanel);
+                                }
+                            }
+                        });
+                        pageLogic.calendar.changed(function (e, view, data) {
+                            $("#calendarTitle").text(view.getTitle());
+                            if (this.isView(view, "YearView")) {
+                                pageLogic.loadYearSchedule(view);
+                            } else if (this.isView(view, "MonthView")) {
+                                pageLogic.loadMonthSchedule(view);
+                            } else if (this.isView(view, "WeekView")) {
+                                calendarsManager.settingHolidays(view.year);
+                                pageLogic.loadWeekSchedule(view);
+                            } else if (this.isView(view, "DayView")) {
+                            }
+                        });
+                        pageLogic.calendar.weekTitleClick(function (e, view, weekIndex) {
+                            if (view.hasSchedule(weekIndex)) {
+                                ui.msgshow("已经设置工时，不能选择全天！");
+                                return;
+                            }
+                            view.selector.selectCellByTime(weekIndex,
+                                worktimeSetting.AMStartTime, worktimeSetting.PMEndTime);
+                        });
+                        pageLogic.calendar.selecting(function (e, view) {
+                            if (this.isView(view, "WeekView")) {
+                                calendarsManager.weekCtrlPanelHide(view);
+                            } else if (this.isView(view, "DayView")) {
+
+                            }
+                        });
+                        pageLogic.calendar.selected(function (e, view, target, data) {
+                            if (this.isView(view, "YearView")) {
+                                calendarsManager.changeWeekView(view, data);
+                            } else if (this.isView(view, "MonthView")) {
+                                calendarsManager.changeWeekView(view, data);
+                            } else if (this.isView(view, "WeekView")) {
+                                calendarsManager.onAdding(view, target, data);
+                            } else if (this.isView(view, "DayView")) {
+
+                            }
+                        });
+                        pageLogic.calendar.deselected(function (e, view) {
+                            if (this.isView(view, "WeekView")) {
+                                calendarsManager.weekCtrlPanelHide(view);
+                            } else if (this.isView(view, "DayView")) {
+
+                            }
+                        });
+                    },
+                    //布局计算
+                    layout: function () {
+                        masterpage.resize(function () {
+                            //40 是toolbar的高度
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.calendar.setSize(width, height);
+                            var view = pageLogic.calendar.currentView;
+                            if (pageLogic.calendar.isView(view, "WeekView")) {
+                                calendarsManager.weekCtrlPanelHide(view);
+                            } else if (pageLogic.calendar.isView(view, "DayView")) {
+
+                            }
+                        });
+                    },
+                    //在布局计算后创建控件
+                    afterCtrls: function () {
+                        pageLogic.calendar.getView("WeekView").selector.checkSelectable = function (td) {
+                            var count = this.view.calendar._getTimeCellCount();
+                            this.selectableMin = 0;
+                            this.selectableMax = 24 * count - 1;
+                            var hours = this.view.getScheduleInfo(td.locationInGrid.column),
+                                h;
+                            var min = -1,
+                                max = 24 * count;
+                            if (hours) {
+                                for (var i = 0; i < hours.length; i++) {
+                                    h = hours[i];
+                                    if (h.beginRowIndex < td.locationInGrid.row) {
+                                        if (h.beginRowIndex > min)
+                                            min = h.beginRowIndex;
+                                    } else {
+                                        if (h.beginRowIndex < max)
+                                            max = h.beginRowIndex;
+                                    }
+                                    if (h.endRowIndex < td.locationInGrid.row) {
+                                        if (h.endRowIndex > min)
+                                            min = h.endRowIndex;
+                                    } else {
+                                        if (h.endRowIndex < max)
+                                            max = h.endRowIndex;
+                                    }
+                                }
+                            }
+                            this.selectableMin = min + 1;
+                            this.selectableMax = max - 1;
+                        };
+                        pageLogic.calendarView = $("#calendarView").createFilterTools({
+                            data: [
+                                { text: "年", value: "YearView" },
+                                { text: "月", value: "MonthView" },
+                                { text: "周", value: "WeekView", selected: true }
+                            ]
+                        });
+                        $("#calendarTitle").text(pageLogic.calendar.getTitle());
+                        pageLogic.calendarView.selected(function (e, item) {
+                            pageLogic.calendar.changeView(item.value);
+                        });
+
+                        pageLogic.workTimeValidate = $("#worktimeForm").setValidate({
+                            rules: {
+                                JobContent: { required: true, maxlength: 500 }
+                            }
+                        });
+
+                        pageLogic.faultView = ui.createHoverView({
+                            width: 240,
+                            height: 160
+                        });
+                        pageLogic.faultView.showing(function (e) {
+                            this.empty();
+                            var workTime = this.target.data("WorkTimeData");
+                            var elems = [];
+                            elems.push("<span class='approved-name'>", workTime.ApprovedManagerName, "</span>");
+                            elems.push("<br />");
+                            elems.push("<p class='fault-reason'>", workTime.FaultReason, "</p>");
+                            this.append(elems.join(""));
+                        });
+                    },
+                    //页面控件的事件绑定，一般是页面按钮的事件绑定
+                    events: function () {
+                        $("#prev").click(function (e) {
+                            pageLogic.calendar.prev();
+                        });
+                        $("#today").click(function (e) {
+                            pageLogic.calendar.today();
+                        });
+                        $("#next").click(function (e) {
+                            pageLogic.calendar.next();
+                        });
+
+                        $("#AttendanceType").change(function (e) {
+                            var elem = $(e.target),
+                                val = elem.val(),
+                                proSlt = $("#ProjectId"),
+                                lastProjectId;
+                            if (val === "3-02") {
+                                elem.data("ProjectId", proSlt.val());
+                                proSlt.val("").prop("disabled", true);
+                                $("#StageName").val("");
+                                $("#StageId").val("");
+                            } else {
+                                lastProjectId = elem.data("ProjectId");
+                                if (lastProjectId) {
+                                    proSlt.val(lastProjectId).prop("disabled", false);
+                                    updateStageInfo(lastProjectId);
+                                }
+                            }
+                        });
+                        $("#ProjectId").change(function (e) {
+                            updateStageInfo($(e.target).val());
+                        });
+                        $("#allProjects").click(function (e) {
+                            var elem = $(e.target);
+                            calendarsManager.onProjectsChange(elem);
+                        });
+                        $("#workTimeSave").click(function (e) {
+                            calendarsManager.onSave();
+                        });
+                        $("#workTimeCancel").click(function (e) {
+                            var view = pageLogic.calendar.currentView;
+                            if(pageLogic.calendar.isView(view, "WeekView")) {
+                                view.selector.cancelSelection();
+                            } else if(pageLogic.calendar.isView(view, "DayView")) {
+
+                            }
+                        });
+                    },
+                    //数据初始化
+                    datas: function () {
+                        pageLogic.calendar.currentView.setBeginTime(worktimeSetting.AMStartTime);
+                    }
+                },
+                loadYearSchedule: function (view) {
+                    var data = {
+                        year: view.year
+                    };
+                    ui.ajax.ajaxPost(
+                        "/WorkTime/LoadWorkTimeByYear",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success && success.length > 0) {
+                                formatDate(success);
+                                view.addSchedules(success);
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载工时信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                loadMonthSchedule: function (view) {
+                    var data = {
+                        year: view.year,
+                        month: view.month + 1
+                    };
+                    ui.ajax.ajaxPost(
+                        "/WorkTime/LoadWorkTimeByMonth",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success && success.length > 0) {
+                                formatDate(success, "BeginTime", "EndTime");
+                                view.addSchedules(success, "BeginTime",
+                                    function (item) {
+                                        return [
+                                            ui.str.dateFormat(item.BeginTime, "HH:mm"),
+                                            " - ",
+                                            ui.str.dateFormat(item.EndTime, "HH:mm"),
+                                            " ",
+                                            item.ProjectName ? item.ProjectName : item.AttendanceTypeName
+                                        ].join("");
+                                    },
+                                    function (item) {
+                                        var kids = null;
+                                        if (item.FaultFlag) {
+                                            kids = this.children();
+                                            if (kids.length > 0) {
+                                                $(kids[kids.length - 1]).addClass("fault-item");
+                                            }
+                                        }
+                                    }
+                                );
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载工时信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                loadWeekSchedule: function (view) {
+                    var data = {
+                        beginTime: ui.str.dateFormat(view.weekDays[0], "yyyy-MM-dd"),
+                        endTime: ui.str.dateFormat(view.weekDays[6], "yyyy-MM-dd")
+                    };
+                    ui.ajax.ajaxPost(
+                        "/WorkTime/LoadWorkTimeByWeek",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success && success.length > 0) {
+                                formatDate(success, "BeginTime", "EndTime");
+                                view.addSchedules(success, "BeginTime", "EndTime",
+                                    calendarsManager.formatter.formatWorkTimeInfo);
+                                view.setBeginTime(worktimeSetting.AMStartTime);
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载工时信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                addWorkTime: function (data, callback, caller) {
+                    //屏蔽选择器
+                    pageLogic.calendar.currentView.selector.dormant(true);
+                    ui.ajax.ajaxPostOnce(
+                        "workTimeSave",
+                        "/WorkTime/InsertRecord",
+                        JSON.stringify(data),
+                        function (success) {
+                            //重新激活选择器
+                            pageLogic.calendar.currentView.selector.active(true);
+                            if (success.Result) {
+                                callback.call(caller, success.Data);
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            //重新激活选择器
+                            pageLogic.calendar.currentView.selector.active(true);
+                            ui.msgshow("保存工时信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                editWorkTime: function (data, callback, caller) {
+                    //屏蔽选择器
+                    pageLogic.calendar.currentView.selector.dormant(true);
+                    ui.ajax.ajaxPostOnce(
+                        "workTimeSave",
+                        "/WorkTime/UpdateRecord",
+                        JSON.stringify(data),
+                        function (success) {
+                            //重新激活选择器
+                            pageLogic.calendar.currentView.selector.active(true);
+                            if (success.Result || success.IsApproved) {
+                                callback.call(caller, success.Data, success.IsApproved);
+                                if (success.IsApproved) {
+                                    ui.msgshow("该工时信息已经被确认，不能修改");
+                                }
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            //重新激活选择器
+                            pageLogic.calendar.currentView.selector.active(true);
+                            ui.msgshow("保存工时信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                deleteWorkTime: function (workTimeId, callback, caller) {
+                    var data = {
+                        workTimeId: workTimeId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/WorkTime/DeleteRecord",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success.Result || success.IsApproved) {
+                                callback.call(caller, success.IsApproved);
+                                if (success.IsApproved) {
+                                    ui.msgshow("该工时信息已经被确认，不能修改");
+                                }
+                            } else {
+                                ui.msgshow("没有删除任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("删除工时信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                getHolidaysForYear: function (year, callback, caller) {
+                    var data = {
+                        year: year
+                    };
+                    ui.ajax.ajaxPost(
+                        "/WorkTime/GetHolidayByYear",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success) {
+                                callback.call(caller, year, success);
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载节假日信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                getAllProjectStage: function (callback, caller) {
+                    ui.ajax.ajaxPost(
+                        "/WorkTime/GetAllProjects",
+                        null,
+                        function (success) {
+                            if (success) {
+                                allProjectsData = success;
+                                allProjectsData = projectsData2KeyArray(allProjectsData);
+                                callback.call(caller, allProjectsData);
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载全部激活项目失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+            var formatDate = function (arr) {
+                var i = 0,
+                    len = arr.length,
+                    j;
+                for (; i < len; i++) {
+                    if (arguments.length > 1) {
+                        for (j = 1; j < arguments.length; j++) {
+                            arr[i][arguments[j]] = ui.str.jsonToDate(arr[i][arguments[j]]);
+                        }
+                    } else {
+                        arr[i] = ui.str.jsonToDate(arr[i]);
+                    }
+                }
+            };
+
+            var updateStageInfo = function (projectId) {
+                if (!projectId) {
+                    projectId = $("#ProjectId").val();
+                }
+                var info = projects.get(projectId);
+                if (info) {
+                    $("#StageId").val(info.StageId);
+                    $("#StageName").val(info.StageName);
+                }
+            };
+            updateStageInfo();
+
+            var calendarsManager = {
+                formatter: {
+                    formatWorkTimeInfo: function (scheduleInfo, elem) {
+                        var data = scheduleInfo.data;
+                        elem.data("WorkTimeData", data);
+
+                        var recordPanel = elem.children(".record-panel");
+                        recordPanel.html("");
+
+                        var htmlBuilder = [];
+                        htmlBuilder.push("<p>");
+                        if (data.AttendanceType !== "3-01") {
+                            htmlBuilder.push("<span>[", data.AttendanceTypeName, "] </span>");
+                        }
+                        if (data.ProjectName) {
+                            htmlBuilder.push("<span>", data.ProjectName, ".", data.StageName, "</span>");
+                        }
+                        htmlBuilder.push("</p>");
+
+                        var parts, i;
+                        if (data.JobContent) {
+                            parts = data.JobContent.split("\n");
+                            for (i = 0; i < parts.length; i++) {
+                                htmlBuilder.push("<p>");
+                                htmlBuilder.push(parts[i]);
+                                htmlBuilder.push("</p>");
+                            }
+                            if (scheduleInfo.endRowIndex - scheduleInfo.beginRowIndex <= 3) {
+                                elem.attr("title", data.JobContent);
+                            }
+                        }
+                        recordPanel.append(htmlBuilder.join(""));
+                        if (data.Approved) {
+                            return;
+                        }
+
+                        var editBtn = $("<a href='javascript:void(0)' class='close-button record-button' />");
+                        editBtn.css({
+                            "background-image": "url(/Content/images/write.png)",
+                            "right": "20px"
+                        });
+                        var delBtn = $("<a href='javascript:void(0)' class='close-button record-button' style='color:#FFFFFF;top:1px;'>×</a>");
+                        elem.append(editBtn);
+                        elem.append(delBtn);
+
+                        editBtn.click(calendarsManager.onWorkTimeEdit);
+                        delBtn.click(calendarsManager.onWorkTimeDelete);
+
+                        if (data.FaultFlag) {
+                            elem.addClass("fault-item");
+                            elem.addHoverView(pageLogic.faultView);
+                        }
+                    },
+                    removeWorkTimeCtrls: function (si) {
+                        si.itemPanel
+                            .children(".record-button")
+                            .remove();
+                    }
+                },
+                changeWeekView: function (view, date) {
+                    if (date instanceof Date) {
+                        view.cancelSelection();
+                        pageLogic.calendar.currentDate = date;
+                        pageLogic.calendarView.setIndex(2);
+                    }
+                },
+                weekCtrlPanelShow: function (view, box, boxPst) {
+                    var boxW = box.outerWidth();
+                    var cpWidth = view.weekCtrlPanel.outerWidth(),
+                        cpHeight = view.weekCtrlPanel.outerHeight();
+                    var top = boxPst.top,
+                        left = boxPst.left + box.outerWidth();
+                    if (top + cpHeight > boxPst.parentHeight) {
+                        top = boxPst.parentHeight - cpHeight + 1;
+                    }
+                    if (left + cpWidth > boxPst.parentWidth) {
+                        left = boxPst.left - cpWidth;
+                    }
+                    view.weekCtrlPanel.css({
+                        "display": "block",
+                        "left": left + "px",
+                        "top": top + "px"
+                    });
+                },
+                weekCtrlPanelHide: function (view) {
+                    if (view.weekCtrlPanel) {
+                        view.weekCtrlPanel.css("display", "none");
+                    }
+                },
+
+                onProjectsChange: function (elem, callback) {
+                    if ($.isFunction(elem)) {
+                        elem = callback;
+                        elem = null;
+                    }
+                    if (!elem) {
+                        elem = $("#allProjects");
+                    }
+                    if (elem.hasClass("background-highlight")) {
+                        elem.removeClass("background-highlight").addClass("font-highlight");
+                        calendarsManager.fillProjectOptions(projectsData);
+                    } else {
+                        elem.removeClass("font-highlight").addClass("background-highlight");
+                        if (allProjectsData) {
+                            calendarsManager.fillProjectOptions(allProjectsData);
+                        } else {
+                            pageLogic.getAllProjectStage(function (data) {
+                                this.fillProjectOptions(data);
+                                if ($.isFunction(callback)) {
+                                    callback.call(this);
+                                }
+                            }, this);
+                        }
+                    }
+                },
+                fillProjectOptions: function (data) {
+                    var proSlt = $("#ProjectId");
+                    var val = proSlt.val();
+                    proSlt.bindOptions(data, "ProjectId", "ProjectName");
+                    projects = data;
+                    updateStageInfo(proSlt.val());
+                },
+
+                getDateTime: function(weekIndex, time) {
+                    var date = pageLogic.calendar.currentView.weekDays[weekIndex];
+                    time = time.split(":");
+                    var date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+                    date.setHours(parseInt(time[0], 10));
+                    date.setMinutes(parseInt(time[1], 10));
+                    return ui.str.dateFormat(date, "yyyy-MM-dd HH:mm:ss");
+                },
+                onWorkTimeEdit: function(e) {
+                    var elem = $(e.target).parent();
+                    calendarsManager.onUpdating(elem, elem.data("WorkTimeData"));
+                },
+                onWorkTimeDelete: function(e) {
+                    var elem = $(e.target).parent();
+                    calendarsManager.onDelete(elem.data("WorkTimeData"));
+                },
+
+                holidayYear: null,
+                holidayData: null,
+                settingHolidays: function (year) {
+                    if (this.holidayYear !== year) {
+                        pageLogic.getHolidaysForYear(year, this.setHolidayData, this);
+                    } else {
+                        this.setWeekHolidays(this.holidayData);
+                    }
+                },
+                setHolidayData: function(year, data) {
+                    var i,
+                        len = data.length,
+                        item = null,
+                        holidays = new ui.keyArray(),
+                        formatStr = "yyyy-MM-dd";
+                    for (i = 0; i < len; i++) {
+                        item = data[i];
+                        item.HolidayDate = ui.str.jsonToDate(item.HolidayDate);
+                        holidays.set(ui.str.dateFormat(item.HolidayDate, formatStr), item);
+                    }
+                    this.holidayYear = year;
+                    this.holidayData = holidays;
+                    this.setWeekHolidays(this.holidayData);
+                },
+                setWeekHolidays: function (holidays) {
+                    var i = 0;
+                    var dateText = null,
+                        view = pageLogic.calendar.currentView;
+                    var tr = view.weekTable[0].tHead.rows[0],
+                        td = null,
+                        h = null;
+                    for (; i < view.weekDays.length; i++) {
+                        dateText = ui.str.dateFormat(view.weekDays[i], "yyyy-MM-dd");
+                        if (holidays.contains(dateText)) {
+                            td = $(tr.cells[i]);
+                            h = holidays.get(dateText);
+                            if (h.Festival && h.Festival.length > 0) {
+                                td.text(td.text() + " " + h.Festival);
+                            }
+                            td.addClass("holiday");
+                        }
+                    }
+                },
+
+                formReset: function () {
+                    $("#JobContent").val("");
+                    pageLogic.workTimeValidate.clearErrorStyle();
+                },
+                dataToForm: function (data) {
+                    $("#AttendanceType").val(data.AttendanceType);
+                    if (!projects.contains(data.ProjectId)) {
+                        if (allProjectsData) {
+                            this.fillProjectOptions(allProjectsData);
+                            $("#ProjectId").val(data.ProjectId);
+                        } else {
+                            this.onProjectsChange(function () {
+                                $("#ProjectId").val(data.ProjectId);
+                            });
+                        }
+                    } else {
+                        $("#ProjectId").val(data.ProjectId);
+                    }
+                    $("#StageId").val(data.StageId);
+                    $("#StageName").val(data.StageName);
+                    $("#JobContent").val(data.JobContent);
+                },
+                onAdding: function () {
+                    this.formReset();
+                    this.isUpdate = false;
+                    this.updatingData = null;
+                    this.weekCtrlPanelShow.apply(this, arguments);
+                },
+                onUpdating: function (elem, data) {
+                    this.updatingData = data;
+                    this.formReset();
+                    this.dataToForm(data);
+                    this.isUpdate = true;
+
+                    var view = pageLogic.calendar.currentView;
+                    view.selector.cancelSelection();
+                    var boxPst = {
+                        top: parseFloat(elem.css("top"), 10),
+                        left: parseFloat(elem.css("left"), 10),
+                        parentWidth: view.viewPanel.width() - 80,
+                        parentHeight: view.hourTable.outerHeight()
+                    };
+                    this.weekCtrlPanelShow(view, elem, boxPst);
+                },
+                onSave: function () {
+                    if (!pageLogic.workTimeValidate.form()) {
+                        return;
+                    }
+                    var atOpt = $("#AttendanceType").selectOption(),
+                        pOpt = $("#ProjectId").selectOption();
+                    var data = {
+                        AttendanceType: atOpt.value,
+                        ProjectId: pOpt.value,
+                        StageId: $("#StageId").val(),
+                        JobContent: $("#JobContent").val(),
+                        Approved: false,
+                        ApprovedTime: null,
+                        ApprovedManager: null,
+                        FaultFlag: false,
+                        FaultReason: null
+                    };
+                    var cells,
+                        beginTime,
+                        endTime,
+                        callback;
+                    var fillDataFunc = function (d) {
+                        d.BeginTime = ui.str.jsonToDate(d.BeginTime);
+                        d.EndTime = ui.str.jsonToDate(d.EndTime);
+                        d.ProjectName = pOpt.text;
+                        d.AttendanceTypeName = atOpt.text;
+                        d.StageName = $("#StageName").val();
+                    };
+                    if (this.isUpdate) {
+                        data.WorkTimeId = this.updatingData.WorkTimeId;
+                        data.BeginTime = ui.str.dateFormat(this.updatingData.BeginTime, "yyyy-MM-dd HH:mm:ss");
+                        data.EndTime = ui.str.dateFormat(this.updatingData.EndTime, "yyyy-MM-dd HH:mm:ss");
+                        data.WorkTimeSettingId = this.updatingData.WorkTimeSettingId;
+
+                        callback = function (d, isApproved) {
+                            fillDataFunc.call(this, d);
+                            var view = pageLogic.calendar.currentView;
+                            this.weekCtrlPanelHide(view);
+                            if (isApproved) {
+                                view.findScheduleInfo(d.BeginTime,
+                                    calendarsManager.formatter.removeWorkTimeCtrls, this);
+                            } else {
+                                view.removeSchedules(d.BeginTime);
+                                view.addSchedules([d], "BeginTime", "EndTime", this.formatter.formatWorkTimeInfo);
+                            }
+                        };
+                        pageLogic.editWorkTime(data, callback, this);
+                    } else {
+                        cells = pageLogic.calendar.currentView.selector.getSelectedCells();
+                        beginTime = pageLogic.calendar.indexToTime(cells[0].locationInGrid.row);
+                        endTime = pageLogic.calendar.indexToTime(cells[cells.length - 1].locationInGrid.row + 1);
+                        data.BeginTime = this.getDateTime(cells[0].locationInGrid.column, beginTime);
+                        data.EndTime = this.getDateTime(cells[0].locationInGrid.column, endTime);
+
+                        data = {
+                            workTime: data,
+                            workTimeSetting: worktimeSetting
+                        };
+
+                        callback = function (d) {
+                            fillDataFunc.call(this, d);
+                            var view = pageLogic.calendar.currentView;
+                            view.addSchedules([d], "BeginTime", "EndTime", this.formatter.formatWorkTimeInfo);
+                            view.selector.cancelSelection();
+                        };
+                        pageLogic.addWorkTime(data, callback, this);
+                    }
+                },
+                onDelete: function (workTime) {
+                    if (!window.confirm("您确定要删除这条工时信息吗？")) {
+                        return;
+                    }
+                    var callback = function (isApproved) {
+                        var view = pageLogic.calendar.currentView;
+                        if (isApproved) {
+                            view.findScheduleInfo(workTime.BeginTime,
+                                calendarsManager.formatter.removeWorkTimeCtrls, this);
+                        } else {
+                            view.removeSchedules(workTime.BeginTime);
+                        }
+                    };
+                    pageLogic.deleteWorkTime(workTime.WorkTimeId, callback, this);
+                }
+            };
+        })();
+    </script>
+}

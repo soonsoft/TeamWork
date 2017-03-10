@@ -1,0 +1,419 @@
+﻿@{
+    ViewBag.Title = "用户信息";
+    IUserData user = UserContext.CurrentUser;
+    PersonalizeSettings userPersonalize = user.PersonalizeSettings();
+}
+
+@section scriptslink {
+    @this.RegisterCtrls(
+        "form",
+        "simpleUploader"
+    )
+    <script type="text/javascript">
+        masterpage._initUserSettings = ui.core.noop;
+    </script>
+}
+
+@section styles {
+    <style type="text/css">
+        #body {
+            overflow: auto;
+        }
+
+        ul#handerCtrls {
+            display: none;
+        }
+
+        .user-cover-panel {
+            width: 100%;
+            height: 210px;
+            position: relative;
+        }
+
+        .user-cover {
+            width: 128px;
+            height: 128px;
+            border-radius: 50%;
+            border-width: 1px;
+            border-style: solid;
+            position: absolute;
+            top: 60px;
+            left: 60px;
+            overflow: hidden;
+        }
+
+            .user-cover .upload-panel {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                text-align: center;
+            }
+
+                .user-cover .upload-panel a {
+                    display: inline-block;
+                    width: 128px;
+                    height: 128px;
+                    line-height: 128px;
+                    background-color: #000000;
+                    filter: Alpha(opacity=1);
+                    opacity: .01;
+                    text-decoration: none;
+                }
+
+                .user-cover .upload-panel:hover a {
+                    filter: Alpha(opacity=50);
+                    opacity: .5;
+                }
+
+                .user-cover .upload-panel:active a {
+                    filter: Alpha(opacity=70);
+                    opacity: .7;
+                }
+
+        .user-name-panel {
+            font-size: 24px;
+            font-weight: bold;
+            position: absolute;
+            top: 88px;
+            left: 208px;
+        }
+
+        .user-settings-panel {
+            width: 100%;
+            height: auto;
+            margin-bottom: 40px;
+        }
+
+        .fold-panel {
+            margin-left: 60px;
+        }
+
+            .fold-panel label {
+                font-size: 14px;
+                line-height: 40px;
+            }
+
+            .fold-panel input {
+                width: 200px;
+                height: 24px;
+                line-height: 24px;
+            }
+
+            .fold-panel .color-panel {
+                width: 350px;
+                height: auto;
+            }
+
+        .color-item {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+            .color-item input {
+                width: 10px;
+                height: 10px;
+                padding: 0px;
+                margin: 0px;
+                position: absolute;
+                left: -20px;
+            }
+
+            .color-item .color-frame-panel {
+                position: absolute;
+                background-color: transparent;
+                border-style: solid;
+                border-width: 2px;
+                border-color: #888888;
+                width: 36px;
+                height: 36px;
+                display: none;
+                top: 0px;
+                left: 0px;
+            }
+
+            .color-item i.check-marker {
+                position: absolute;
+                width: 0px;
+                height: 0px;
+                display: none;
+                border-width: 8px;
+                border-top-color: #888888;
+                border-right-color: #888888;
+                border-left-color: transparent !important;
+                border-bottom-color: transparent !important;
+                border-style: solid solid dashed dashed;
+                top: 0px;
+                right: 0px;
+            }
+
+            .color-item i.check-icon {
+                position: absolute;
+                top: 1px;
+                right: 1px;
+                display: none;
+                width: 8px;
+                height: 8px;
+                line-height: 8px;
+                font-size: 8px;
+                text-align: center;
+                color: #FFFFFF;
+            }
+
+            .color-item-selected .color-frame-panel {
+                display: block;
+            }
+
+            .color-item-selected i.check-marker {
+                display: block;
+            }
+
+            .color-item-selected i.check-icon {
+                display: block;
+            }
+
+        .button-panel {
+            margin-top: 40px;
+            margin-left: 60px;
+            width: 350px;
+            text-align: right;
+        }
+    </style>
+}
+
+<div class="user-cover-panel">
+    <div class="toolbar" style="width:100%;height:120px;"></div>
+    <div class="user-cover border-highlight">
+        <div class="upload-panel">
+            <a id="changeProtrait" href="javascript:void(0)">修改头像</a>
+        </div>
+        <img id="protrait" style="width:100%;height:100%;" src="/Home/UserProtrait" />
+    </div>
+    <div class="user-name-panel">
+        <span id="userName">@user.UserName</span>
+    </div>
+</div>
+<div class="user-settings-panel">
+    <dl class="fold-panel">
+        <dt>基本信息</dt>
+        <dd>
+            <label>昵称</label>
+            <br />
+            <input id="nickName" name="nickName" type="text" value="@user.RealName" />
+            <br />
+        </dd>
+        <dt>个性化设置</dt>
+        <dd>
+            <label>背景色</label>
+            <div id="bgColor" class="color-panel"></div>
+            <label>主题色</label>
+            <div id="hlColor" class="color-panel"></div>
+        </dd>
+    </dl>
+    <!--
+    <div class="button-panel">
+        <button id="saveBtn" class="button background-highlight" style="width:100px;height:30px;line-hight:30px;margin-right:10px;">保存</button>
+    </div>
+    -->
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        (function () {
+            @JavascriptCodeHelper.StringStatement("themeId", userPersonalize.ThemeId)
+            @JavascriptCodeHelper.StringStatement("background", userPersonalize.Background);
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function() {
+                    },
+                    layout: function() {
+                    },
+                    afterCtrls: function() {
+                        //分类折叠表单
+                        $(".fold-panel").foldPanel();
+                    },
+                    events: function() {
+                        var changeProtrait = $("#changeProtrait").setSimpleUploader({
+                            url: "/File/UserProtraitUpload",
+                            filter: "*.png|*.jpg"
+                        });
+                        changeProtrait.uploaded(function(e, fileInfo) {
+                            var p = $("#protrait"),
+                                src = p.prop("src");
+                            var index = src.indexOf("?");
+                            if(index > -1) {
+                                src = src.substring(0, index);
+                            }
+                            src += "?_time=" + (new Date()).getTime();
+                            p.prop("src", src);
+                            $("#user").children().prop("src", src);
+                        });
+                        changeProtrait.error(function(e, errorMsg) {
+                            ui.msgshow(errorMsg, true);
+                        });
+                    },
+                    load: function() {
+                        this.setBackgroundColorItems();
+                        this.setThemeColorItems();
+                    }
+                },
+                createColorItem: function(item, checked) {
+                    var label = $("<label class='color-item' />");
+                    var checkbox = $("<input type='checkbox' />");
+                    var frame = $("<div class='color-frame-panel' />"),
+                        marker = $("<i class='check-marker' />"),
+                        icon = $("<i class='check-icon fa fa-check' />");
+
+                    checked = !!checked;
+                    checkbox.val(item.id);
+                    checkbox.prop("checked", checked);
+
+                    label.prop("title", item.name);
+                    label.css("background-color", item.color);
+
+                    label.append(checkbox);
+                    label.append(frame)
+                        .append(marker)
+                        .append(icon);
+
+                    if(checked) {
+                        label.addClass("color-item-selected");
+                    }
+                    return label;
+                },
+                createColors: function(elem, items) {
+                    var colorGroup = {
+                        panel: elem,
+                        children: new ui.keyArray(),
+                        current: null,
+                        onItemSelected: null,
+                        itemSelected: function(label, id) {
+                            var checkbox = label.children("input");
+                            if(!id)
+                                id = checkbox.val();
+                            if(this.current) {
+                                this.current.removeClass("color-item-selected");
+                                this.current.children("input").prop("checked", false);
+                                this.current = null;
+                            }
+                            this.current = label;
+                            this.current.addClass("color-item-selected");
+                            checkbox.prop("checked", true);
+                            if($.isFunction(this.onItemSelected)) {
+                                this.onItemSelected(this.children.get(id), this.current);
+                            }
+                        },
+                        getSelection: function() {
+                            var id = null;
+                            if(this.current) {
+                                id = this.current.children("input").val();
+                                return this.children.get(id);
+                            }
+                            return null;
+                        },
+                        setSelection: function(label) {
+
+                        }
+                    };
+                    var i = 0,
+                        len = items.length,
+                        color,
+                        item;
+                    for(; i < len; i++) {
+                        color = items[i];
+                        item = this.createColorItem(color, color.selected);
+                        if(color.selected)
+                            colorGroup.current = item;
+                        colorGroup.children.set(color.id, color);
+                        elem.append(item);
+                    }
+                    colorGroup.panel.change($.proxy(function(e) {
+                        var elem = $(e.target),
+                            nodeName,
+                            checkbox;
+                        while((nodeName = elem.nodeName()) !== "LABEL") {
+                            if(nodeName === "DIV") {
+                                return;
+                            }
+                            elem = elem.parent();
+                        }
+                        checkbox = elem.children("input");
+                        if(!checkbox.prop("checked")) {
+                            checkbox.prop("checked", true);
+                            return;
+                        }
+
+                        this.itemSelected(elem, checkbox.val());
+                    }, colorGroup));
+                    return colorGroup;
+                },
+                setBackgroundColorItems: function() {
+                    var backgrounds = [
+                        { name: "明亮", color: "#F1F1F1", id: "Light" },
+                        { name: "暗夜", color: "#3C3F41", id: "Dark" }
+                    ];
+                    var i = 0;
+                    for(; i < backgrounds.length; i++) {
+                        if(backgrounds[i].id === background) {
+                            backgrounds[i].selected = true;
+                            break;
+                        }
+                    }
+                    this.backgroundColors = this.createColors($("#bgColor"), backgrounds);
+                    this.backgroundColors.onItemSelected = function(color, label) {
+                        ui.ajax.ajaxPost(
+                            "/Home/ChangeBackground", 
+                            { background: color.id },
+                            function(success) {
+                                if(success.Result) {
+                                    location.replace(location.href);
+                                }
+                            },
+                            function(error) {
+                                ui.msgshow("修改主题失败，" + error.message, true);
+                            }
+                        );
+                    };
+                },
+                setThemeColorItems: function() {
+                    var colors = [],
+                        i = 0,
+                        len = ui.theme.Colors.length,
+                        color,
+                        selected;
+                    for(; i < len; i++) {
+                        color = ui.theme.Colors[i];
+                        selected = color.Id === themeId;
+                        colors.push({
+                            name: color.Name,
+                            color: color.Color,
+                            id: color.Id,
+                            selected: selected
+                        });
+                    }
+                    this.themeColors = this.createColors($("#hlColor"), colors);
+                    this.themeColors.onItemSelected = function(color, label) {
+                        ui.ajax.ajaxPost(
+                            "/Home/ChangeTheme", 
+                            { themeId: color.id },
+                            function(success) {
+                                if(success.Result) {
+                                    $("#theme").prop("href", "/Home/Theme?themeId=" + color.id);
+                                }
+                            },
+                            function(error) {
+                                ui.msgshow("修改主题失败，" + error.message, true);
+                            }
+                        );
+                    }
+                }
+            };
+        })();
+    </script>
+}
+

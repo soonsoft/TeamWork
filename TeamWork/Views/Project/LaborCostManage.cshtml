@@ -1,0 +1,374 @@
+﻿@using Newtonsoft.Json
+@{
+    ViewBag.Title = "人力成本管理";
+}
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "form",
+        "validate"
+    )
+}
+
+@section scriptsHead{
+}
+
+@section styles {
+    <style type="text/css">
+        .toolbar select {
+            width: 100px;
+        }
+        
+        form input[type='text'] {
+            width: 188px;
+        }
+
+        form select {
+            width: 188px;
+        }
+
+        form textarea {
+            width: 188px;
+            height: 84px;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul class="tools" style="float:right;">
+        <li>
+            <span>目标类型:</span>
+            @Html.DropDownList("queryType", (SelectList)ViewBag.QueryType)
+        </li>
+        <li>
+            <button id="queryBtn" class="tool-button">查询</button>
+        </li>
+        <li>
+            <button id="newBtn" class="tool-button button-highlight">新成本</button>
+        </li>
+        <li>
+            <button id="deleteBtn" class="tool-button">删除</button>
+        </li>
+    </ul>
+    <br style="clear:right;" />
+</div>
+<div id="laborCostPanel" class="content-panel" style="position:relative;">
+    <div id="laborCostGrid" class="grid-view"></div>
+    <div id="laborCostData" class="ctrl-form">
+        <form id="laborCostForm">
+            <input id="laborCostId" type="hidden" />
+            <label>目标类型</label><span class="required">*</span>
+            <br />
+            @Html.DropDownList("targetType", (SelectList)ViewBag.TargetType)
+            <br />
+            <label>成本目标</label><span class="required">*</span>
+            <br />
+            @Html.DropDownList("target", (SelectList)ViewBag.PositionList)
+            <br />
+            <label>成本</label><span class="required">*</span>
+            <br />
+            <input id="unitValue" name="unitValue" type="text" />
+            <br />
+            <label>报价</label>
+            <br />
+            <input id="unitPrice" name="unitPrice" type="text" />
+            <br />
+        </form>
+    </div>
+    <input id="saveBtn" type="button" class="button background-highlight" value="保存" />
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            window._positions = @MvcHtmlString.Create(JsonConvert.SerializeObject(ViewBag.Positions))
+            window._employees = @MvcHtmlString.Create(JsonConvert.SerializeObject(ViewBag.Employees))
+
+            window.columnFormatters = {
+                formatType: function (data, column) {
+                    var span = $("<span />"),
+                        text = "";
+                    if (data === "1" || data === 1) {
+                        text = "职位";
+                    } else {
+                        text = "人员";
+                    }
+                    span.text(text);
+                    return span;
+                }
+            };
+
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        //列表
+                        gridOption = {
+                            columns: [
+                                { column: "LaborCostId", text: ui.ColumnStyle.cnfn.columnCheckboxAll, len: 40, align: "center", handler: ui.ColumnStyle.cfn.createCheckbox },
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "TargetType", text: "目标类型", len: 120, handler: columnFormatters.formatType },
+                                { column: "TargetName", text: "成本目标", len: 150 },
+                                { column: "UnitValue", text: "成本(人/天)", len: 130, align: "right", sort: true, handler: ui.ColumnStyle.cfn.money },
+                                { column: "UnitValue", text: "成本(人/月)", len: 130, align: "right", sort: true, handler: masterpage.formatter.getMonthCostValue },
+                                { column: "UnitPrice", text: "报价(人/天)", len: 130, align: "right", sort: true, handler: ui.ColumnStyle.cfn.money },
+                                { column: "UnitPrice", text: "报价(人/月)", len: 130, align: "right", sort: true, handler: masterpage.formatter.getMonthOfferValue },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "input[type='checkbox']",
+                                multiple: false
+                            },
+                            pager: {
+                                pageIndex: 1,
+                                pageSize: 100
+                            }
+                        };
+                        var laborCostGrid = pageLogic.laborCostGrid = $("#laborCostGrid").setGridview(gridOption);
+
+                        pageLogic.laborCostGrid.selected(function (e, element, data) {
+                            laborCostManager.onUpdating(data.rowData);
+                        });
+                        pageLogic.laborCostGrid.deselected(function (e, element, data) {
+                            if (laborCostManager.isUpdate) {
+                                pageLogic.laborCostCtrlPanel.hide();
+                            }
+                        });
+                        pageLogic.laborCostGrid.rebind(function (e) {
+                            pageLogic.laborCostCtrlPanel.hide();
+                        });
+                        pageLogic.laborCostGrid.pageTurning(function (e, pageIndex, pageSize) {
+                            pageLogic.getAllLaborCosts(pageIndex, pageSize);
+                        });
+                        pageLogic.getAllLaborCosts(1, pageLogic.laborCostGrid.pageSize);
+
+                        //表单面板
+                        var laborCostCtrlPanel = pageLogic.laborCostCtrlPanel =
+                        $("#laborCostData").toCtrlPanel({
+                            parent: $("#laborCostPanel")
+                        });
+                        laborCostCtrlPanel.buttonAppend($("#saveBtn"));
+                        laborCostCtrlPanel.hided(function () {
+                            pageLogic.laborCostGrid.cancelSelection();
+                        });
+                    },
+
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.laborCostGrid.setHeight(height);
+                            pageLogic.laborCostCtrlPanel.setSizeLocation();
+                        });
+                    },
+
+                    afterCtrls: function () {
+                        pageLogic.laborCostValidate = $("#laborCostForm").setValidate({
+                            rules: {
+                                targetType: { required: true },
+                                target: { required: true },
+                                unitValue: { required: true, number: true, numberPrecision: [8, 2] },
+                                unitPrice: { number: true, numberPrecision: [8, 2] }
+                            },
+                            messages: {
+                                unitValue: { numberPrecision: "整数最多8位,小数最多2位" },
+                                unitPrice: { numberPrecision: "整数最多8位,小数最多2位" }
+                            }
+                        });
+                    },
+
+                    events: function () {
+                        $("#queryBtn").click(function () {
+                            pageLogic.getAllLaborCosts(1, pageLogic.laborCostGrid.pageSize);
+                        });
+                        $("#newBtn").click($.proxy(laborCostManager.onAdding, laborCostManager));
+                        $("#saveBtn").click($.proxy(laborCostManager.onSave, laborCostManager));
+                        $("#deleteBtn").click($.proxy(laborCostManager.onDelete, laborCostManager));
+                        $("#targetType").change($.proxy(laborCostManager.getTarget, laborCostManager));
+                    }
+                },
+
+                //获取所有人力成本信息
+                getAllLaborCosts: function (pageIndex, pageSize) {
+                    var param = {
+                        targetType: $("#queryType").val() || null,
+                        pageIndex: pageIndex,
+                        pageSize: pageSize
+                    };
+
+                    ui.ajax.ajaxPost(
+                        "/Project/GetAllLaborCosts",
+                        JSON.stringify(param),
+                        function (success) {
+                            if (pageIndex == 1)
+                                pageLogic.laborCostGrid.pageIndex = pageIndex;
+                            if (success) {
+                                pageLogic.laborCostGrid.createGridBody(success.Result, success.RowCount);
+                            } else {
+                                pageLogic.laborCostGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载人力成本信息失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                //保存人力成本信息
+                saveLaborCost: function (data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "saveBtn",
+                        "/Project/SaveLaborCost",
+                        JSON.stringify(data),
+                        function (success) {
+                            caller = caller || pageLogic;
+                            if (success.Result) {
+                                data.LaborCostId = success.ID;
+                                callback.call(caller, data);
+                            } else {
+                                if (success.ErrorMessage) {
+                                    ui.msgshow(success.ErrorMessage);
+                                } else {
+                                    ui.msgshow("没有任何数据改变");
+                                }
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("保存人力成本失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                //删除人力成本信息
+                deleteLaborCost: function (ids) {
+                    ui.ajax.ajaxPost(
+                        "/Project/DeleteLaborCost",
+                        JSON.stringify({ laborCostIds: ids }),
+                        function (success) {
+                            if (success.Result) {
+                                pageLogic.getAllLaborCosts(pageLogic.laborCostGrid.pageIndex, pageLogic.laborCostGrid.pageSize);
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("删除失败，" + error.message, true);
+                        }
+                    )
+                }
+
+            };
+
+            var laborCostManager = {
+                onAdding: function () {
+                    this.disabledElem(false);
+                    this.formReset();
+
+                    this.isUpdate = false;
+                    pageLogic.laborCostGrid.cancelSelection();
+                    pageLogic.laborCostCtrlPanel.show();
+                },
+
+                onUpdating: function (data) {
+                    this.disabledElem(true);
+                    this.dataToForm(data);
+
+                    this.isUpdate = true;
+                    pageLogic.laborCostCtrlPanel.show();
+                },
+
+                onSave: function () {
+                    if (!pageLogic.laborCostValidate.form()) {
+                        return;
+                    }
+
+                    var data;
+                    var row, callback;
+                    var target = $("#target").selectOption();
+                    if (this.isUpdate) {
+                        row = pageLogic.laborCostGrid.getCurrentSelection();
+                        data = ui.obj.clone({}, row.rowData);
+
+                        data.LaborCostId = $("#laborCostId").val();
+                        data.TargetType = $("#targetType").val();
+                        data.TargetId = target.value;
+                        data.TargetName = target.text;
+                        data.UnitValue = $("#unitValue").val();
+                        data.UnitPrice = $("#unitPrice").val();
+
+                        callback = (function (d) {
+                            pageLogic.laborCostGrid.updateRowByIndex(row.rowIndex, d);
+                            pageLogic.laborCostGrid.cancelSelection();
+                        });
+                    } else {
+                        data = {
+                            LaborCostId: $("#laborCostId").val(),
+                            TargetType: $("#targetType").val(),
+                            TargetId: target.value,
+                            TargetName: target.text,
+                            UnitValue: $("#unitValue").val(),
+                            UnitPrice: $("#unitPrice").val()
+                        };
+
+                        callback = (function (d) {
+                            pageLogic.laborCostGrid.insertRow(0, d);
+                            this.formReset();
+                        });
+                    }
+
+                    pageLogic.saveLaborCost(data, callback, this);
+                },
+
+                onDelete: function () {
+                    ids = pageLogic.laborCostGrid.getSelectedValue();
+                    if (ids.length == 0) {
+                        ui.msgshow("没有选择要删除的目标.");
+                        return;
+                    }
+                    if (!confirm("确定要删除勾选的目标吗?")) {
+                        return;
+                    }
+                    pageLogic.deleteLaborCost(ids);
+                },
+
+                getTarget: function (type, fun) {
+                    var typeId = (type !== undefined && type.length > 0)? type: $("#targetType").val();
+                    if (typeId === "1") {
+                        $("#target").bindOptions(window._positions, "PositionId", "PositionName");
+                    } else {
+                        $("#target").bindOptions(window._employees, "EmployeeId", "RealName");
+                    }
+                    if ($.isFunction(fun)) {
+                        fun();
+                    }
+                },
+
+                formReset: function () {
+                    $("#laborCostForm")[0].reset();
+                    $("#laborCostId").val("");
+                    laborCostManager.getTarget(1);
+                    pageLogic.laborCostValidate.clearErrorStyle();
+                },
+
+                dataToForm: function (data) {
+                    $("#laborCostForm")[0].reset();
+                    $("#laborCostId").val(data["LaborCostId"]);
+                    $("#targetType").val(data["TargetType"]);
+                    $("#unitValue").val(data["UnitValue"]);
+                    $("#unitPrice").val(data["UnitPrice"]);
+                    laborCostManager.getTarget(data["TargetType"], function () {
+                        $("#target").val(data["TargetId"]);
+                    });
+                },
+
+                disabledElem: function (disabled) {
+                    $("#targetType").prop("disabled", disabled);
+                    $("#target").prop("disabled", disabled);
+                }
+            };
+        })();
+    </script>
+}
+

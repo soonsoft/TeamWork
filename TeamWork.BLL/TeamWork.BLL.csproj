@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{24DE2276-A1C9-488B-B579-3B579F7D45E1}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>TeamWork.BLL</RootNamespace>
+    <AssemblyName>TeamWork.BLL</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\EntityFramework.6.1.1\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="STIM.Core">
+      <HintPath>..\packages\STIMFramework\STIM.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="STIM.Data.EntityFrameworkExtensions">
+      <HintPath>..\packages\STIMFramework\STIM.Data.EntityFrameworkExtensions.dll</HintPath>
+    </Reference>
+    <Reference Include="STIM.Modules">
+      <HintPath>..\packages\STIMFramework\STIM.Modules.dll</HintPath>
+    </Reference>
+    <Reference Include="STIM.Web">
+      <HintPath>..\packages\STIMFramework\STIM.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AttendanceLogic.cs" />
+    <Compile Include="DepartmentLogic.cs" />
+    <Compile Include="DictionaryLogic.cs" />
+    <Compile Include="EmployeeLogic.cs" />
+    <Compile Include="Models\AttendanceInfoModel.cs" />
+    <Compile Include="Models\BudgetModel.cs" />
+    <Compile Include="Models\EmployeeModel.cs" />
+    <Compile Include="Models\Enums.cs" />
+    <Compile Include="Models\LeaveBillModel.cs" />
+    <Compile Include="Models\OrganizationModels.cs" />
+    <Compile Include="Models\ProjectModel.cs" />
+    <Compile Include="Models\StageModel.cs" />
+    <Compile Include="Models\SumHourModel.cs" />
+    <Compile Include="Models\TileDataModel.cs" />
+    <Compile Include="Models\WorkTimeModel.cs" />
+    <Compile Include="OrganizationLogic.cs" />
+    <Compile Include="PositionLogic.cs" />
+    <Compile Include="ProjectLogic.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RequestLeaveLogic.cs" />
+    <Compile Include="SecurityExtends\EmployeeUser.cs" />
+    <Compile Include="SecurityExtends\Roles.cs" />
+    <Compile Include="SecurityExtends\UserDataExtensions.cs" />
+    <Compile Include="SecurityExtends\UserManager.cs" />
+    <Compile Include="SettingsLogic.cs" />
+    <Compile Include="StatisticLogic.cs" />
+    <Compile Include="TeamWorkMenuLogic.cs" />
+    <Compile Include="TilesLogic.cs" />
+    <Compile Include="WorkTimeLogic.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\TeamWork.DAL\TeamWork.DAL.csproj">
+      <Project>{df9555f8-f466-4c8a-b9e2-6c943e6cbb4f}</Project>
+      <Name>TeamWork.DAL</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

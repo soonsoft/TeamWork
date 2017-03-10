@@ -1,0 +1,1857 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>STIM.Data.EntityFrameworkExtensions</name>
+    </assembly>
+    <members>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.CachingMechanism">
+            <summary>
+            缓存策略，用户缓存DbParameter和查询字符串
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.CachingMechanism.CloneParameters(System.Data.IDataParameter[])">
+            <summary>
+            复制DataParameter对象
+            </summary>
+            <param name="originalParameters"></param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.CachingMechanism.Clear">
+            <summary>
+            清除所有缓存
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.CachingMechanism.AddSetToCache``1(System.String,System.Data.IDbCommand,``0)">
+            <summary>
+            对象添加缓存
+            </summary>
+            <typeparam name="T">对象类型</typeparam>
+            <param name="connectionString">数据库连接字符串</param>
+            <param name="command">DbCommand</param>
+            <param name="set">对象</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.CachingMechanism.GetCachedSet``1(System.String,System.Data.IDbCommand)">
+            <summary>
+            从缓存中获取对象
+            </summary>
+            <typeparam name="T">对象类型</typeparam>
+            <param name="connectionString">数据库连接字符串</param>
+            <param name="command">DbCommand</param>
+            <returns>对象</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.CachingMechanism.AddParameterSetToCache(System.String,System.Data.IDbCommand,System.Data.IDataParameter[])">
+            <summary>
+            将参数列表添加到缓存
+            </summary>
+            <param name="connectionString">数据库连接字符串</param>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数列表</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.CachingMechanism.GetCachedParameterSet(System.String,System.Data.IDbCommand)">
+            <summary>
+            从缓存中获取参数列表
+            </summary>
+            <param name="connectionString">数据库连接字符串</param>
+            <param name="command">DbCommand</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.CachingMechanism.IsSetCached(System.String,System.Data.IDbCommand)">
+            <summary>
+            是否已经有缓存
+            </summary>
+            <param name="connectionString">数据库连接字符串</param>
+            <param name="command">DbCommand</param>
+            <returns>bool</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.CachingMechanism.CreateHashKey(System.String,System.String)">
+            <summary>
+            创建一个缓存键
+            </summary>
+            <param name="connectionString">数据库连接字符串</param>
+            <param name="command">DbCommand</param>
+            <returns>Key</returns>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.CommandTextFormatException">
+            <summary>
+            数据库查询语句格式化异常
+            </summary>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.DatabaseAccess">
+            <summary>
+            数据库操作类
+            可以单独使用也可以作为EntityFramework的扩展使用
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.#ctor(System.Data.Common.DbConnection,System.Data.Common.DbProviderFactory)">
+            <summary>
+            根据DbConnection连接对象构建DatabaseAccess
+            for EntityFramework
+            </summary>
+            <param name="connection"></param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.#ctor(System.Data.Common.DbProviderFactory)">
+            <summary>
+            根据DbProviderFactory对象构建DatabaseAccess
+            </summary>
+            <param name="providerFactory"></param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.EnsureConnection">
+            <summary>
+            检查数据库连接的开启状态，如果数据库连接没有正常开启则打开，如果已经打开则不做任何处理
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ReleaseConnection(System.Boolean)">
+            <summary>
+            是否连接，如果内部没有开启连接则调用此方法只会更新计数器并不会真正关闭连接
+            </summary>
+            <param name="realClose">默认为true</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.GetOpenConnection">
+            <summary>
+            获取一个已经打开的数据库连接对象，
+            当需要和EntityFramework混合使用时避免数据库连接多次打开关闭
+            标准写法：
+            using(var conn = dba.GetOpenConnection()) 
+            {
+                ....
+            }
+            </summary>
+            <returns>已经打开的数据库连接</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.GetOpenConnection(System.Func{System.Data.Common.DbConnection,STIM.Data.EntityFrameworkExtensions.DbConnectionWrapper})">
+            <summary>
+            获取一个已经打开的数据库连接对象
+            </summary>
+            <param name="createDbConnectionWrapperFunc">通过指定该参数可以创建各种不同的DbConnectionWrapper对象</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.CreateCommand">
+            <summary>
+            创建一个DbCommand对象
+            CommandText为Empty
+            CommandType为Text
+            </summary>
+            <returns>DbCommand</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.CreateCommand(System.Int32)">
+            <summary>
+            创建一个带有超时时间的DbCommand
+            </summary>
+            <param name="timeout">timeout 0表示永远不超时，负数会抛出异常</param>
+            <returns>DbCommand</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.CreateCommand(System.String)">
+            <summary>
+            创建DbCommand对象
+            </summary>
+            <param name="commandText">需要执行SQL</param>
+            <returns>DbCommand</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.CreateCommand(System.String,System.Int32)">
+            <summary>
+            创建DbCommand对象
+            </summary>
+            <param name="commandText">需要执行SQL</param>
+            <param name="timeout">timeout 0表示永远不超时，负数会抛出异常</param>
+            <returns>DbCommand</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.CreateCommand(System.String,System.Data.CommandType)">
+            <summary>
+            创建DbCommand对象
+            </summary>
+            <param name="commandText">需要执行SQL</param>
+            <param name="commandType">CommandType, Text：SQL语句；StoredProcedure：存储过程</param>
+            <returns>DbCommand</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.CreateCommand(System.String,System.Data.CommandType,System.Int32)">
+            <summary>
+            创建DbCommand对象
+            </summary>
+            <param name="commandText">需要执行SQL</param>
+            <param name="commandType">CommandType, Text：SQL语句；StoredProcedure：存储过程</param>
+            <param name="timeout">timeout 0表示永远不超时，负数会抛出异常</param>
+            <returns>DbCommand</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.CreateProcedureCommand(System.String)">
+            <summary>
+            创建一个用于执行存储过程的DbCommand对象
+            </summary>
+            <param name="procedureName">存储过程名称</param>
+            <returns>DbCommand</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.CreateProcedureCommand(System.String,System.Int32)">
+            <summary>
+            创建一个用于执行存储过程的DbCommand对象
+            </summary>
+            <param name="procedureName">存储过程名称</param>
+            <param name="timeout">timeout 0表示永远不超时，负数会抛出异常</param>
+            <returns>DbCommand</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.AnonymousAddInParameter(System.Data.Common.DbCommand,System.Object)">
+            <summary>
+            将匿名对象作为参数添加到Parameters集合中
+            当需要将普通class作为参数添加时不作为添加项的属性可以标记IgnoreAttribute
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数对象</param>
+            <returns>PropertyDescriptorCollection</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.AddInParameters(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            将数组或集合添加为Parameters
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数集合</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.AddInParameter(System.Data.Common.DbCommand,System.String,System.Object)">
+            <summary>
+            添加输入参数
+            </summary>
+            <param name="command">目标DbCommand对象</param>
+            <param name="name">参数名</param>
+            <param name="value">参数值</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.AddInParameter(System.Data.Common.DbCommand,System.String,System.Object,System.Int32)">
+            <summary>
+            添加输入参数
+            </summary>
+            <param name="command">目标DbCommand对象</param>
+            <param name="name">参数名</param>
+            <param name="value">参数值</param>
+            <param name="size">参数大小</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.AddInParameter(System.Data.Common.DbCommand,System.String,System.Data.DbType,System.Object)">
+            <summary>
+            添加输入参数
+            </summary>
+            <param name="command">目标DbCommand对象</param>
+            <param name="name">参数名</param>
+            <param name="type">参数类型，对应DbType枚举</param>
+            <param name="value">参数值</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.AddInParameter(System.Data.Common.DbCommand,System.String,System.Data.DbType,System.Int32,System.Object)">
+            <summary>
+            添加输入参数
+            </summary>
+            <param name="command">目标DbCommand对象</param>
+            <param name="name">参数名</param>
+            <param name="type">参数类型，对应DbType枚举</param>
+            <param name="size">参数大小</param>
+            <param name="value">参数值</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.AddOutParameter(System.Data.Common.DbCommand,System.String,System.Data.DbType)">
+            <summary>
+            添加输出参数
+            </summary>
+            <param name="command">目标DbCommand对象</param>
+            <param name="name">参数名</param>
+            <param name="type">参数类型，对应DbType枚举</param>
+            <returns>DbParameter</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.AddOutParameter(System.Data.Common.DbCommand,System.String,System.Data.DbType,System.Int32)">
+            <summary>
+            添加输出参数
+            </summary>
+            <param name="command">目标DbCommand对象</param>
+            <param name="name">参数名</param>
+            <param name="type">参数类型，对应DbType枚举</param>
+            <param name="size">参数大小</param>
+            <returns>DbParameter</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.AddParameter(System.Data.Common.DbCommand,System.String,System.Nullable{System.Data.DbType},System.Nullable{System.Int32},System.Data.ParameterDirection,System.Boolean,System.Byte,System.Byte,System.String,System.Data.DataRowVersion,System.Object)">
+            <summary>
+            添加输出参数
+            </summary>
+            <param name="command">目标DbCommand对象</param>
+            <param name="name">参数名</param>
+            <param name="dbType">参数类型，对应DbType枚举</param>
+            <param name="size">参数大小</param>
+            <param name="direction">输入参或是输出参，对应ParameterDirection枚举</param>
+            <param name="nullable">是否可以为null</param>
+            <param name="precision"></param>
+            <param name="scale"></param>
+            <param name="sourceColumn">源列名</param>
+            <param name="sourceVersion">源版本号</param>
+            <param name="value">参数值</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.CreateParameter(System.Data.Common.DbCommand)">
+            <summary>
+            通过DbCommand创建SQL参数对象
+            </summary>
+            <param name="command">DbCommand实例</param>
+            <returns>DbParameter实例</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ConfigureParameter(System.Data.Common.DbParameter,System.String,System.Nullable{System.Data.DbType},System.Nullable{System.Int32},System.Data.ParameterDirection,System.Boolean,System.Byte,System.Byte,System.String,System.Data.DataRowVersion,System.Object)">
+            <summary>
+            配置SQL参数
+            </summary>
+            <param name="param">DbParameter参数实例</param>
+            <param name="name">参数名称</param>
+            <param name="dbType">对应数据库类型</param>
+            <param name="size">长度</param>
+            <param name="direction">参数类型，对应input或者是out参数</param>
+            <param name="nullable">是否可以为空</param>
+            <param name="precision"></param>
+            <param name="scale"></param>
+            <param name="sourceColumn">源列名</param>
+            <param name="sourceVersion">源版本号</param>
+            <param name="value">参数值</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.BuildParameterName(System.String)">
+            <summary>
+            构建符合数据要求的参数名称
+            </summary>
+            <param name="name">sql参数名称</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.BeginTransaction">
+            <summary>
+            开启事务
+            </summary>
+            <returns>事务管理器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.BeginTransaction(System.Data.IsolationLevel)">
+            <summary>
+            开启指定事务等级的事务
+            IsolationLevel枚举用于控制当前的事务等级
+            Chaos：无法覆盖隔离级别更高的事务中的挂起的更改。
+            ReadCommitted：在正在读取数据时保持共享锁，以避免脏读，但是在事务结束之前可以更改数据，从而导致不可重复的读取或幻像数据。
+            ReadUncommitted：可以进行脏读，意思是说，不发布共享锁，也不接受独占锁。
+            RepeatableRead：在查询中使用的所有数据上放置锁，以防止其他用户更新这些数据。 防止不可重复的读取，但是仍可以有幻像行。 
+            Serializable：在 DataSet 上放置范围锁，以防止在事务完成之前由其他用户更新行或向数据集中插入行。
+            Snapshot：通过在一个应用程序正在修改数据时存储另一个应用程序可以读取的相同数据版本来减少阻止。 表示您无法从一个事务中看到在其他事务中进行的更改，即便重新查询也是如此。
+            Unspecified：正在使用与指定隔离级别不同的隔离级别，但是无法确定该级别。当使用 OdbcTransaction 时，如果不设置 IsolationLevel 或将 IsolationLevel 设置为 Unspecified，则事务将根据由所使用的驱动程序所决定的隔离级别来执行。
+            </summary>
+            <param name="level">事务等级</param>
+            <returns>DbTransactionScope</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.CheckLocalTransaction(System.Data.Common.DbCommand)">
+            <summary>
+            判断当前上下文中是否开启本地事务，如果开启则为DbCommand对象设置事务
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQuery(System.Data.Common.DbCommand)">
+            <summary>
+            执行SQL 语句
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQuery(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            执行SQL 语句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数数组</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQuery(System.Data.Common.DbCommand,System.Object)">
+            <summary>
+            执行SQL 语句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数对象</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQuery(System.String)">
+            <summary>
+            执行SQL 语句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQuery(System.String,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            执行SQL 语句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数数组</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQuery(System.String,System.Object)">
+            <summary>
+            执行SQL 语句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数对象</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.DoExecuteNonQueryMultiple(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            一次执行多条SQL 语句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.DoExecuteNonQueryMultiple(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object[]})">
+            <summary>
+            一次执行多条SQL 语句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQueryMultiple(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            一次执行多条SQL 语句
+            如果在调用前没有开启事务则会自动打开事务
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数列表</param>
+            <returns>影响的行数</returns>
+        </member>
+        <!-- 对于成员“M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQueryMultiple(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object[]})”忽略有格式错误的 XML 注释 -->
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQueryMultiple(System.String,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            一次执行多条SQL 语句
+            如果在调用前没有开启事务则会自动打开事务
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数列表</param>
+            <returns>影响的行数</returns>
+        </member>
+        <!-- 对于成员“M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQueryMultiple(System.String,System.Collections.Generic.IEnumerable{System.Object[]})”忽略有格式错误的 XML 注释 -->
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQueryAsync(System.Data.Common.DbCommand)">
+            <summary>
+            异步执行SQL 语句
+            用法 int val = await ExecuteNonQueryAsync(command);
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQueryAsync(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            异步执行SQL 语句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQueryAsync(System.Data.Common.DbCommand,System.Object)">
+            <summary>
+            异步执行SQL 语句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQueryAsync(System.String)">
+            <summary>
+            异步执行SQL 语句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQueryAsync(System.String,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            异步执行SQL 语句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteNonQueryAsync(System.String,System.Object)">
+            <summary>
+            异步执行SQL 语句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader(System.Data.Common.DbCommand)">
+            <summary>
+            执行查询
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns>DbDataReader读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            执行查询
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <returns>DbDataReader读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader(System.Data.Common.DbCommand,System.Object)">
+            <summary>
+            执行查询
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <returns>DbDataReader读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader(System.String)">
+            <summary>
+            执行查询
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <returns>DbDataReader读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader(System.String,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            执行查询
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <returns>DbDataReader读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader(System.String,System.Object)">
+            <summary>
+            执行查询
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <returns>DbDataReader读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader``1(System.Data.Common.DbCommand,System.Action{``0,System.Data.Common.DbDataReader})">
+            <summary>
+            执行查询
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="command">DbCommand</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader``1(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object},System.Action{``0,System.Data.Common.DbDataReader})">
+            <summary>
+            执行查询
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader``1(System.Data.Common.DbCommand,System.Object,System.Action{``0,System.Data.Common.DbDataReader})">
+            <summary>
+            执行查询
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader``1(System.String,System.Action{``0,System.Data.Common.DbDataReader})">
+            <summary>
+            执行查询
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="commandText">SQL 语句</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader``1(System.String,System.Collections.Generic.IEnumerable{System.Object},System.Action{``0,System.Data.Common.DbDataReader})">
+            <summary>
+            执行查询
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReader``1(System.String,System.Object,System.Action{``0,System.Data.Common.DbDataReader})">
+            <summary>
+            执行查询
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.Data.Common.DbCommand,System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.Data.Common.DbCommand,System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object},System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="parameters">参数</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.Data.Common.DbCommand,System.Object,System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="parameters">参数</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.Data.Common.DbCommand,System.Object,System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.String,System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.String,System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.String,System.Collections.Generic.IEnumerable{System.Object},System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.String,System.Collections.Generic.IEnumerable{System.Object},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.String,System.Object,System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging(System.String,System.Object,System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>DbDataReader 读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.Data.Common.DbCommand,System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="command">DbCommand</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.Data.Common.DbCommand,System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="command">DbCommand</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object},System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object},System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.Data.Common.DbCommand,System.Object,System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.Data.Common.DbCommand,System.Object,System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.String,System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="commandText">SQL 语句</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.String,System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="commandText">SQL 语句</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.String,System.Collections.Generic.IEnumerable{System.Object},System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.String,System.Collections.Generic.IEnumerable{System.Object},System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.String,System.Object,System.Action{System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.DatabaseAccess},System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <param name="preparePagingCommand">分页语句后续处理</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteReaderPaging``1(System.String,System.Object,System.Action{``0,System.Data.Common.DbDataReader},System.Int32,System.Int32,System.Int32@)">
+            <summary>
+            执行分页查询
+            注意，SQL语句中一定要包含ORDER BY子句
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页记录数</param>
+            <param name="rowCount">总记录数</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteScalar(System.Data.Common.DbCommand)">
+            <summary>
+            执行查询，并返回查询所返回的结果集中的第一行第一列。所有其它的行和列将被忽略
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns>查询结果</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteScalar(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            执行查询，并返回查询所返回的结果集中的第一行第一列。所有其它的行和列将被忽略
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <returns>查询结果</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteScalar(System.Data.Common.DbCommand,System.Object)">
+            <summary>
+            执行查询，并返回查询所返回的结果集中的第一行第一列。所有其它的行和列将被忽略
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <returns>查询结果</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteScalar(System.String)">
+            <summary>
+            执行查询，并返回查询所返回的结果集中的第一行第一列。所有其它的行和列将被忽略
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <returns>查询结果</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteScalar(System.String,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            执行查询，并返回查询所返回的结果集中的第一行第一列。所有其它的行和列将被忽略
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <returns>查询结果</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteScalar(System.String,System.Object)">
+            <summary>
+            执行查询，并返回查询所返回的结果集中的第一行第一列。所有其它的行和列将被忽略
+            </summary>
+            <param name="commandText">SQL 语句</param>
+            <param name="parameters">参数</param>
+            <returns>查询结果</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.SetUpRowUpdatedEvent(System.Data.Common.DbDataAdapter)">
+            <summary>
+            Sets the RowUpdated event for the data adapter.
+            </summary>
+            <param name="adapter">The <see cref="T:System.Data.Common.DbDataAdapter"/> to set the event.</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.GetDataAdapter(STIM.Data.EntityFrameworkExtensions.UpdateBehavior)">
+            <summary>
+            获取DataAdapter对象
+            </summary>
+            <param name="updateBehavior"></param>
+            <returns>数据适配器对象</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.DoLoadDataSet(System.Data.Common.DbCommand,System.Data.DataSet,System.String[])">
+            <summary>
+            填充DataSet
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="dataSet">DataSet</param>
+            <param name="tableNames">需要填充的表名</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteDataSet(System.Data.Common.DbCommand)">
+            <summary>
+            执行查询并返回DataSet数据集
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns>DateSet数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteDataSet(System.Data.Common.DbCommand,System.String[])">
+            <summary>
+            执行查询并返回DataSet数据集
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="tableNames">表名</param>
+            <returns>DataSet数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteDataSet(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object})">
+            <summary>
+            执行查询并返回DataSet数据集
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <returns>DataSet数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteDataSet(System.Data.Common.DbCommand,System.Object)">
+            <summary>
+            执行查询并返回DataSet数据集
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <returns>DataSet数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteDataSet(System.Data.Common.DbCommand,System.Collections.Generic.IEnumerable{System.Object},System.String[])">
+            <summary>
+            执行查询并返回DataSet数据集
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <param name="tableNames">表名</param>
+            <returns>DataSet数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteDataSet(System.Data.Common.DbCommand,System.Object,System.String[])">
+            <summary>
+            执行查询并返回DataSet数据集
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="parameters">参数</param>
+            <param name="tableNames">表名</param>
+            <returns>DataSet数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.DoUpdateDataSet(STIM.Data.EntityFrameworkExtensions.UpdateBehavior,System.Data.DataSet,System.String,System.Data.Common.DbCommand,System.Data.Common.DbCommand,System.Data.Common.DbCommand,System.Nullable{System.Int32})">
+            <summary>
+            更新DataSet数据集
+            </summary>
+            <param name="behavior">更新方式 Standard: 出错就停止; Continue: 出错继续更新; Transactional: 出错回滚</param>
+            <param name="dataSet">更新的数据集</param>
+            <param name="tableName">表名</param>
+            <param name="insertCommand">执行Insert操作</param>
+            <param name="updateCommand">执行Update操作</param>
+            <param name="deleteCommand">执行Delete操作</param>
+            <param name="updateBatchSize">是否使用批处理</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.UpdateDataSet(System.Data.DataSet,System.String,System.Data.Common.DbCommand,System.Data.Common.DbCommand,System.Data.Common.DbCommand,STIM.Data.EntityFrameworkExtensions.UpdateBehavior,System.Nullable{System.Int32})">
+            <summary>
+            更新DataSet数据集
+            </summary>
+            <param name="dataSet">更新的数据集</param>
+            <param name="tableName">表名</param>
+            <param name="insertCommand">执行Insert操作</param>
+            <param name="updateCommand">执行Update操作</param>
+            <param name="deleteCommand">执行Delete操作</param>
+            <param name="updateBehavior">更新方式 Standard: 出错就停止; Continue: 出错继续更新; Transactional: 出错回滚</param>
+            <param name="updateBatchSize">是否使用批处理</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteProcedureNonQuery(System.Data.Common.DbCommand)">
+            <summary>
+            执行存储过程
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExceuteProcedureNonQuery(System.String)">
+            <summary>
+            执行存储过程
+            </summary>
+            <param name="procedureName">存储过程名称</param>
+            <returns>影响的行数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteProcedureReader(System.Data.Common.DbCommand)">
+            <summary>
+            执行存储过程，并返回DbDataReader读取器
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns>DbDataReader读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteProcedureReader(System.String)">
+            <summary>
+            执行存储过程，并返回DbDataReader读取器
+            </summary>
+            <param name="procedureName">存储过程名称</param>
+            <returns>DbDataReader读取器</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteProcedureReader``1(System.Data.Common.DbCommand,System.Action{``0,System.Data.Common.DbDataReader})">
+            <summary>
+            执行存储过程，返回数据集
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="command">DbCommand</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ExecuteProcedureReader``1(System.String,System.Action{``0,System.Data.Common.DbDataReader})">
+            <summary>
+            执行存储过程，返回数据集
+            </summary>
+            <typeparam name="TResult">返回数据集的类型，该数据库必须有空构造</typeparam>
+            <param name="procedureName">存储过程名称</param>
+            <param name="readDataHandler">DbDataReader和数据集映射的委托</param>
+            <returns>数据集</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.PageCount(System.Int32,System.Int32)">
+            <summary>
+            计算页数
+            </summary>
+            <param name="rowCount">记录总数</param>
+            <param name="pageSize">每页显示的记录数</param>
+            <returns>总页数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.RowStart(System.Int32,System.Int32)">
+            <summary>
+            计算分页的起始行号
+            </summary>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页显示的记录数</param>
+            <returns>起始行号</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.RowEnd(System.Int32,System.Int32)">
+            <summary>
+            计算分页的结束行号
+            </summary>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页显示的记录数</param>
+            <returns>结束行号</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.GetSelectColumns(System.String)">
+            <summary>
+            分析查询语句中的列
+            </summary>
+            <param name="selectColumns"></param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.RowCountCommand(System.Data.Common.DbCommand)">
+            <summary>
+            将查询语句包装成查询总记录数的语句
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns>包装后的语句</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.RowCountCommand(System.Data.Common.DbCommand,System.Int32,System.Int32)">
+            <summary>
+            将查询语句包装成查询总记录数的语句
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="pageIndex">第几页（暂时无效）</param>
+            <param name="pageSize">每页显示的记录数（暂时无效）</param>
+            <returns>包装后的语句</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.FirstPageCommand(System.Data.Common.DbCommand,System.Int32,System.Int32)">
+            <summary>
+            包装查询第一页的DbCommand
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页显示的记录数</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.PageCommand(System.Data.Common.DbCommand,System.Int32,System.Int32)">
+            <summary>
+            包装分页查询的DbCommand
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页显示的记录数</param>
+        </member>
+        <member name="P:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.Connection">
+            <summary>
+            获取当前使用的数据库连接
+            </summary>
+        </member>
+        <member name="P:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.ProviderFactory">
+            <summary>
+            获取数据库Provider创建工厂
+            </summary>
+        </member>
+        <member name="P:STIM.Data.EntityFrameworkExtensions.DatabaseAccess.LocalTransactionScope">
+            <summary>
+            获取当前使用的本地事务操作器
+            </summary>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.DatabaseType">
+            <summary>
+            支持的数据库类型
+            </summary>
+        </member>
+        <member name="F:STIM.Data.EntityFrameworkExtensions.DatabaseType.SQLServer">
+            <summary>
+            SQL Server
+            </summary>
+        </member>
+        <member name="F:STIM.Data.EntityFrameworkExtensions.DatabaseType.Oracle">
+            <summary>
+            Oracle ODP.NET
+            </summary>
+        </member>
+        <member name="F:STIM.Data.EntityFrameworkExtensions.DatabaseType.OracleClient">
+            <summary>
+            Oracle OracleClient
+            </summary>
+        </member>
+        <member name="F:STIM.Data.EntityFrameworkExtensions.DatabaseType.OleDb">
+            <summary>
+            OleDb 可用于Excel查询
+            </summary>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.DatabaseAccessFactory">
+            <summary>
+            DatabaseAccess创建工厂
+            </summary>
+        </member>
+        <member name="F:STIM.Data.EntityFrameworkExtensions.DatabaseAccessFactory.DefaultProvider">
+            <summary>
+            默认为SQL Server
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccessFactory.CreateDatabase">
+            <summary>
+            创建DatabaseAccess
+            </summary>
+            <returns>DatabaseAccess实例</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccessFactory.CreateDatabase(System.String)">
+            <summary>
+            根据指定的数据库连接名称创建DatabaseAccess
+            </summary>
+            <param name="connectionStringName">数据库连接名称</param>
+            <returns>DatabaseAccess实例</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccessFactory.CreateDatabase(System.Data.Common.DbConnection)">
+            <summary>
+            根据数据库连接对象创建DatabaseAccess
+            </summary>
+            <param name="connection">数据库连接对象</param>
+            <returns>DatabaseAccess实例</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccessFactory.CreateDatabase(System.Configuration.ConnectionStringSettings)">
+            <summary>
+            根据数据库连接配置创建DatabaseAccess
+            </summary>
+            <param name="settings">数据库连接配置</param>
+            <returns>DatabaseAccess实例</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DatabaseAccessFactory.CreateDatabaseAccess(System.Data.Common.DbConnection,System.Data.Common.DbProviderFactory)">
+            <summary>
+            根据数据库连接和数据库工厂创建DatabaseAccess
+            </summary>
+            <param name="connection">数据库连接</param>
+            <param name="providerFactory">数据库工厂</param>
+            <returns>DatabaseAccess实例</returns>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.DbConnectionWrapper">
+            <summary>
+            数据库连接包装器
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbConnectionWrapper.#ctor(System.Data.Common.DbConnection)">
+            <summary>
+            带参构造
+            </summary>
+            <param name="conn">DbConnection数据库连接实例</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbConnectionWrapper.Open">
+            <summary>
+            打开数据库连接
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbConnectionWrapper.Close">
+            <summary>
+            关闭数据库连接
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbConnectionWrapper.Dispose">
+            <summary>
+            释放资源
+            </summary>
+        </member>
+        <member name="P:STIM.Data.EntityFrameworkExtensions.DbConnectionWrapper.IsOpened">
+            <summary>
+            当前数据库连接是否为开启状态
+            </summary>
+        </member>
+        <member name="P:STIM.Data.EntityFrameworkExtensions.DbConnectionWrapper.State">
+            <summary>
+            包含的DbConnection对象的State状态
+            </summary>
+        </member>
+        <member name="P:STIM.Data.EntityFrameworkExtensions.DbConnectionWrapper.Connection">
+            <summary>
+            返回包含的DbConnection实例
+            </summary>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.DbContextExtensions">
+            <summary>
+            用于EntityFramework的扩展方法
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbContextExtensions.IsDatabase(System.Data.Common.DbConnection,System.String)">
+            <summary>
+            用于判断当前的数据库连接是否为预期的数据库连接
+            </summary>
+            <param name="connection">数据库连接</param>
+            <param name="connType">预期数据库连接类型</param>
+            <returns>bool</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbContextExtensions.DatabaseAccess(System.Data.Entity.DbContext)">
+            <summary>
+            通过DbContext创建DatabaseAccess
+            </summary>
+            <param name="context">DbContext</param>
+            <returns>DatabaseAccess实例</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbContextExtensions.RowStartLinq(System.Data.Entity.DbContext,System.Int32,System.Int32)">
+            <summary>
+            获取Linq查询时分页的起始行号，用于Skip()方法的参数
+            </summary>
+            <param name="context">DbContext</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页的页码</param>
+            <returns>起始行号</returns>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions">
+            <summary>
+            DbDataReader 扩展方法
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.CheckNull(System.Object)">
+            <summary>
+            检查值是否为Null
+            </summary>
+            <param name="value">值</param>
+            <returns>bool</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetGuidOrNull(System.Data.Common.DbDataReader,System.String)">
+            <summary>
+            获取一个Guid值，没有则返回Null
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="columnName">列名</param>
+            <returns>Nullable&lt;Guid&gt;</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetGuidOrNull(System.Data.Common.DbDataReader,System.Int32)">
+            <summary>
+            获取一个Guid值，没有则返回Null
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="index">列索引</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetDateTimeOrDefault(System.Data.Common.DbDataReader,System.String,System.Nullable{System.DateTime})">
+            <summary>
+            获取一个DateTime值，没有则返回Null
+            可以指定默认返回值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="columnName">列名</param>
+            <param name="defaultValue">默认值</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetDateTimeOrDefault(System.Data.Common.DbDataReader,System.Int32,System.Nullable{System.DateTime})">
+            <summary>
+            获取一个DateTime值，没有则返回Null
+            可以指定默认返回值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="index">列索引</param>
+            <param name="defaultValue">默认值</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetStringOrNull(System.Data.Common.DbDataReader,System.String)">
+            <summary>
+            获取String，没有则返回Null
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="columnName">列名</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetStringOrNull(System.Data.Common.DbDataReader,System.Int32)">
+            <summary>
+            获取String，没有则返回Null
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="index">列索引</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetFloatOrDefault(System.Data.Common.DbDataReader,System.String,System.Nullable{System.Single})">
+            <summary>
+            获取Float，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="columnName">列名</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetFloatOrDefault(System.Data.Common.DbDataReader,System.Int32,System.Nullable{System.Single})">
+            <summary>
+            获取Float，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="index">列索引</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetDoubleOrDefault(System.Data.Common.DbDataReader,System.String,System.Nullable{System.Double})">
+            <summary>
+            获取Double，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="columnName">列名</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetDoubleOrDefault(System.Data.Common.DbDataReader,System.Int32,System.Nullable{System.Double})">
+            <summary>
+            获取Double，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="index">列索引</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetDecimalOrDefault(System.Data.Common.DbDataReader,System.String,System.Nullable{System.Decimal})">
+            <summary>
+            获取decimal，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="columnName">列名</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetDecimalOrDefault(System.Data.Common.DbDataReader,System.Int32,System.Nullable{System.Decimal})">
+            <summary>
+            获取decimal，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="index">列索引</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetShortOrDefault(System.Data.Common.DbDataReader,System.String,System.Nullable{System.Int16})">
+            <summary>
+            获取short，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="columnName">列名</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetShortOrDefault(System.Data.Common.DbDataReader,System.Int32,System.Nullable{System.Int16})">
+            <summary>
+            获取short，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="index">列索引</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetIntOrDefault(System.Data.Common.DbDataReader,System.String,System.Nullable{System.Int32})">
+            <summary>
+            获取int，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="columnName">列名</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetIntOrDefault(System.Data.Common.DbDataReader,System.Int32,System.Nullable{System.Int32})">
+            <summary>
+            获取int，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="index">列索引</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetLongOrDefault(System.Data.Common.DbDataReader,System.String,System.Nullable{System.Int64})">
+            <summary>
+            获取long，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="columnName">列名</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetLongOrDefault(System.Data.Common.DbDataReader,System.Int32,System.Nullable{System.Int64})">
+            <summary>
+            获取long，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="index">列索引</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetBooleanOrDefault(System.Data.Common.DbDataReader,System.String,System.Nullable{System.Boolean})">
+            <summary>
+            获取boolean，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="columnName">列名</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbDataReaderExtensions.GetBooleanOrDefault(System.Data.Common.DbDataReader,System.Int32,System.Nullable{System.Boolean})">
+            <summary>
+            获取boolean，没有可以返回指定的默认值
+            </summary>
+            <param name="reader">DbDataReader</param>
+            <param name="index">列索引</param>
+            <param name="defaultValue">默认值，默认为Null</param>
+            <returns></returns>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.DbEntityValidationExceptionExtension">
+            <summary>
+            DbEntityValidationException扩展方法，显示内部异常内容
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbEntityValidationExceptionExtension.GetMessage(System.Data.Entity.Validation.DbEntityValidationException)">
+            <summary>
+            获取DbEntityValidationException的内部异常信息
+            </summary>
+            <param name="exception">异常对象</param>
+            <returns></returns>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.DbTransactionException">
+            <summary>
+            数据库事务异常
+            </summary>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.DbTransactionScope">
+            <summary>
+            本地事务托管器
+            </summary>
+        </member>
+        <member name="F:STIM.Data.EntityFrameworkExtensions.DbTransactionScope.context">
+            <summary>
+            程序集内部使用的DatabaseAccess对象
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbTransactionScope.#ctor(STIM.Data.EntityFrameworkExtensions.DatabaseAccess)">
+            <summary>
+            本地事务托管器构造，必须传入当前使用的DatabaseAccess对象
+            </summary>
+            <param name="dba"></param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbTransactionScope.BeginTransaction">
+            <summary>
+            开启事务
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbTransactionScope.BeginTransaction(System.Data.IsolationLevel)">
+            <summary>
+            开启指定事务等级的事务
+            IsolationLevel枚举用于控制当前的事务等级
+            Chaos：无法覆盖隔离级别更高的事务中的挂起的更改。
+            ReadCommitted：在正在读取数据时保持共享锁，以避免脏读，但是在事务结束之前可以更改数据，从而导致不可重复的读取或幻像数据。
+            ReadUncommitted：可以进行脏读，意思是说，不发布共享锁，也不接受独占锁。
+            RepeatableRead：在查询中使用的所有数据上放置锁，以防止其他用户更新这些数据。 防止不可重复的读取，但是仍可以有幻像行。 
+            Serializable：在 DataSet 上放置范围锁，以防止在事务完成之前由其他用户更新行或向数据集中插入行。
+            Snapshot：通过在一个应用程序正在修改数据时存储另一个应用程序可以读取的相同数据版本来减少阻止。 表示您无法从一个事务中看到在其他事务中进行的更改，即便重新查询也是如此。
+            Unspecified：正在使用与指定隔离级别不同的隔离级别，但是无法确定该级别。当使用 OdbcTransaction 时，如果不设置 IsolationLevel 或将 IsolationLevel 设置为 Unspecified，则事务将根据由所使用的驱动程序所决定的隔离级别来执行。
+            </summary>
+            <param name="level">事务等级</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbTransactionScope.SetTransaction(System.Data.Common.DbCommand)">
+            <summary>
+            将当前事务绑定到DbCommand对象上
+            </summary>
+            <param name="command"></param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbTransactionScope.Complete">
+            <summary>
+            完成事务操作
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbTransactionScope.Dispose">
+            <summary>
+            释放事务所占用的资源
+            </summary>
+        </member>
+        <member name="P:STIM.Data.EntityFrameworkExtensions.DbTransactionScope.LocalTransaction">
+            <summary>
+            当前开启的本地事务
+            </summary>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.DbTransactionWrapper">
+            <summary>
+            本地数据库事务包装器
+            </summary>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.LocalTransaction">
+            <summary>
+            本地事务
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.LocalTransaction.Complete">
+            <summary>
+            完成事务操作
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.LocalTransaction.OnDisposing">
+            <summary>
+            处理释放资源事件
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.LocalTransaction.Dispose">
+            <summary>
+            释放资源
+            </summary>
+        </member>
+        <member name="E:STIM.Data.EntityFrameworkExtensions.LocalTransaction.Disposing">
+            <summary>
+            事务资源释放时事件，可以在本地事务释放中释放其它的资源如数据库连接
+            </summary>
+        </member>
+        <member name="P:STIM.Data.EntityFrameworkExtensions.LocalTransaction.Connection">
+            <summary>
+            和当前事务绑定的数据库连接
+            </summary>
+        </member>
+        <member name="P:STIM.Data.EntityFrameworkExtensions.LocalTransaction.Transaction">
+            <summary>
+            当前开启的本地数据库事务
+            </summary>
+        </member>
+        <member name="P:STIM.Data.EntityFrameworkExtensions.LocalTransaction.IsComplete">
+            <summary>
+            该事务操作是否已经完成
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.DbTransactionWrapper.#ctor(System.Data.Common.DbConnection,System.Data.Common.DbTransaction)">
+            <summary>
+            本地数据库事务包装器构造器
+            </summary>
+            <param name="connection">数据库连接</param>
+            <param name="transaction">数据库事务</param>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.IgnoreAttribute">
+            <summary>
+            排除属性，不作为参数
+            </summary>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.OleDb.OleDatabaseAccess">
+            <summary>
+            Oracle数据库对应的DatabaseAccess处理类
+            用于提供一些Oracle特有的处理方式
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.OleDb.OleDatabaseAccess.BuildParameterName(System.String)">
+            <summary>
+            构建SQL语句参数名称
+            </summary>
+            <param name="name">参数名称</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.OleDb.OleDatabaseAccess.SetUpRowUpdatedEvent(System.Data.Common.DbDataAdapter)">
+            <summary>
+            Sets the RowUpdated event for the data adapter.
+            </summary>
+            <param name="adapter">The <see cref="T:System.Data.Common.DbDataAdapter"/> to set the event.</param>
+            <remarks>The <see cref="T:System.Data.Common.DbDataAdapter"/> must be an <see cref="!:OracleDataAdapter"/>.</remarks>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.Oracle.OracleDatabaseAccess">
+            <summary>
+            Oracle数据库对应的DatabaseAccess处理类
+            用于提供一些Oracle特有的处理方式
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.Oracle.OracleDatabaseAccess.BuildParameterName(System.String)">
+            <summary>
+            构建SQL语句参数名称
+            </summary>
+            <param name="name">参数名称</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.Oracle.OracleDatabaseAccess.SetUpRowUpdatedEvent(System.Data.Common.DbDataAdapter)">
+            <summary>
+            Sets the RowUpdated event for the data adapter.
+            </summary>
+            <param name="adapter">The <see cref="T:System.Data.Common.DbDataAdapter"/> to set the event.</param>
+            <remarks>The <see cref="T:System.Data.Common.DbDataAdapter"/> must be an <see cref="!:OracleDataAdapter"/>.</remarks>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.Oracle.OracleDatabaseAccess.FirstPageCommand(System.Data.Common.DbCommand,System.Int32,System.Int32)">
+            <summary>
+            包装查询第一页的DbCommand
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页显示的记录数</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.Oracle.OracleDatabaseAccess.PageCommand(System.Data.Common.DbCommand,System.Int32,System.Int32)">
+            <summary>
+            包装分页查询的DbCommand
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页显示的记录数</param>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.PagingCommandTextCache">
+            <summary>
+            分页语句缓存
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.PagingCommandTextCache.SetPagingCommandText(System.Data.Common.DbCommand,System.String)">
+            <summary>
+            设置分页语句缓存
+            </summary>
+            <param name="command">DbCommand</param>
+            <param name="pagingCommandText">分页查询语句</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.PagingCommandTextCache.Clear">
+            <summary>
+            缓存清除
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.PagingCommandTextCache.AlreadyCached(System.Data.Common.DbCommand)">
+            <summary>
+            是否已经缓存
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns>bool</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.PagingCommandTextCache.GetPagingCommandText(System.Data.Common.DbCommand)">
+            <summary>
+            获取分页语句缓存
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns></returns>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.ParameterCache">
+            <summary>
+            参数缓存
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.ParameterCache.CreateParameterCopy(System.Data.Common.DbCommand)">
+            <summary>
+            从缓存中复制一份参数列表
+            </summary>
+            <param name="command">DbCommand</param>
+            <returns>缓存列表</returns>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.QueryParameterUtility">
+            <summary>
+            查询参数工具
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.QueryParameterUtility.DateTimeStartAndEnd(System.DateTime@,System.DateTime@)">
+            <summary>
+            设置用于查询的开始时间和结束时间
+            </summary>
+            <param name="start">开始时间，会被修正为00:00:00</param>
+            <param name="end">结束时间，会被修正为23:59:59</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.QueryParameterUtility.DateTimeStart(System.DateTime)">
+            <summary>
+            设置用于查询的开始时间
+            </summary>
+            <param name="start">开始时间，会被修正为00:00:00</param>
+            <returns>开始时间</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.QueryParameterUtility.DateTimeEnd(System.DateTime)">
+            <summary>
+            设置用于查询的结束时间
+            </summary>
+            <param name="end">结束时间，会被修正为23:59:59</param>
+            <returns>结束时间</returns>
+        </member>
+        <!-- 对于成员“M:STIM.Data.EntityFrameworkExtensions.QueryParameterUtility.TransferMultipleParameters``1(System.Collections.Generic.IEnumerable{``0})”忽略有格式错误的 XML 注释 -->
+        <member name="M:STIM.Data.EntityFrameworkExtensions.QueryParameterUtility.TransferMultipleParameters``1(System.Collections.Generic.IEnumerable{``0},System.Object)">
+            <summary>
+            将一维参数转换为二维参数，用于多条语句执行。
+            在转换过程中还可以添加其他参数，往往用于创建一对多关系数据
+            </summary>
+            <typeparam name="T">一维参数的数据类型</typeparam>
+            <param name="parameters">一维参数列表</param>
+            <param name="otherParameter">其它参数</param>
+            <returns>二维参数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.QueryParameterUtility.TransferMultipleParameters``1(System.Collections.Generic.IEnumerable{``0},System.Object,System.Object)">
+            <summary>
+            将一维参数转换为二维参数，用于多条语句执行。
+            在转换过程中还可以添加其他参数，往往用于创建一对多关系数据
+            </summary>
+            <typeparam name="T">一维参数的数据类型</typeparam>
+            <param name="parameters">一维参数列表</param>
+            <param name="otherParameter1">其它参数1</param>
+            <param name="otherParameter2">其它参数2</param>
+            <returns>二维参数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.QueryParameterUtility.TransferMultipleParameters``1(System.Collections.Generic.IEnumerable{``0},System.Object,System.Object,System.Object)">
+            <summary>
+            将一维参数转换为二维参数，用于多条语句执行。
+            在转换过程中还可以添加其他参数，往往用于创建一对多关系数据
+            </summary>
+            <typeparam name="T">一维参数的数据类型</typeparam>
+            <param name="parameters">一维参数列表</param>
+            <param name="otherParameter1">其它参数1</param>
+            <param name="otherParameter2">其它参数2</param>
+            <param name="otherParameter3">其它参数3</param>
+            <returns>二维参数</returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.QueryParameterUtility.TransferMultipleParameters``1(System.Collections.Generic.IEnumerable{``0},System.Object[])">
+            <summary>
+            将一维参数转换为二维参数，用于多条语句执行。
+            在转换过程中还可以添加其他参数，往往用于创建一对多关系数据
+            </summary>
+            <typeparam name="T">一维参数的数据类型</typeparam>
+            <param name="parameters">一维参数列表</param>
+            <param name="otherParameters">多个其它参数</param>
+            <returns>二维参数</returns>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.SQLServer.SqlDatabaseAccess">
+            <summary>
+            SQL Server 数据库对应的DatabaseAccess处理类
+            用于提供一些SQL Server特有的处理方式
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.SQLServer.SqlDatabaseAccess.BuildParameterName(System.String)">
+            <summary>
+            构建SQL语句参数名称
+            </summary>
+            <param name="name">参数名称</param>
+            <returns></returns>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.SQLServer.SqlDatabaseAccess.OnSqlRowUpdated(System.Object,System.Data.SqlClient.SqlRowUpdatedEventArgs)">
+            <devdoc>
+            Listens for the RowUpdate event on a dataadapter to support UpdateBehavior.Continue
+            </devdoc>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.SQLServer.SqlDatabaseAccess.FirstPageCommand(System.Data.Common.DbCommand,System.Int32,System.Int32)">
+            <summary>
+            获取分页查询第一页的DbCommand对象
+            </summary>
+            <param name="command">DBCommand对象</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页多少行记录</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.SQLServer.SqlDatabaseAccess.PageCommand(System.Data.Common.DbCommand,System.Int32,System.Int32)">
+            <summary>
+            构建分页查询其它页的DbCommand对象
+            </summary>
+            <param name="command">DBCommand对象</param>
+            <param name="pageIndex">第几页</param>
+            <param name="pageSize">每页多少行记录</param>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.TransactionConnectionWrapper">
+            <summary>
+            用于事务的数据库连接包装器
+            </summary>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.TransactionConnectionWrapper.#ctor(STIM.Data.EntityFrameworkExtensions.DatabaseAccess,System.Data.Common.DbConnection)">
+            <summary>
+            构造函数
+            </summary>
+            <param name="context">DatabaseAccess实例</param>
+            <param name="conn">数据库连接</param>
+        </member>
+        <member name="M:STIM.Data.EntityFrameworkExtensions.TransactionConnectionWrapper.Close">
+            <summary>
+            关闭数据库连接，如果开始事务时数据库连接已经被打开则不会关闭
+            </summary>
+        </member>
+        <member name="T:STIM.Data.EntityFrameworkExtensions.UpdateBehavior">
+            <summary>
+            Used with the Database.UpdateDataSet method. Provides control over behavior when the Data
+            Adapter's update command encounters an error.
+            </summary>
+        </member>
+        <member name="F:STIM.Data.EntityFrameworkExtensions.UpdateBehavior.Standard">
+            <summary>
+            No interference with the DataAdapter's Update command. If Update encounters
+            an error, the update stops.  Additional rows in the Datatable are uneffected.
+            </summary>
+        </member>
+        <member name="F:STIM.Data.EntityFrameworkExtensions.UpdateBehavior.Continue">
+            <summary>
+            If the DataAdapter's Update command encounters an error, the update will
+            continue. The Update command will try to update the remaining rows. 
+            </summary>
+        </member>
+        <member name="F:STIM.Data.EntityFrameworkExtensions.UpdateBehavior.Transactional">
+            <summary>
+            If the DataAdapter encounters an error, all updated rows will be rolled back.
+            </summary>
+        </member>
+    </members>
+</doc>

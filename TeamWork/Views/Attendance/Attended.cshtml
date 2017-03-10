@@ -1,0 +1,496 @@
+﻿
+@{
+    ViewBag.Title = "出勤查询";
+
+    IUserData user = UserContext.CurrentUser;
+}
+
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+    @this.RegisterCtrls(
+        "button",
+        "calendar",
+        "tools",
+        "validate",
+        "selectionTree"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style id="dictionaryStyle" type="text/css">
+        div.month-day-panel li.schedule-item {
+            height: 24px;
+            line-height: 24px;
+        }
+
+        div.month-day-panel li.schedule-item i.fa {
+            font-size: 16px;
+            margin-left: 10px;
+        }
+
+        div.month-day-panel li.schedule-item span {
+            font-size: 14px !important;
+        }
+
+        .normal {
+            color: #00953D;
+        }
+
+        .normal-bg {
+            background-color: #00953D;
+        }
+
+        .normal-b {
+            border-color: #00953D;
+        }
+
+        .abnormal {
+            color: #D81420;
+        }
+
+        .abnormal-bg {
+            background-color: #D81420;
+        }
+
+        .abnormal-b {
+            border-color: #D81420;
+        }
+
+        .missing {
+            color: #FFA800;
+        }
+
+        .missing-bg {
+            background-color: #FFA800;
+        }
+
+        .missing-b {
+            border-color: #FFA800;
+        }
+
+        .festival {
+            font-size: 16px;
+            margin-left:10px;
+            color: #D81420;
+        }
+
+        .special-font {
+            display: inline-block;
+            border-style: solid;
+            border-width: 1px;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            vertical-align: top;
+            line-height: 22px !important;
+            font-size: 14px !important;
+            text-align: center;
+        }
+
+        .block-text {
+            margin-left: 0px;
+            margin-right: 10px;
+            display: inline-block;
+            border-radius: 50%;
+            vertical-align: top;
+            height: 24px;
+            width: 24px;
+            font-size: 14px !important;
+            text-align: center;
+            color: #FFFFFF;
+            line-height: 22px !important;
+        }
+
+        .option-button {
+            width: 32px;
+            height: 32px;
+            display: block;
+            border-radius: 50%;
+            position: absolute;
+            right: 5px;
+            bottom: 5px;
+            text-align: center;
+            line-height: 32px;
+            font-size: 18px;
+            filter: alpha(opacity = 60);
+            opacity: .6;
+        }
+
+            .option-button:hover {
+                filter: alpha(opacity = 100);
+                opacity: 1;
+            }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul class="tools">
+        <li>
+            <a id="prev" class="image-button direct button-left" style="vertical-align: top; margin-top: 8px;"></a>
+        </li>
+        <li>
+            <a id="today" class="image-button button-today" style="vertical-align: top; margin-top: 8px;"></a>
+        </li>
+        <li>
+            <a id="next" class="image-button direct button-right" style="vertical-align: top; margin-top: 8px;"></a>
+        </li>
+        <li>
+            <span id="calendarTitle" class="font-highlight" style="font-size: 16px; line-height: 40px;"></span>
+        </li>
+    </ul>
+    <ul class="tools" style="float:right;">
+        @if (user.HasRole("PM"))
+        {
+        <li>
+            <a id="queryEmployee" class="tool-text-button font-highlight" href="javascript:void(0)">
+                <span>选择员工</span>
+                <i class="fa fa-angle-down"></i>
+            </a>
+        </li>
+        }
+    </ul>
+    <br style="clear:both;" />
+</div>
+<div id="contentPanel" class="content-panel"></div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        (function () {
+            @JavascriptCodeHelper.JsonStatement("worktimeSetting", ViewBag.WorkTimeSetting)
+            @JavascriptCodeHelper.JsonStatement("allEmployees", ViewBag.Employees)
+            @JavascriptCodeHelper.StringStatement("employeeId", ViewBag.EmployeeId)
+            var pageLogic = window.pageLogic = {
+                //页面初始化
+                init: {
+                    //主题切换
+                    themes: function () {},
+                    //在布局计算前创建控件
+                    before: function () {
+                        pageLogic.calendar = $("#contentPanel").setCalendar({
+                            views: ["MonthView"],
+                            defaultView: "MonthView",
+                            sundayFirst: true
+                        });
+                        pageLogic.calendar.selecting(function (e, view) {
+                            return false;
+                        });
+                        pageLogic.calendar.changed(function (e, view, data) {
+                            $("#calendarTitle").text(view.getTitle() + " 考勤情况");
+                            var beginTime = ui.str.dateFormat(new Date(view.year, view.month, 1), "yyyy-MM-dd");
+                            var endTime = ui.str.dateFormat(new Date(view.year, view.month + 1, 0), "yyyy-MM-dd");
+                            pageLogic.loadAttendanceInfo(beginTime, endTime, view);
+                        });
+                    },
+                    //布局计算
+                    layout: function () {
+                        masterpage.resize(function () {
+                            //40 是toolbar的高度
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.calendar.setSize(width, height);
+                        });
+                    },
+                    //在布局计算后创建控件
+                    after: function () {
+                        this.queryEmployee = $("#queryEmployee").setSelectTree({
+                            width: 240,
+                            valueField: "EmployeeId",
+                            textField: "RealName",
+                            childField: "children",
+                            canSelectNode: false,
+                            defaultOpen: true
+                        });
+                        if (this.queryEmployee) {
+                            //设置选中项
+                            this.queryEmployee.setData(masterpage.data.employeeList(allEmployees));
+                            this.queryEmployee.setCurrentSelection(employeeId);
+                            //手动设置选中项
+                            this.queryEmployee.element.children("span").text(
+                                this.queryEmployee.getCurrentSelection().RealName);
+                            //后绑定事件，避免数据查询被触发两次
+                            this.queryEmployee.selected(function (e, elem, nodeData) {
+                                this.element.children("span").text(nodeData.data.RealName);
+                                var view = pageLogic.calendar.currentView,
+                                    beginTime = ui.str.dateFormat(new Date(view.year, view.month, 1), "yyyy-MM-dd"),
+                                    endTime = ui.str.dateFormat(new Date(view.year, view.month + 1, 0), "yyyy-MM-dd");
+                                pageLogic.loadAttendanceInfo(
+                                    beginTime,
+                                    endTime,
+                                    view);
+                            });
+                            this.queryEmployee.canceled(function () {
+                                this.element.children("span").text("选择员工");
+                            });
+                        }
+                    },
+                    //页面控件的事件绑定，一般是页面按钮的事件绑定
+                    events: function () {
+                        $("#prev").click(function (e) {
+                            pageLogic.calendar.prev();
+                        });
+                        $("#today").click(function (e) {
+                            pageLogic.calendar.today();
+                        });
+                        $("#next").click(function (e) {
+                            pageLogic.calendar.next();
+                        });
+                    },
+                    //数据初始化
+                    load: function () {
+                    }
+                },
+                loadAttendanceInfo: function (begin, end, view) {
+                    var data = {
+                        userId: null,
+                        beginTime: begin,
+                        endTime: end
+                    };
+                    if (pageLogic.queryEmployee) {
+                        data.userId = pageLogic.queryEmployee.getCurrentSelection().EmployeeId;
+                    }
+                    pageLogic.calendar.currentView.clearSchedules(function () {
+                        var div = this.parent(),
+                            dateText;
+                        div.children(".option-button").remove();
+                        dateText = div.children("span");
+                        if (dateText.length == 2) {
+                            $(dateText[1]).remove();
+                        }
+                    });
+                    //异步调用考勤信息和假期信息
+                    ui.ajax.ajaxAll(
+                        ui.ajax.ajaxPost("/Attendance/LoadAttendanceInfo", data),
+                        ui.ajax.ajaxPost("/Attendance/GetHoliday", {
+                            begin: data.beginTime,
+                            end: data.endTime
+                        })
+                    ).then(
+                        function (success) {
+                            var result = success[0],
+                                holiday = success[1];
+                            if (result) {
+                                result = pageLogic.prepareAttendanceInfo(result, view.year, view.month, holiday);
+                                view.addSchedules(result, "Clock", null,
+                                    function (item) {
+                                        var dateText = this.prev(),
+                                            parent = this.parent(),
+                                            li = this.children();
+                                        var opBtn = null;
+
+                                        li = $(li[li.length - 1]);
+                                        li.empty().removeClass("background-highlight");
+                                        if (item.isHoliday) {
+                                            if (!ui.str.isNullOrEmpty(item.Festival)) {
+                                                dateText.after($("<span class='festival'>" + item.Festival + "</span>"));
+                                            }
+                                            return;
+                                        } 
+
+                                        if (item.ClockMissing === "none") {
+                                            if (parent.children(".option-button").length === 0) {
+                                                opBtn = $("<a class='option-button background-highlight' href='javascript:void(0)' title='创建考勤异常单'><i class='fa fa-sticky-note-o'></i></a>");
+                                                opBtn.click(function (e) {
+                                                    e.stopPropagation();
+                                                    ui.msgshow("创建考勤异常单暂未实现");
+                                                });
+                                                parent.append(opBtn);
+                                            }
+                                        }
+                                        li.html(item.displayHtml);
+                                    }
+                                );
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载考勤信息出错，" + error[i].message, true);
+                        }
+                    );
+                },
+                prepareAttendanceInfo: function (data, year, month, holiday) {
+                    var i, len;
+                    var temp = {},
+                        key,
+                        item;
+                    var onDutyTime,
+                        onDutyMorningEnd,
+                        offDutyTime;
+                    i = 0;
+                    len = data.length;
+                    if (pageLogic.checkResultDate(data, "Clock", year, month)
+                            || pageLogic.checkResultDate(holiday, "HolidayDate", year, month)) {
+                        //检查返回结果是否已经失效
+                        return null;
+                    }
+
+                    for (; i < len; i++) {
+                        item = data[i];
+                        item.Clock = ui.str.jsonToDate(item.Clock);
+                        key = ui.str.dateFormat(item.Clock, "yyyy-MM-dd");
+                        if (!temp.hasOwnProperty(key)) {
+                            temp[key] = [item];
+                        } else {
+                            temp[key][1] = item;
+                        }
+                    }
+                    data = [];
+                    for (key in temp) {
+                        onDutyTime = ui.str.convertDate(key + " " + worktimeSetting.AMStartTime, "yyyy-MM-dd HH:mm:ss");
+                        onDutyMorningEnd = ui.str.convertDate(key + " " + worktimeSetting.AMEndTime, "yyyy-MM-dd HH:mm:ss");
+                        offDutyTime = ui.str.convertDate(key + " " + worktimeSetting.PMEndTime, "yyyy-MM-dd HH:mm:ss");
+                        //调整数据
+                        if (temp[key].length == 1 && temp[key][0].Clock.getTime() > onDutyMorningEnd.getTime()) {
+                            if (!temp[key][1]) {
+                                temp[key][1] = temp[key][0];
+                            }
+                            temp[key][0] = null;
+                        }
+                        for (i = 0; i < 2; i++) {
+                            item = temp[key][i];
+                            if (item) {
+                                if (i == 0) {
+                                    //上班
+                                    pageLogic.setOnDutyDisplay(item, onDutyTime);
+                                    if (item.Clock.getTime() > onDutyMorningEnd.getTime()) {
+                                        //打卡时间超过上午下班时间
+                                        item.ClockMissing = "none";
+                                    }
+                                } else {
+                                    //下班
+                                    pageLogic.setOffDutyDisplay(item, temp[key][0], offDutyTime);
+                                }
+                            } else {
+                                item = {
+                                    Clock: ui.str.convertDate(key, "yyyy-MM-dd"),
+                                    ClockMissing: "none"
+                                };
+                                temp[key][i] = item;
+                                if (i == 0) {
+                                    //上班
+                                    item.lateMinutes = 0;
+                                    item.displayHtml = "<i class='fa fa-calendar-o missing'></i><span class='missing'>上班 - 没打卡</span>";
+                                } else {
+                                    //下班
+                                    item.displayHtml = "<i class='fa fa-calendar-o missing'></i><span class='missing'>下班 - 没打卡</span>";
+                                }
+                            }
+                            data.push(item);
+                        }
+                    }
+                    //处理节假日
+                    for (i = 0; i < holiday.length; i++) {
+                        item = holiday[i];
+                        item.HolidayDate = ui.str.jsonToDate(item.HolidayDate);
+                        item.Clock = item.HolidayDate;
+                        item.isHoliday = true;
+                        
+                        data.push(item);
+                    }
+                    return data;
+                },
+                checkResultDate: function(arr, field, year, month) {
+                    var tempDate;
+                    if (arr.length > 0) {
+                        tempDate = ui.str.jsonToDate(arr[0][field]);
+                        return tempDate.getFullYear() !== year || tempDate.getMonth() !== month;
+                    }
+                    return false;
+                },
+                getLateTime: function(clock, onDutyTime) {
+                    var time = clock.getTime() - onDutyTime.getTime();
+                    return Math.floor(time / 1000 / 60);
+                },
+                getEarlyLeaveTime: function(clock, offDutyTime) {
+                    var time = offDutyTime.getTime() - clock.getTime();
+                    return Math.floor(time / 1000 / 60);
+                },
+                getOvertime: function (clock, offDutyTime) {
+                    var time = clock.getTime() - offDutyTime.getTime();
+                    var minutes = time / 1000 / 60;
+                    return Math.floor(minutes / 30) / 2;
+                },
+                setOnDutyDisplay: function (item, onDutyTime) {
+                    item.lateMinutes = 0;
+                    //上班
+                    if (item.Clock.getTime() > onDutyTime.getTime()) {
+                        //迟到
+                        item.lateMinutes = pageLogic.getLateTime(item.Clock, onDutyTime);
+                        if (item.lateMinutes == 0) {
+                            item.displayHtml = [
+                                "<i class='fa fa-calendar-check-o normal'></i><span class='normal'>上班 - ",
+                                ui.str.dateFormat(item.Clock, "HH:mm"),
+                                "</span>"
+                            ].join("");
+                        } else {
+                            item.displayHtml = [
+                                "<i class='fa fa-calendar-times-o abnormal'></i><span class='abnormal'>上班 - ",
+                                ui.str.dateFormat(item.Clock, "HH:mm"), "</span>",
+                                "<span class='block-text abnormal-bg' title='", "迟到 ", item.lateMinutes, "分钟", "'>迟</span>"
+                            ].join("");
+                        }
+                    } else {
+                        //正常
+                        item.displayHtml = [
+                            "<i class='fa fa-calendar-check-o normal'></i><span class='normal'>上班 - ",
+                            ui.str.dateFormat(item.Clock, "HH:mm"),
+                            "</span>"
+                        ].join("");
+                    }
+                },
+                setOffDutyDisplay: function (item, onDutyItem, offDutyTime) {
+                    if (item.Clock.getTime() < offDutyTime.getTime()) {
+                        //早退
+                        item.earlyLeave = pageLogic.getEarlyLeaveTime(item.Clock, offDutyTime);
+                        item.displayHtml = [
+                                "<i class='fa fa-calendar-times-o abnormal'></i><span class='abnormal'>下班 - ",
+                                ui.str.dateFormat(item.Clock, "HH:mm"), "</span>",
+                                "<span class='block-text abnormal-bg' title='", "早退 ", item.earlyLeave, "分钟", "'>退</span>"
+                        ].join("");
+                    } else {
+                        item.overtime = pageLogic.getOvertime(item.Clock, offDutyTime);
+                        if (item.overtime == 0) {
+                            //正常
+                            item.displayHtml = [
+                                "<i class='fa fa-calendar-check-o normal'></i><span class='normal'>下班 - ",
+                                ui.str.dateFormat(item.Clock, "HH:mm"), "</span>"
+                            ];
+                            if (item.ClockMissing !== "none"&& onDutyItem.lateMinutes > 0 && onDutyItem.lateMinutes < 30) {
+                                //早上打卡并且迟到
+                                item.displayHtml.push(
+                                    "<span class='special-font abnormal abnormal-b' title='", "未补足", "'>未</span>");
+                            }
+                            item.displayHtml = item.displayHtml.join("");
+                        } else {
+                            //加班
+                            item.displayHtml = [
+                                "<i class='fa ",
+                                "fa-calendar-plus-o",
+                                " normal'></i><span class='normal'>下班 - ",
+                                ui.str.dateFormat(item.Clock, "HH:mm"), "</span>"
+                            ];
+                            if (item.ClockMissing !== "none" && onDutyItem.lateMinutes > 0 && onDutyItem.lateMinutes < 30) {
+                                //早上打卡并且迟到
+                                item.overtime -= 0.5;
+                                if (item.overtime < 0) {
+                                    item.displayHtml.push("<span class='special-font abnormal abnormal-b' title='未补足'>未</span>");
+                                } else {
+                                    item.displayHtml.push("<span class='special-font normal normal-b' title='已补足'>补</span>");
+                                }
+                            }
+                            if (item.overtime > 0) {
+                                item.displayHtml.push("<span class='block-text normal-bg' title='", "加班 ", item.overtime, "小时", "'>加</span>");
+                            } else {
+                                item.displayHtml[1] = "fa-calendar-check-o";
+                            }
+                            item.displayHtml = item.displayHtml.join("");
+                        }
+                    }
+                }
+            };
+        })();
+    </script>
+}

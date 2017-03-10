@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+@{
+    IUserData user = UserContext.CurrentUser;
+    string name = String.Empty;
+    string department = String.Empty;
+    string position = String.Empty;
+    string themeId = String.Empty;
+    if (user != null)
+    {
+        name = user.RealName;
+        department = user.DepartmentName;
+        position = user.PositionName;
+        if (String.IsNullOrEmpty(position))
+        {
+            position = user.FirstRole().RoleText;
+        }
+
+        themeId = user.PersonalizeSettings().ThemeId;
+    }
+
+    string backgroundColor = user.IsBackgroundDark() ? "#1D1F21" : "#FFFFFF";
+}
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=pixel_value" />
+    <!--网站logo-->
+    <link rel="shortcut icon" href="/Content/icons/favicon.ico" type="image/x-icon" />
+    <title>@ViewBag.Title</title>
+    @Styles.Render("~/Content/css")
+
+    <script type="text/javascript" src="/Scripts/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="/Scripts/UI/ui.core.js"></script>
+    <script type="text/javascript" src="/Scripts/Page/ui.messagebox.js"></script>
+
+    @RenderSection("scriptsLink", false)
+    @RenderSection("styles", false)
+    <script type="text/javascript">
+    </script>
+
+    <style type="text/css">
+        html {
+            margin: 0px 0px 0px 0px;
+            padding: 0px 0px 0px 0px;
+            overflow:auto;
+        }
+
+        body {
+            font-size: 9pt;
+            font-style: normal;
+            font-variant: normal;
+            font-weight: normal;
+            color: #000000;
+            height: auto;
+        }
+
+        body, ol, ul, li, dl, dt, dd, h1, h2, h3, h4, h5, h6, form, fieldset, pr, pc, p {
+            margin: 0px 0px 0px 0px;
+            padding: 0px 0px 0px 0px;
+        }
+
+        .print-paper {
+            width:595px;
+            height:980px;
+            margin-left:auto;
+            margin-right:auto;
+            background-color:#FFFFFF;
+            overflow: hidden;
+            position: relative;
+            z-index: 10000;
+        }
+
+        .print-content {
+            width:744px;
+            height:923px;
+            margin-left:auto;
+            margin-right:auto;
+            margin-top:102px;
+            margin-bottom:98px;
+        }
+    </style>
+    <style type="text/css" media="print">
+        .noprint {
+            display: none;
+        }
+
+        .next-page {
+            page-break-after: always;
+        }
+    </style>
+    <link id="theme" type="text/css" href="/Home/Theme?themeId=@themeId" rel="stylesheet" />
+</head>
+<body class="theme-toolbar-color">
+    <div class="noprint" style="width:100%;height:48px;"></div>
+    @RenderBody()
+    <div class="noprint" style="width:100%;height:48px;"></div>
+    @RenderSection("scriptsBody", required: false)
+</body>
+</html>

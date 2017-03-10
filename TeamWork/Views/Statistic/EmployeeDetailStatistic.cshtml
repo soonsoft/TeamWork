@@ -1,0 +1,326 @@
+﻿@{
+    ViewBag.Title = "成员详情";
+}
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/UI/Highcharts/highcharts.js"></script>
+    @{
+        if(UserContext.CurrentUser.IsBackgroundDark())
+        {
+            @MvcHtmlString.Create("<script type=\"text/javascript\" src=\"/Scripts/UI/Highcharts/themes/metro-dark.js\"></script>")
+        }
+        else
+        {
+            @MvcHtmlString.Create("<script type=\"text/javascript\" src=\"/Scripts/UI/Highcharts/themes/metro.js\"></script>")
+        }
+    }
+
+    @this.RegisterCtrls(
+        "button",
+        "columnStyle",
+        "gridview",
+        "dateChooser"
+    )
+}
+@section scriptsHead {
+}
+@section styles {
+    <style type="text/css">
+        .toolbar input {
+            width: 100px;
+        }
+
+        .toolbar select {
+            width: 100px;
+        }
+
+        div.top_separator {
+            width: 100%;
+            height: 6px;
+            border-top-width: 1px;
+            border-top-style: solid;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+        }
+
+        div.bottom_separator {
+            width: 100%;
+            height: 24px;
+            border-top-width: 1px;
+            border-top-style: solid;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul class="tools" style="float:right;">
+        <li>
+            <span>开始时间:</span>
+            <input id="queryEmpBeginTime" type="text" class="date-text" />
+            ~
+            <input id="queryEmpEndTime" type="text" class="date-text" />
+        </li>
+        <li>
+            <button id="statisticEmployee" class="tool-button button-highlight">统计</button>
+        </li>
+    </ul>
+    <br style="clear:right;" />
+</div>
+<div id="employeeChartPanel"></div>
+<div class="top_separator theme-toolbar-color theme-border-color"></div>
+<div id="employeeGrid" class="grid-view"></div>
+<div class="bottom_separator theme-toolbar-color theme-border-color"></div>
+
+@section scriptsBody {
+
+    <script type="text/javascript">
+    ;
+    (function () {
+        var pageLogic = window.pageLogic = {
+            init: {
+                beforeCtrls: function () {
+                    var gridOption = {
+                        columns: [
+                            { len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                            { column: "ProjectName", text: "项目名称", len: 200 },
+                            { column: "SumHour", align: "right", text: "耗时(小时)", len: 100, sort: true },
+                            { column: ["SumHour", "TotalHour"], text: "耗时占比", len: 365, handler: ui.ColumnStyle.cfnp.getProgressBar() },
+                            { column: "SumValue", text: "成本(元)", len: 120, align: "right", sort: true, handler: ui.ColumnStyle.cfnp.getFormatMoney() },
+                            { text: "", handler: ui.ColumnStyle.cfn.empty }
+                        ],
+                        selection: {
+                            type: "disabled"
+                        },
+                        pager: false
+                    };
+                    var employeeGrid = pageLogic.employeeGrid = $("#employeeGrid").setGridview(gridOption);
+                    employeeGrid.setHeight(250);
+                },
+
+                layout: function () {
+                    masterpage.resize(function () {
+                        //40 是toolbar的高度
+                        var height = masterpage.contentBodyHeight - 40,
+                            width = masterpage.contentBodyWidth;
+
+                        $("#employeeChartPanel").css({ "height": height - 33 - 250 + "px" });
+                    });
+
+                    chartManager.chartInit();
+                },
+
+                afterCtrls: function () {
+                    var queryEmpBeginTime = $("#queryEmpBeginTime");
+                    var queryEmpEndTime = $("#queryEmpEndTime");
+                    var endDate = new Date();
+                    var startDate = new Date(endDate.getFullYear() - 1, endDate.getMonth(), endDate.getDate());
+                    var startDateStr = ui.str.dateFormat(startDate, "yyyy-MM-dd");
+                    var endDateStr = ui.str.dateFormat(endDate, "yyyy-MM-dd");
+
+                    queryEmpBeginTime.dateChooser({
+                        dateFormat: "yyyy-MM-dd",
+                        selectedHandler: function () {
+                            queryEmpBeginTime.css("color", "#000");
+                        }
+                    });
+                    queryEmpEndTime.dateChooser({
+                        dateFormat: "yyyy-MM-dd",
+                        selectedHandler: function () {
+                            queryEmpEndTime.css("color", "#000");
+                        }
+                    });
+                    queryEmpEndTime.val(endDateStr);
+                    queryEmpBeginTime.val(startDateStr);
+
+                    var cssStyle = { "color": "#a8acad" };
+                    queryEmpBeginTime.bind("change", jQuery.proxy(function () {
+                        if (queryEmpBeginTime.val() == null || queryEmpBeginTime.val() == "") {
+                            queryEmpBeginTime.val(startDateStr);
+                            queryEmpBeginTime.css(cssStyle);
+                        }
+                    }, this));
+
+                    queryEmpEndTime.bind("change", jQuery.proxy(function () {
+                        if (queryEmpEndTime.val() == null || queryEmpEndTime.val() == "") {
+                            queryEmpEndTime.val(endDateStr);
+                            queryEmpEndTime.css(cssStyle);
+                        }
+                    }, this));
+                },
+
+                events: function () {
+                    $("#statisticEmployee").click(function () {
+                        pageLogic.statisticEmployee();
+                    });
+                },
+
+                datas: function () {
+                    pageLogic.statisticEmployee();
+                }
+            },
+
+            statisticEmployee: function () {
+                if (!checkManager.checkDate()) {
+                    return;
+                }
+                var data = {
+                    employeeId: "@ViewBag.EmployeeInfo.EmployeeId",
+                        beginTime: $("#queryEmpBeginTime").val() || null,
+                        endTime: $("#queryEmpEndTime").val() || null
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Statistic/StatisticDetailEmployee",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success) {
+                                if (success.GridResults && success.GridResults.length > 0) {
+                                    pageLogic.employeeGrid.createGridBody(success.GridResults);
+                                } else {
+                                    pageLogic.employeeGrid.empty();
+                                }
+                                if (success.ChartResults && success.ChartResults.length > 0) {
+                                    chartManager.prepareData(success.ChartResults);
+                                }
+                            } else {
+                                pageLogic.employeeGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("统计成员详细信息失败，" + error.message, true);
+                        }
+                    );
+                }
+
+        };
+
+        var checkManager = {
+            checkDate: function () {
+                var startTimeArr = $("#queryEmpBeginTime").val().split("-");
+                var endTimeArr = $("#queryEmpEndTime").val().split("-");
+                if (new Date(startTimeArr[0], startTimeArr[1] - 1, startTimeArr[2]) > new Date(endTimeArr[0], endTimeArr[1] - 1, endTimeArr[2])) {
+                    ui.msgshow("开始时间不能大于结束时间！");
+                    return false;
+                }
+                if (new Date(startTimeArr[0], startTimeArr[1] - 1, startTimeArr[2]) < new Date(endTimeArr[0] - 3, endTimeArr[1] - 1, endTimeArr[2])) {
+                    ui.msgshow("时间范围不能超过三年！");
+                    return false;
+                }
+                return true;
+            }
+        };
+
+        var chartManager = {
+                //初始化统计图
+                chartInit: function () {
+                    var chartOption = {
+                        chart: {
+                            renderTo: "employeeChartPanel",
+                            type: "spline"
+                        },
+                        title: { text: "@ViewBag.EmployeeInfo.RealName 项目时间统计" },
+                        //legend: false,
+                        xAxis: {
+                            categories: [],
+                            labels: {
+                                rotation: -30,
+                                align: 'right',
+                                style: {
+                                    fontSize: '12px'
+                                }
+                            }
+                        },
+                        yAxis: {
+                            min: 0,
+                            title: { text: "耗时" },
+                            stackLabels: {
+                                enabled: true,
+                                style: {
+                                    fontWeight: 'normal',
+                                    color: "gray"
+                                }
+                            },
+                            labels: {
+                                format: '{value}时',
+                                style: { color: 'gray' }
+                            }
+                        },
+                        tooltip: {
+                            enabled: true,
+                            shared: true
+                            //useHTML: true,
+                            //headerFormat: '<span style="font-size:13px">{point.key}</span>',
+                            //pointFormat: '<table><tr><td style="color:{series.color};padding:1px;">{series.name}: </td>' +
+                            //                        '<td style="font-weight:normal;padding:1px;"><b>{point.y:.2f} </b></td></tr>',
+                            //footerFormat: '</table>'
+
+                            //formatter: function () {
+                            //    return '<b>' + this.x + '</b><br/>' +
+                            //            this.series.name + '：' + this.y;
+                            //}
+                        },
+                        plotOptions: {
+                            column: {
+                                stacking: "normal",
+                                //pointWidth: 30,
+                                //pointPadding: 0.05,
+                                shadow: false,
+                                dataLabels: {
+                                    enabled: false, //如果为true，则每个柱状的分段也显示值
+                                    color: "#gray"
+                                    //rotation: -90,
+                                    //x: 4
+                                }
+                            }
+                        },
+                        series: [{ name: " ", data: [] }]
+                    };
+                    this.cardInfoChart = new Highcharts.Chart(chartOption);
+                },
+
+                //为渲染统计图准备数据
+                prepareData: function (datas) {
+                    var categories = [],
+                        series = [],
+                        data = null;
+                    var colors = ["#007EEE", "#EC001D", "#FFB900", "#3CD21F", "#FF6600", "#00C6C9", "#FF9662", "#CB793B", "#F7488E", "#44E96E", "#8243DB"];
+                    for (var m = 0; m < datas[0].length; m++) {
+                        var map = {
+                            color: colors[m],
+                            name: datas[0][m]["ProjectName"],
+                            type: 'spline',
+                            data: [],
+                            yAxis: 0,
+                            tooltip: {
+                                valueSuffix: ' 小时'
+                            }
+                        }
+                        series.push(map);
+                    }
+
+                    for (var i = 0; i < datas.length; i++) {
+                        data = datas[i];
+                        var len = data.length;
+                        categories.push(data[0]["YearMonth"]);
+                        for (var j = 0; j < len; j++) {
+                            series[j].data.push(data[j]["SumHour"]);
+                        }
+                    }
+                    this.setChart(categories, series);
+                },
+
+                //渲染统计图
+                setChart: function (categories, series) {
+                    this.cardInfoChart.xAxis[0].setCategories(categories, false);
+                    while (this.cardInfoChart.series.length > 0) {
+                        this.cardInfoChart.series[0].remove(false);
+                    }
+                    for (var i = 0 ; i < series.length; i++) {
+                        this.cardInfoChart.addSeries(series[i], false);
+                    }
+                    this.cardInfoChart.redraw();
+                }
+            };
+        })();
+    </script>
+}
+
+

@@ -1,0 +1,131 @@
+﻿<!DOCTYPE html>
+@{
+    IUserData user = UserContext.CurrentUser;
+    string name = String.Empty;
+    string department = String.Empty;
+    string position = String.Empty;
+    string themeId = String.Empty;
+    if (user != null)
+    {
+        name = user.RealName;
+        department = user.DepartmentName;
+        position = user.PositionName;
+        if (String.IsNullOrEmpty(position))
+        {
+            position = user.FirstRole().RoleText;
+        }
+
+        themeId = user.PersonalizeSettings().ThemeId;
+    }
+
+    string backgroundColor = user.IsBackgroundDark() ? "#1D1F21" : "#FFFFFF";
+}
+<html>
+<head>
+    <meta charset="utf-8" />
+    @*
+        <meta name="viewport" content="
+            设备高度 原始像素还是设备高度，device-height 为设备的高度（单位为缩放为 100% 时的 CSS 的像素）
+            height = [pixel_value | device-height],
+            设备高度 原始像素还是设备宽度，device-height 为设备的宽度（单位为缩放为 100% 时的 CSS 的像素）
+            width = [pixel_value | device-width ],
+            初始缩放。即页面初始缩放程度。这是一个浮点值，是页面大小的一个乘数。
+            例如，如果你设置初始缩放为“1.0”，那么，web页面在展现的时候就会以target density分辨率的1:1来展现。
+            如果你设置为“2.0”，那么这个页面就会放大为2倍。
+            initial-scale = float_value,
+            最大缩放。即允许的最大缩放程度。这也是一个浮点值，用以指出页面大小与屏幕大小相比的最大乘数。
+            例如，如果你将这个值设置为“2.0”，那么这个页面与target size相比，最多能放大2倍。
+            minimum-scale = float_value,
+            用户调整缩放。即用户是否能改变页面缩放程度。
+            如果设置为yes则是允许用户对其进行改变，反之为no。默认值是yes。
+            如果你将其设置为no，那么minimum-scale 和 maximum-scale都将被忽略，因为根本不可能缩放。
+            maximum-scale = float_value,
+            user-scalable = [yes | no],
+            一个屏幕像素密度是由屏幕分辨率决定的，通常定义为每英寸点的数量（dpi）。
+            Android支持三种屏幕像素密度：低像素密度，中像素密度，高像素密度。
+            一个低像素密度的屏幕每英寸上的像素点更少，而一个高像素密度的屏幕每英寸上的像素点更多。
+            Android Browser和WebView默认屏幕为中像素密度。
+            target-densitydpi = [dpi_value | device-dpi | high-dpi | medium-dpi | low-dpi]" />
+    *@
+    <meta name="viewport" content="width=pixel_value" />
+    <!--网站IE9主题按钮颜色-->
+    <meta name="msapplication-navbutton-color" content="#0066FF" />
+    <!--网站logo-->
+    <link rel="shortcut icon" href="/Content/icons/favicon.ico" type="image/x-icon" />
+    <!--应用程序名称-->
+    <meta name="application-name" content="工作时间管理" />
+    <!--添加jump list-->
+    <meta name="msapplication-task" content="name=工作时间记录;action-uri=/Record/UpdateRecord?m=0;icon-uri=/Content/icons/favicon.ico" />
+
+    <title>@ViewBag.Title</title>
+    @Styles.Render("~/Content/css")
+
+    <script type="text/javascript" src="/Scripts/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="/Scripts/UI/ui.core.js"></script>
+    <script type="text/javascript" src="/Home/ThemeColors"></script>
+
+    <script type="text/javascript" src="/Scripts/Page/ui.masterpage.js"></script>
+    <script type="text/javascript" src="/Scripts/Page/ui.messagebox.js"></script>
+
+    @RenderSection("scriptsLink", false)
+    @RenderSection("styles", false)
+    <script type="text/javascript">
+        @JavascriptCodeHelper.StringStatement("ui.theme.backgroundColor", backgroundColor, false)
+
+        @JavascriptCodeHelper.StringStatement("masterpage.Name", name, false)
+        @JavascriptCodeHelper.StringStatement("masterpage.Department", department, false)
+        @JavascriptCodeHelper.StringStatement("masterpage.Position", position, false)
+        masterpage.init();
+    </script>
+    @RenderSection("scriptsHead", false)
+
+    <link id="theme" type="text/css" href="/Home/Theme?themeId=@themeId" rel="stylesheet" />
+    <style id="GlobalThemeChangeStyle" type="text/css"></style>
+</head>
+<body>
+    <header id="head" class="head-color" style="position:relative;">
+        <h1 id="title" class="title-color">
+            <a id="backBtn" href="/Home/Index"></a><span>
+                TEAM WORK</span>
+        </h1>
+        <ul id="headerTags">
+            @RenderSection("tabs", false)
+        </ul>
+        <ul id="headerCtrls">
+            <li>
+                <div id="user" class="user-color" title="userName">
+                    <img src="/Home/UserProtrait" class="cover" />
+                </div>
+            </li>
+        </ul>
+        <br style="clear:both;" />
+
+        <div id="loadingElement" class="c_flyingDots c_loadingDots" style="bottom:0px;left:0px;position:absolute;display:none;width:100%;">
+            <div class="c_loadingFallback">
+                <img style="width:100%;height:4px;" alt="" src="../Content/images/flyingdots.gif">
+            </div>
+            <div class="c_loadingTracks">
+                <div class="c_loadingTracks c_loadingTrack1">
+                    <div class="c_loadingDot"></div>
+                </div>
+                <div class="c_loadingTracks c_loadingTrack2">
+                    <div class="c_loadingDot"></div>
+                </div>
+                <div class="c_loadingTracks c_loadingTrack3">
+                    <div class="c_loadingDot"></div>
+                </div>
+                <div class="c_loadingTracks c_loadingTrack4">
+                    <div class="c_loadingDot"></div>
+                </div>
+                <div class="c_loadingTracks c_loadingTrack5">
+                    <div class="c_loadingDot"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <section id="body">
+        @RenderBody()
+    </section>
+    @RenderSection("scriptsBody", required: false)
+</body>
+</html>

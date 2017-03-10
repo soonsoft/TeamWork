@@ -1,0 +1,881 @@
+﻿@using STIM.Modules.Personalize
+@{
+    ViewBag.Title = "菜单设置";
+    bool isBackgroundLight = UserContext.CurrentUser.IsBackgroundLight();
+}
+
+@section scriptslink {
+    @this.RegisterCtrls(
+        "columnStyle", 
+        "gridview",
+        "form",
+        "tabPanel",
+        "tools",
+        "colorPicker",
+        "simpleUploader"
+    )
+}
+
+@section styles {
+	<style type="text/css">
+		#menuCopyView table.table-body tr:hover {
+            background-color: transparent;
+        }
+
+		#menuPanel {
+			width: 100%;
+			height: auto;
+			position: relative;
+			overflow: hidden;
+		}
+
+		.ctrl-form {
+            width: 264px;
+        }
+
+            .ctrl-form input[type='text'] {
+                width:260px;
+            }
+
+            .ctrl-form select {
+                width:260px;
+            }
+
+        #menuForm .tab-body {
+            overflow: auto;
+        }
+
+        .switch-lollipop .switch-thumb {
+	        background-color: @(isBackgroundLight ? "#EAEAEA" : "#3C3F41");
+	    }
+
+	    #menuTabButton {
+	    	width: 100%;
+	    	height: 100%;
+	    	line-height: 40px;
+	    }
+
+	    	#menuTabButton a {
+	    		margin-left: 10px;
+	    	}
+
+    	div.tile {
+            position: relative;
+            color: #FFFFFF;
+        }
+
+        div.small {
+            width: 60px;
+            height: 60px;
+        }
+
+        div.medium {
+            width: 128px;
+            height: 128px;
+        }
+
+        div.wide {
+            width: 264px;
+            height: 128px;
+        }
+
+        div.large {
+            width: 264px;
+            height: 264px;
+        }
+
+        div.tile-icon {
+        	width: 48px;
+        	height: 48px;
+        	position: relative;
+        	overflow: hidden;
+        }
+
+        div.tile-icon img {
+            position:absolute;
+        	width: 100%;
+        	height: 100%;
+        	border: 0px none;
+        }
+
+        div.tile-icon img.tile-icon-small {
+        	top: 50%;
+        	left: 50%;
+        	margin-top: -14px;
+        	margin-left: -14px;
+            width: 28px; 
+            height: 28px;
+        }
+
+        #previewTile {
+            margin-top:10px;
+            margin-bottom:10px;
+        }
+
+        .filter-tools-item {
+        	line-height: 1 !important;
+        }
+
+        .filter-tools-item span {
+        	line-height: 22px;
+        	margin-left: 15px;
+        	margin-right: 15px;
+        }
+
+        div.tile-content {
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            right: 0px;
+            bottom: 24px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        div.tile-title {
+            position: absolute;
+            left: 0px;
+            bottom: 0px;
+            width: 100%;
+            height: 24px;
+        }
+
+            div.tile-title span {
+                margin-left: 5px;
+                margin-right: 5px;
+                line-height: 24px;
+            }
+
+        img.tile-icon {
+            position:absolute;
+        }
+
+        div.tile img.small-icon {
+            position:absolute;
+            display:none;
+            width:32px;
+            height:32px;
+            right:5px;
+            bottom:5px;
+        }
+
+        div.tile img.show {
+            display:inline-block;
+        }
+
+        .button span {
+        	line-height: 24px;
+        }
+
+        .upload-panel {
+        	margin-top:10px;
+        	margin-bottom:10px;
+        	float:right;
+        	height:24px;
+        	width:80px;
+        	overflow:hidden;
+        	position:relative;
+        }
+
+        	.upload-panel:hover a {
+        		color: #FFFFFF !important;
+        	}
+	</style>
+}
+
+<div id="menuToolbar" class="toolbar">
+	<ul class="tools" style="float:right;">
+        <li class="action-buttons">
+            <a id="menuAddBtn" class="tool-action-button" href="javascript:void(0)" title="创建">
+                <i class="fa fa-plus"></i>
+            </a>
+            <a id="menuSortBtn" class="tool-action-button" href="javascript:void(0)" title="排序">
+                <i class="fa fa-sort-amount-asc "></i>
+            </a>
+        </li>
+        <li id="updateMenuItemTool" class="action-buttons" style="display:none">
+            <a id="menuUpBtn" class="tool-action-button" href="javascript:void(0)" title="上移">
+                <i class="fa fa-arrow-up"></i>
+            </a>
+            <a id="menuDownBtn" class="tool-action-button" href="javascript:void(0)" title="下移">
+                <i class="fa fa-arrow-down"></i>
+            </a>
+            <a id="menuLevelUpBtn" class="tool-action-button" href="javascript:void(0)" title="升级">
+                <i class="fa fa-outdent"></i>
+            </a>
+            <a id="menuLevelDownBtn" class="tool-action-button" href="javascript:void(0)" title="降级">
+                <i class="fa fa-indent"></i>
+            </a>
+            <a id="menuSortSaveBtn" class="tool-action-button" href="javascript:void(0)" title="保存">
+                <i class="fa fa-save"></i>
+            </a>
+        </li>
+	</ul>
+</div>
+<div id="menuPanel">
+	<div id="menuView" class="grid-view"></div>
+	<div id="menuCopyView" class="grid-view" style="display:none;"></div>
+	<div id="menuInfo">
+		<div id="menuTabBodyPanel" class="tab-body-panel">
+			<div class="tab-body">
+				<div class="ctrl-form">
+					<form id="menuForm">
+						<dl class="fold-panel">
+							<dt>功能信息</dt>
+							<dd>
+								<label>功能编号</label><span class="required">*</span>
+					            <br />
+					            <input id="functionCode" name="functionCode" type="text" />
+                                <input id="parentFuncId" name="parentFuncId" type="hidden" />
+					            <br />
+					            <label>功能名称</label><span class="required">*</span>
+					            <br />
+					            <input id="functionName" name="functionName" type="text" />
+					            <br />
+					            <label>菜单URL</label>
+					            <br />
+					            <input id="menuUrl" name="menuUrl" type="text" value="/Home/Building" />
+					            <br />
+					            <label>功能状态</label>
+					            <br />
+					            <input id="functionEnabled" type="checkbox" checked="checked" />
+					            <label for="functionEnabled" class="switch-text">启用</label>
+				            </dd>
+				            <dt>其它信息</dt>
+				            <dd style="display:none">
+					            <label>关键字</label>
+					            <br />
+					            <input id="menuKey" name="menuKey" type="text" />
+				            </dd>
+			            </dl>
+		        	</form>
+		        </div>
+			</div>
+			<div class="tab-body">
+				<div class="ctrl-form">
+					<div id="previewTile" class="tile medium"></div>
+					<div id="tileStyle" style="margin-top:10px;margin-bottom:10px;float:left;"></div>
+					<div class="upload-panel background-highlight-hover">
+						<a id="upIconBtn" href="javascript:void(0)" class="link-button font-highlight border-highlight" style="position:absolute;width:76px;">修改图标</a>
+					</div>
+					<br clear="all" />
+					<input id="icon" name="icon" type="hidden" />
+					<input id="tileSize" name="tileSize" type="hidden" />
+					<label>背景色</label>
+                    <br />
+                    <input id="bgColor" name="bgColor" type="text" value="#123456" />
+                    <br />
+                    <label>显示为磁贴</label>
+                    <br />
+                    <input id="isTile" type="checkbox" />
+                    <label for="isTile" class="switch-text">否</label>
+                </div>
+			</div>
+		</div>
+	</div>
+	<button id="menuSaveBtn" type="button" class="button background-highlight" style="margin-right:5px;">保存</button>
+	<button id="menuDeleteBtn" type="button" class="button">删除</button>
+</div>
+
+@section scriptsBody {
+	<script type="text/javascript">
+		(function() {
+			var pageLogic = window.pageLogic = {
+				init: {
+					theme: function() {
+					},
+					before: function() {
+						masterpage.initToolbar("menuToolbar");
+
+						var treeGrid = new ui.ctrls.TreeGrid();
+						var gridOption = {
+							promptText: "没有菜单数据",
+                            columns: [
+                                { column: ["Size", "Icon", "BGColor"], text: ui.str.empty, len: 48, handler: menuManager.formatter.icon },
+                                { column: "FunctionCode", text: "功能编号", len: 80 },
+                                { column: "FunctionName", text: "功能名称", len: 400, handler: treeGrid.formatTreeNode },
+                                //{ column: "MenuKey", text: "菜单关键字", len: 120 },
+                                //{ column: "Theme", text: "主题", len: 120 },
+                                { column: "Url", text: "Url", len: 240, handler: menuManager.formatter.url },
+                                { column: "IsTile", text: "显示为磁贴", len: 100, align: "center", handler: ui.ColumnStyle.cfnp.getFormatBoolean("是", "否") },
+                                { column: "Enabled", text: "状态", len: 60, align: "center", handler: ui.ColumnStyle.cfnp.getFormatBoolean("启用", "禁用") },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "a, i",
+                                multiple: false
+                            },
+                            pager: false
+                        };
+						this.menuView = $("#menuView").setGridview(gridOption);
+                		treeGrid.setGridView(this.menuView);
+						this.menuView.selected(function (e, element, data) {
+							menuManager.onUpdating(data.rowData);
+                        });
+                        this.menuView.deselected(function (e, element, data) {
+                        	if (menuManager.isUpdate) {
+                                pageLogic.menuCtrlPanel.hide();
+                            }
+                        });
+                        this.menuView.rebind(function (e) {
+                            pageLogic.menuCtrlPanel.hide();
+                        });
+
+                        var treeGridCopy = new ui.ctrls.TreeGrid();
+                        gridOption = {
+							promptText: gridOption.promptText,
+                        	columns: ui.obj.deepClone(gridOption.columns),
+                        	selection: {
+                        		type: "cell",
+                        		exclude: "a",
+                        		multiple: false
+                        	},
+                        	pager: false
+                        };
+                        gridOption.columns[2].handler = treeGridCopy.formatLevelNode;
+                        this.menuCopyView = $("#menuCopyView").setGridview(gridOption);
+						this.menuCopyView.sortCellIndex = 2;
+                        treeGridCopy.setGridView(this.menuCopyView);
+                        this.menuCopyView.selecting(function(e, element, data) {
+                			if(data.cellIndex != this.sortCellIndex) {
+            					return false;
+            				}
+                		});
+					},
+					layout: function() {
+						masterpage.resize(function () {
+                            var width = masterpage.contentBodyWidth,
+                                height = masterpage.contentBodyHeight - 40;
+
+                            pageLogic.menuView.setHeight(height);
+                            pageLogic.menuCopyView.setHeight(height);
+                        });
+					},
+					after: function() {
+						//分类折叠表单
+                        $(".fold-panel").foldPanel();
+						//表单面板
+                        this.menuCtrlPanel =
+                            $("#menuInfo").toCtrlPanel({
+                                parent: "menuPanel",
+                                width: 300
+                            });
+                        this.menuCtrlPanel
+                        	.titleAppend("<div id='menuTabButton'><a href='javascript:void(0)' class='tab-item tab-button'>基本信息</a><a href='javascript:void(0)' class='tab-item tab-button'>图标样式</a></div>");
+                        this.menuCtrlPanel
+                            .buttonAppend("menuSaveBtn")
+                            .buttonAppend("menuDeleteBtn");
+                        this.menuCtrlPanel.tab = ui.tab.createTabs({
+                        	tabPanelId: "menuTabButton",
+                        	bodyPanelId: "menuTabBodyPanel",
+                        	duration: 300
+                        });
+                        this.menuCtrlPanel.tab.changed(function(e, index) {
+                        	if(index == 1) {
+                        		menuManager.tile.updateInner();
+                        	}
+                        });
+                        this.menuCtrlPanel.showing(function() {
+                        	if(!this.tab.initialed) {
+                        		this.tab.setBodiesLocation();
+                        		this.tab.initialed = true;
+                        	}
+                        	this.tab.setIndex(0, false);
+                        });
+                        this.menuCtrlPanel.hided(function () {
+                            pageLogic.menuView.cancelSelection();
+                        });
+                        this.menuCtrlPanel.resize(function(e, width, height) {
+                        	this.tab.setBodyHeight(height - 40 - 84);
+                        });
+
+                        //颜色选择
+                        this.colorPicker = $("#bgColor").colorPicker({
+                        	layoutPanel: this.menuCtrlPanel.tab.bodies[1]
+                        });
+                        this.colorPicker.selected(function (e, color) {
+                            $("#previewTile").css("background-color", color);
+                        });
+
+						this.functionEnabled = $("#functionEnabled").switchButton();
+                        this.functionEnabled.changed(function() {
+                            if(this.checked()) {
+                                this.switchBox.next().text("启用");
+                            } else {
+                                this.switchBox.next().text("禁用");
+                            }
+                        });
+                        this.isTile = $("#isTile").switchButton();
+						this.isTile.changed(function() {
+                            if(this.checked()) {
+                                this.switchBox.next().text("启用");
+                            } else {
+                                this.switchBox.next().text("禁用");
+                            }
+                        });
+
+                        this.tileStyle = $("#tileStyle").createFilterTools({
+                            data: [
+                                { text: "小", value: "small" },
+                                { text: "中", value: "medium", selected: true },
+                                { text: "宽", value: "wide" },
+                                { text: "大", value: "large" }
+                            ]
+                        });
+                        this.tileStyle.selected(function(e, item) {
+                            $("#tileSize").val(item.value);
+                            menuManager.tile.updateInner();
+                        });
+					},
+					events: function() {
+						//修改菜单信息
+						$("#menuAddBtn").click(function(e) {
+							if(menuManager.view.menuSortIsSelected()) {
+								menuManager.view.menuSortDeselection();
+							}
+							menuManager.onAdding();
+						});
+						$("#menuSaveBtn").click(function(e) {
+							menuManager.onSave();
+						});
+						$("#menuDeleteBtn").confirmClick({
+							backgroundColor: "#990000",
+                            handler: function() {
+                                menuManager.onDelete();
+                            }
+                        });
+
+                        //修改菜单顺序和层级
+                        menuManager.view.setMenuSortButton("menuSortBtn");
+						$("#menuUpBtn").click(function(e) {
+							menuManager.view.itemUp();
+						});
+						$("#menuDownBtn").click(function(e) {
+							menuManager.view.itemDown();
+						});
+						$("#menuLevelUpBtn").click(function(e) {
+							menuManager.view.itemLevelUp();
+						});
+						$("#menuLevelDownBtn").click(function(e) {
+							menuManager.view.itemLevelDown();
+						});
+						$("#menuSortSaveBtn").click(function(e) {
+                            menuManager.view.save();
+                        });
+
+                        var upIcon = $("#upIconBtn").setSimpleUploader({
+                            url: "/File/MenuIconUpload",
+                            filter: "*.png"
+                        });
+                        upIcon.uploaded(function(e, fileInfo) {
+                            $("#icon").val(fileInfo.FilePath);
+                            menuManager.tile.updateInner();
+                        });
+                        upIcon.error(function(e, errorMsg) {
+                            ui.msgshow(errorMsg, true);
+                        });
+					},
+					load: function () {
+					    this.loadMenus();
+					}
+				},
+				loadMenus: function() {
+				    ui.ajax.ajaxPost(
+                        "/Setting/LoadMenus",
+                        function (result) {
+                            var list;
+                            if (result && result.length > 0) {
+                                list = pageLogic.menuView.treeGrid.listTree(result, "ParentFuncId", "FunctionId");
+                                pageLogic.menuView.createGridBody(list);
+                            } else {
+                                pageLogic.menuView.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("获取系统菜单失败，" + error.message, true);
+                        });
+				},
+				createMenu: function(data, callback, caller) {
+					ui.ajax.ajaxPostOnce(
+						"menuSaveBtn",
+						"/Setting/CreateMenu",
+						data,
+						function(result) {
+							if(result.Result) {
+								callback.call(caller, result.Data);
+							} else {
+								ui.msgshow("没有保存任何数据");
+							}
+						},
+						function(error) {
+							ui.msgshow("创建菜单失败，" + error.message, true);
+						}
+					);
+				},
+				updateMenu: function(data, callback, caller) {
+					ui.ajax.ajaxPostOnce(
+						"menuSaveBtn",
+						"/Setting/UpdateMenu",
+						data,
+						function(result) {
+							if(result.Result) {
+								callback.call(caller, result.Data);
+							} else {
+								ui.msgshow("没有保存任何数据");
+							}
+						},
+						function(error) {
+							ui.msgshow("更新菜单失败，" + error.message, true);
+						}
+					);
+				},
+				deleteMenu: function(menuId, callback, caller) {
+					var data = {
+						menuId: menuId
+					};
+					ui.ajax.ajaxPost(
+						"/Setting/DeleteMenu",
+						data,
+						function(result) {
+							if (result.Result) {
+                                callback.call(caller);
+                            } else {
+                                ui.msgshow("没有删除任何数据");
+                            }
+						},
+						function(error) {
+							ui.msgshow("删除菜单失败，" + error.message, true);
+						}
+					);
+				},
+				saveMenuSortValues: function(data, callback, caller) {
+					ui.ajax.ajaxPost(
+						"/Setting/SaveMenuSortValues",
+						data,
+						function(result) {
+							if (result.Result) {
+                                callback.call(caller);
+                            }
+						},
+						function(error) {
+							ui.msgshow("保存菜单层级和顺序失败，" + error.message, true);
+						}
+					);
+				}
+			};
+
+			var menuManager = {
+				formatter: {
+					icon: function(content, column) {
+						var elem = $("<div class='tile tile-icon' />"),
+							icon = null;
+						if(ui.core.type(content.Icon) !== "string" || content.Icon.length == 0) 
+							return elem;
+						;
+						if(!content.BGColor) {
+							elem.addClass("background-highlight");
+						} else {
+							elem.css("background-color", content.BGColor);
+						}
+
+						icon = $("<img class='tile-icon-small' />");
+						icon.prop("src", content.Icon);
+						elem.append(icon);
+						return elem;
+					},
+					url: function (content, column) {
+	                    if (!content)
+	                        return null;
+	                    return "<a href='" + content + "' target='_blank'>" + content + "</a>";
+	                }
+				},
+				tile: {
+					defaultIcon: "/Content/icons/settings.png",
+	                tileType: {
+	                    small: "small",
+	                    medium: "medium",
+	                    wide: "wide",
+	                    large: "large"
+	                },
+	                tileSize: {
+	                    small: { width: 60, height: 60, iconSize: 32 },
+	                    medium: { width: 128, height: 128, iconSize: 64 },
+	                    wide: { width: 264, height: 128, iconSize: 64 },
+	                    large: { width: 264, height: 264, iconSize: 64 }
+	                },
+	                updateInner: function () {
+	                    var tile = $("#previewTile");
+	                    for (var key in this.tileType) {
+	                        tile.removeClass(key);
+	                    }
+	                    
+	                    var tmd = {
+	                        title: $("#functionName").val() || "title text",
+	                        icon: $("#icon").val() || this.defaultIcon,
+	                        type: $("#tileSize").val()
+	                    };
+	                    tile.addClass(tmd.type);
+	                    tile.html("");
+
+	                    var titleHeight = 24;
+	                    var th = 0;
+	                    var size = this.tileSize[tmd.type];
+	                    //内容显示区
+	                    var content = null;
+	                    //标题显示区
+	                    var title = null;
+	                    var span = null;
+	                    if (tmd.type !== this.tileType.small) {
+	                        content = $("<div class='tile-content'/>");
+	                        tile.append(content);
+
+	                        title = $("<div class='tile-title'/>");
+	                        span = $("<span />");
+	                        span.text(tmd.title);
+	                        title.append(span);
+	                        tile.append(title);
+
+	                        if (tmd.icon) {
+	                            smallIcon = $("<img class='small-icon' />");
+	                            smallIcon.prop("src", tmd.icon);
+	                            tile.append(smallIcon);
+	                        }
+
+	                        th = titleHeight;
+	                    } else {
+	                        tile.prop("title", tmd.title);
+	                    }
+	                    //图标显示
+	                    var icon = null;
+	                    if (tmd.icon) {
+	                        icon = $("<img class='tile-icon' />");
+	                        icon.prop("src", tmd.icon);
+	                        icon.css({
+	                            "width": size.iconSize + "px",
+	                            "height": size.iconSize + "px",
+	                            "left": (size.width - size.iconSize) / 2 + "px",
+	                            "top": (size.height - th / 2 - size.iconSize) / 2 + "px"
+	                        });
+	                        if (content) {
+	                            content.append(icon);
+	                        } else {
+	                            tile.append(icon);
+	                        }
+	                    }
+	                }
+				},
+				view: {
+					iconButtonDisabled: "toolbar-icon-button-disabled",
+					sortCellStyle: "theme-ctrl-background-color",
+					markColumn: function(cellIndex, isMarker) {
+						var rows = pageLogic.menuCopyView.tableBody.get(0).rows,
+							i = 0,
+							cell;
+						for(; i < rows.length; i++) {
+							cell = $(rows[i].cells[cellIndex]);
+							if(isMarker) {
+								cell.addClass(this.sortCellStyle);
+							} else {
+								cell.removeClass(this.sortCellStyle);
+							}
+						}
+					},
+					setMenuSortButton: function(btnId) {
+						var that = this;
+						this.menuSortBtn = $("#" + btnId);
+						if(this.menuSortBtn.length > 0) {
+							this.menuSortBtn.click(function(e) {
+								pageLogic.menuView.cancelSelection();
+	                        	if(that.menuSortIsSelected()) {
+	                        		that.menuSortDeselection();
+	                        	} else {
+	                        		that.menuSortSelection();
+	                        	}
+							});
+						} else {
+							throw ui.error("没有id为：" + btnId + "的按钮");
+						}
+					},
+					menuSortIsSelected: function() {
+						return this.menuSortBtn.hasClass("background-highlight");
+					},
+					menuSortSelection: function() {
+						var data;
+						this.menuSortBtn.removeClass("font-highlight-hover")
+                			.addClass("background-highlight");
+                    	$("#updateMenuItemTool").show();
+                    	pageLogic.menuView.element.css("display", "none");
+
+                    	data = ui.obj.deepClone(pageLogic.menuView.dataTable, function (key) {
+                    	    return key === "_parent" || key === "_isFolded";
+                    	});
+                    	pageLogic.menuCopyView.createGridBody(data);
+                    	pageLogic.menuCopyView.element.css("display", "block");
+                    	menuManager.view.markColumn(pageLogic.menuCopyView.sortCellIndex, true);
+
+					},
+					menuSortDeselection: function() {
+						this.menuSortBtn.addClass("font-highlight-hover")
+                			.removeClass("background-highlight");
+                    	$("#updateMenuItemTool").hide();
+                    	pageLogic.menuCopyView.element.css("display", "none");
+                    	pageLogic.menuCopyView.empty();
+                    	pageLogic.menuView.element.css("display", "block");
+                    	menuManager.view.markColumn(pageLogic.menuCopyView.sortCellIndex, false);
+					},
+					itemUp: function() {
+						pageLogic.menuCopyView.currentUp();
+					},
+					itemDown: function() {
+						pageLogic.menuCopyView.currentDown();
+					},
+					checkItemLevelUp: function() {
+						var row = pageLogic.menuView.getCurrentSelection(),
+							btn = $("#menuLevelUpBtn");
+						if(row.rowData._level == 0) {
+							btn.addClass(this.iconButtonDisabled)
+								.removeClass("font-highlight-hover");
+							return;
+						}
+						btn.removeClass(this.iconButtonDisabled)
+							.addClass("font-highlight-hover");
+					},
+					checkItemLevelDown: function() {
+						var row = pageLogic.menuView.getCurrentSelection(),
+							btn = $("#menuLevelDownBtn"),
+							previous;
+						if(row.rowIndex == 0) {
+							btn.addClass(this.iconButtonDisabled)
+								.removeClass("font-highlight-hover");
+							return;
+						}
+						previous = pageLogic.menuView.dataTable[row.rowIndex - 1];
+						if(row.rowData._level - previous._level > 0) {
+							btn.addClass(this.iconButtonDisabled)
+								.removeClass("font-highlight-hover");
+							return;
+						}
+						btn.removeClass(this.iconButtonDisabled)
+							.addClass("font-highlight-hover");
+					},
+					itemLevelUp: function() {
+						var row = pageLogic.menuCopyView.getCurrentSelection();
+                        if(row) {
+                            pageLogic.menuCopyView.treeGrid.changeLevel(row.rowIndex, row.cellIndex, -1);
+                        }
+					},
+					itemLevelDown: function(btn) {
+						var row = pageLogic.menuCopyView.getCurrentSelection();
+                        if(row) {
+                            pageLogic.menuCopyView.treeGrid.changeLevel(row.rowIndex, row.cellIndex, 1);
+                        }
+					},
+					save: function() {
+						var data,
+							postData = [];
+						var i = 0,
+							len;
+						data = pageLogic.menuCopyView.treeGrid.listTreeByLevel(
+                            pageLogic.menuCopyView.dataTable,
+                            "ParentFuncId", 
+                            "FunctionId"
+                        );
+                        len = data.length;
+						for(; i < len; i++) {
+							postData.push({
+								FunctionId: data[i].FunctionId,
+								SortValue: i + 1,
+								ParentFuncId: data[i].ParentFuncId
+							});
+						}
+						if(postData.length > 0) {
+							pageLogic.saveMenuSortValues(postData, function() {
+								pageLogic.menuView.createGridBody(data);
+                        		this.menuSortDeselection();
+							}, this);
+						}
+					}
+				},
+				formReset: function() {
+					$("#menuForm").get(0).reset();
+					$("#icon").val(ui.str.empty);
+					pageLogic.colorPicker.setColor(ui.theme.getCurrentColor());
+					pageLogic.tileStyle.setValue("medium");
+					$("#tileSize").val(pageLogic.tileStyle.getCurrent().value);
+				},
+				dataToForm: function(data) {
+					$("#functionCode").val(data.FunctionCode);
+					$("#functionName").val(data.FunctionName);
+					$("#parentFuncId").val(data.ParentFuncId);
+					$("#menuUrl").val(data.Url);
+					pageLogic.functionEnabled.checked(data.Enabled);
+
+					$("#icon").val(data.Icon || ui.str.empty);
+					pageLogic.colorPicker.setColor(data.BGColor || ui.theme.getCurrentColor());
+					pageLogic.tileStyle.setValue(data.Size || "medium");
+					$("#tileSize").val(pageLogic.tileStyle.getCurrent().value);
+					pageLogic.isTile.checked(data.IsTile);
+				},
+				onAdding: function() {
+					this.formReset();
+
+					if(pageLogic.menuCtrlPanel.isShow()) {
+						pageLogic.menuCtrlPanel.tab.setIndex(0);
+					}
+					this.isUpdate = false;
+					pageLogic.menuView.cancelSelection();
+					pageLogic.menuCtrlPanel.show();
+				},
+				onUpdating: function(data) {
+					this.dataToForm(data);
+					if(pageLogic.menuCtrlPanel.isShow()) {
+						pageLogic.menuCtrlPanel.tab.setIndex(0);
+					}
+					this.isUpdate = true;
+					pageLogic.menuCtrlPanel.show();
+				},
+				onSave: function() {
+					var data = null,
+						row;
+					var data = {
+						FunctionCode: $("#functionCode").val() || null,
+						FunctionName: $("#functionName").val() || null,
+						ParentFuncId: $("#parentFuncId").val() || null,
+						Enabled: pageLogic.functionEnabled.checked(),
+						Url: $("#menuUrl").val() || null,
+						ICon: $("#icon").val() || null,
+						BGColor: $("#bgColor").val() || null,
+						Size: $("#tileSize").val() || null,
+						IsTile: pageLogic.isTile.checked()
+					};
+					if(this.isUpdate) {
+						row = pageLogic.menuView.getCurrentSelection();
+						data.FunctionId = row.rowData.FunctionId;
+						data.MenuId = row.rowData.MenuId;
+						pageLogic.updateMenu(data, function(d) {
+							row.rowData = $.extend(row.rowData, d);
+							pageLogic.menuView.updateRowByIndex(row.rowIndex, row.rowData);
+							pageLogic.menuView.cancelSelection();
+						}, this);
+					} else {
+						pageLogic.createMenu(data, function(d) {
+						    pageLogic.loadMenus();
+						}, this);
+					}
+				},
+				onDelete: function() {
+					var row = pageLogic.menuView.getCurrentSelection();
+                    if (!row) {
+                        return;
+                    }
+                    pageLogic.deleteMenu(row.rowData.FunctionId, function() {
+                    	pageLogic.menuView.cancelSelection();
+                    	pageLogic.loadMenus();
+                    }, this);
+				}
+			};
+		})();
+	</script>
+}
+

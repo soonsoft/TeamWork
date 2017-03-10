@@ -1,0 +1,174 @@
+﻿<!DOCTYPE html>
+@using System.Data.Entity.Validation
+@using STIM.Web.ErrorHandling
+@{
+    Layout = null;
+
+    HandleErrorInfo errorInfo = Model;
+    Exception exception = errorInfo.Exception;
+    string message = String.Empty;
+    string stackTrace = String.Empty;
+    int statusCode = Response.StatusCode;
+    if(ViewBag.StatusCode != null)
+    {
+        statusCode = ViewBag.StatusCode;
+    }
+    if (exception != null)
+    {
+        if(exception is DbEntityValidationException)
+        {
+            message = ErrorHelper.GetDbEntityValidationMessage((DbEntityValidationException)exception);
+        }
+        else
+        {
+            message = exception.Message;
+        }
+        stackTrace = exception.StackTrace;
+    }
+
+    string emotion = String.Empty;
+    string info = String.Empty;
+    string bgColor = ThemeConfig.GetTheme(UserContext.CurrentUser.PersonalizeSettings().ThemeId).Color;
+    if(statusCode == 404)
+    {
+        bgColor = "#888888";
+        emotion = ":-o";
+        info = "您访问的内容不存在。";
+    }
+    else if(statusCode == 401 || statusCode == 403)
+    {
+        emotion = ":-)";
+        info = "您没有权限访问此内容。";
+    }
+    else if(statusCode >= 500)
+    {
+        bgColor = "#990000";
+        emotion = ":-(";
+        info = "处理您的请求时发生错误，请联系管理员。";
+    }
+    else
+    {
+        emotion = ":-D";
+        info = "信息提示：";
+    }
+
+    string hoverColor = ThemeConfig.ColorOverlay(bgColor, "#333333", 20);
+    string activeColor = ThemeConfig.ColorOverlay(bgColor, "#333333", 70);
+}
+
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=pixel_value" />
+    <meta name="viewport" content="height=pixel_value" />
+    <title>错误</title>
+    <link href="/Content/Site.css" rel="stylesheet" />
+    <script type="text/javascript" src="/Scripts/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var resizeFunc = function () {
+                var clientHeight = document.documentElement.clientHeight,
+                height = Math.floor(clientHeight / 3);
+                $("#errorWindow").css({
+                    "height": height + "px",
+                    "top": (clientHeight - height) / 2 + "px"
+                });
+            };
+            $(window).resize(resizeFunc);
+            resizeFunc();
+        });
+    </script>
+    @this.RegisterCtrls()
+    <style type="text/css">
+        div#errorWindow {
+            position: absolute;
+            color: #FFFFFF;
+            background-color: @bgColor;
+            width: 100%;
+            height: 300px;
+        }
+
+        .error-title {
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            font-size: 30px;
+            height: 48px;
+            line-height: 48px;
+        }
+
+        span.emotion {
+            font-family: 'Segoe UI';
+            margin-left: 20px;
+        }
+
+        .error-message {
+            position:absolute;
+            width:100%;
+            top:48px;
+            bottom:48px;
+            overflow:auto;
+        }
+
+            .error-message p {
+                margin-left:20px;
+                width:auto;
+            }
+
+        .error-ctrl-panel {
+            position: absolute;
+            bottom: 0px;
+            width: 100%;
+            text-align: right;
+            height: 48px;
+            line-height: 48px;
+        }
+
+            .error-ctrl-panel p {
+                margin-left:20px;
+                width:auto;
+            }
+
+        a.link-button {
+            display: inline-block;
+            width: 100px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            text-decoration: none;
+            border: 2px solid #FFFFFF;
+            color: #FFFFFF;
+            background-color:transparent;
+            padding: 0px;
+            margin: 0px;
+            font-size: 9pt;
+            margin-right:20px;
+        }
+
+            a.link-button:hover {
+                border:2px solid #FFFFFF;
+                background-color:@hoverColor; 
+                color:#FFFFFF;
+            }
+
+            a.link-button:active {
+                background-color:@activeColor;
+            }
+    </style>
+</head>
+<body>
+    <div id="errorWindow">
+        <div class="error-title">
+            <span class="emotion">@emotion</span>
+            <span>抱歉，@info</span>
+        </div>
+        <div class="error-message">
+            <p>@message</p>
+        </div>
+        <div class="error-ctrl-panel">
+            <a class="link-button" href="javascript:void(0)" onclick="javascript:window.history.go(-1)">返回</a>
+            <a class="link-button" href="/Home/Index">首页</a>
+        </div>
+    </div>
+</body>
+</html>

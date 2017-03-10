@@ -1,0 +1,675 @@
+﻿@{
+    ViewBag.Title = "项目详情";
+}
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/UI/Highcharts/highcharts.js"></script>
+    @{
+        if (UserContext.CurrentUser.IsBackgroundDark())
+        {
+            @MvcHtmlString.Create("<script type=\"text/javascript\" src=\"/Scripts/UI/Highcharts/themes/metro-dark.js\"></script>")
+        }
+        else
+        {
+            @MvcHtmlString.Create("<script type=\"text/javascript\" src=\"/Scripts/UI/Highcharts/themes/metro.js\"></script>")
+        }
+    }
+
+    @this.RegisterCtrls(
+        "tabPanel",
+        "columnStyle",
+        "gridview"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style type="text/css">
+        .grid-view {
+            border-top: none 0px;
+        }
+
+        div.top_separator {
+            width: 100%;
+            height: 6px;
+            border-top-width: 1px;
+            border-top-style: solid;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+        }
+
+        #legendPanel {
+            line-height: 24px;
+            display: none;
+        }
+
+            #legendPanel i {
+                display: inline-block;
+                width: 16px;
+                height: 16px;
+                vertical-align:top;
+                margin-top:12px;
+                margin-right: 5px;
+            }
+    </style>
+}
+
+@section tabs {
+    <li class="tab-item tab-button">
+        <span>按阶段统计</span>
+        <i class="pointer"></i>
+    </li>
+    <li class="tab-item tab-button">
+        <span>按部门统计</span>
+        <i class="pointer"></i>
+    </li>
+    <li class="tab-item tab-button">
+        <span>按成员统计</span>
+        <i class="pointer"></i>
+    </li>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul id="legendPanel" class="tools" style="float:right">
+        <li>
+            <i style="background-color: #DDDDDD"></i>
+            <span>计划用时 @ViewBag.ProjectTime.PBeginTime ~ @ViewBag.ProjectTime.PEndTime</span>
+        </li>
+        <li>
+            <i style="background-color: #CCE0FF"></i>
+            <span>实际用时 @ViewBag.ProjectTime.RBeginTime ~ @ViewBag.ProjectTime.REndTime</span>
+        </li>
+    </ul>
+    <br style="clear:both;" />
+</div>
+<div id="tabBodyPanel" class="tab-body-panel">
+    <div id="stagePanel" class="tab-body">
+        <div id="stageChartPanel"></div>
+        <div class="top_separator theme-toolbar-color theme-border-color"></div>
+        <div id="stageGrid" class="grid-view"></div>
+    </div>
+    <div id="departmentPanel" class="tab-body">
+        <div id="departmentChartPanel"></div>
+        <div class="top_separator theme-toolbar-color theme-border-color"></div>
+        <div id="departmentGrid" class="grid-view"></div>
+    </div>
+    <div id="employeePanel" class="tab-body">
+        <div id="employeeChartPanel"></div>
+        <div class="top_separator theme-toolbar-color theme-border-color"></div>
+        <div id="employeeGrid" class="grid-view"></div>
+    </div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+    ; (function () {
+        var totalHour = Number("@ViewBag.ProjectInfo.TotalHour");
+        var totalValue = Number("@ViewBag.ProjectInfo.TotalValue");
+        var pageLogic = window.pageLogic = {
+            init: {
+                beforeCtrls: function () {
+                    tabManager = ui.tab.createTabManager(
+                        function (e, index) {
+                            if (index == 0) {
+                                if (!this.tabLoadStates[index]) {
+                                    this.tabLoadStates[index] = true;
+                                    stageManager.statistic();
+                                }
+                            } else if (index == 1) {
+                                if (!this.tabLoadStates[index]) {
+                                    this.tabLoadStates[index] = true;
+                                    departmentManager.query();
+                                    departmentManager.statistic();
+                                }
+                            } else if (index == 2) {
+                                if (!this.tabLoadStates[index]) {
+                                    this.tabLoadStates[index] = true;
+                                    employeeManager.statistic();
+                                }
+                            }
+                        }
+                    );
+                    tabManager.addTools(null, "legendPanel");
+                    var tab = pageLogic.tab = ui.tab.createTabs({
+                        tabPanelId: "headerTags",
+                        bodyPanelId: "tabBodyPanel"
+                    });
+                    tab.changing($.proxy(tabManager.tabChanging, tabManager));
+                    tab.changed($.proxy(tabManager.tabChanged, tabManager));
+                },
+                layout: function () {
+                    masterpage.resize(function () {
+                        //40 是toolbar的高度
+                        var height = masterpage.contentBodyHeight - 40,
+                            width = masterpage.contentBodyWidth;
+
+                        var heightCss = { "height": height - 8 - 250 + "px" }
+                        $("#stageChartPanel").css(heightCss);
+                        $("#departmentChartPanel").css(heightCss);
+                        $("#employeeChartPanel").css(heightCss);
+
+                        pageLogic.tab.setBodyHeight(height);
+                        pageLogic.tab.setBodiesLocation();
+                        pageLogic.tab.restore();
+                    });
+                    pageLogic.chartInit();
+                },
+
+                afterCtrls: function () {
+                },
+
+                events: function () {
+                },
+
+                datas: function () {
+                    pageLogic.tab.setIndex(0, false);
+                    departmentManager.getStatisticTimes();
+                }
+            },
+
+            chartInit: function () {
+                stageManager.initChart();
+                stageManager.initGrid();
+                departmentManager.initChart();
+                departmentManager.initGrid();
+                employeeManager.initChart();
+                employeeManager.initGrid();
+            }
+        };
+
+        var formatter = {
+            formatHour: function (value, column) {
+                value = ui.fixedNumber(Number(value), 2);
+                var numText = value + "";
+                var index = numText.indexOf(".");
+                if (index < 0) {
+                    numText += ".00";
+                } else if (numText.split(".").length == 2 && numText.split(".")[1].length == 1) {
+                    numText += "0";
+                }
+                var span = $("<span>" + numText + "</span>");
+                return span;
+            },
+
+            formatBg: function (value, column) {
+                if (value == undefined || value == null) {
+                    return;
+                }
+                var span = $("<span />");
+                var text = value[0];
+                if (Number(value[1]) == 0) {
+                    text = "*" + value[0];
+                    span.prop("title", "非本项目组成员");
+                }
+                span.text(text);
+                return span;
+            }
+        };
+
+        var stageManager = {
+            initChart: function () {
+                var chartOption = chartManager.getChartOption("stageChartPanel", "column", "按阶统计 [ @ViewBag.ProjectInfo.ProjectName ] 的耗时和成本", 0, "center");
+                stageManager.chart = new Highcharts.Chart(chartOption);
+            },
+
+            initGrid: function () {
+                var getHourProgressBar = ui.ColumnStyle.cfnp.getProgressBar(350, totalHour);
+                var getMoneyProgressBar = ui.ColumnStyle.cfnp.getProgressBar(350, totalValue);
+
+                var gridOption = {
+                    columns: [
+                        { text: "", column: "IsTotal", len: 40, align: "right", handler: function() {
+                            if(arguments[0]) {
+                                return null;
+                            }
+                            return ui.ColumnStyle.cfn.rowNumber.apply(this, arguments);
+                        } },
+                        { column: "StageName", text: "阶段名称", len: 140 },
+                        { column: "BeginTime", text: "开始时间", len: 140, align: "center", handler: ui.ColumnStyle.cfn.formatDateTime },
+                        { column: "EndTime", text: "结束时间", len: 140, align: "center", handler: ui.ColumnStyle.cfn.formatDateTime },
+                        { column: "SumHour", text: "耗时(小时)", len: 100, align: "right", sort: true, handler: formatter.formatHour },
+                        { column: ["SumHour", "IsTotal"], text: "耗时占比", len: 365, handler: function(content, column, rowIndex) {
+                            if(content.IsTotal) {
+                                return null;
+                            }
+                            return getHourProgressBar.call(this, content.SumHour, column, rowIndex);
+                        } },
+                        { column: "SumValue", text: "成本(元)", len: 120, align: "right", sort: true, handler: ui.ColumnStyle.cfnp.getFormatMoney() },
+                        { column: ["SumValue", "IsTotal"], text: "成本占比", len: 365, handler: function(content, column, rowIndex) {
+                            if(content.IsTotal) {
+                                return null;
+                            }
+                            return getMoneyProgressBar.call(this, content.SumValue, column, rowIndex);
+                        } },
+                        { handler: ui.ColumnStyle.cfn.empty }
+                    ],
+                    selection: {
+                        type: "disabled"
+                    },
+                    pager: false
+                };
+                var grid = this.grid = $("#stageGrid").setGridview(gridOption);
+                grid.setHeight(250);
+            },
+
+            statistic: function () {
+                var data = {
+                    projectId: "@ViewBag.ProjectInfo.ProjectId"
+                };
+                ui.ajax.ajaxPost(
+                    "/Statistic/GetProjectStageDetailById",
+                    JSON.stringify(data),
+                    function (success) {
+                        var i = 0,
+                            len,
+                            total,
+                            data = [];
+                        if (success && success.length > 0) {
+                            total = {
+                                StageName: "合计",
+                                SumHour: 0,
+                                SumValue: 0,
+                                IsTotal: true
+                            };
+                            for(len = success.length; i < len; i++) {
+                                data.push(success[i]);
+                                total.SumHour += success[i].SumHour;
+                                total.SumValue += success[i].SumValue;
+                            }
+                            data.push(total);
+
+                            stageManager.grid.createGridBody(data);
+                            stageManager.prepareData(success);
+                        } else {
+                            stageManager.grid.empty();
+                        }
+                    },
+                    function (error) {
+                        ui.msgshow("按阶段统计项目失败，" + error.message, true);
+                    }
+                );
+            },
+
+            prepareData: function (datas) {
+                if (datas.length == 0) {
+                    return;
+                }
+                var categories = [],
+                    series = [],
+                    hourMap = {
+                        color: "#007EEE",
+                        name: "耗时",
+                        data: [],
+                        yAxis: 0,
+                        tooltip: {
+                            valueSuffix: ' 小时'
+                        }
+                    },
+                    valueMap = {
+                        color: "#990000",
+                        name: "成本",
+                        data: [],
+                        yAxis: 1,
+                        tooltip: {
+                            valueSuffix: ' 元'
+                        }
+                    },
+                    data = null;
+                for (var i = 0; i < datas.length; i++) {
+                    data = datas[i];
+                    categories.push(data["StageName"]);
+                    hourMap.data.push(data["SumHour"]);
+                    valueMap.data.push(data["SumValue"]);
+            }
+                series.push(hourMap);
+                series.push(valueMap);
+                chartManager.setChart(stageManager.chart, categories, series);
+            }
+        };
+
+        var departmentManager = {
+            initChart: function () {
+                var chartOption = chartManager.getChartOption("departmentChartPanel", "line", "按部门统计 [ @ViewBag.ProjectInfo.ProjectName ] 的耗时", -30, "right");
+                //chartOption.xAxis.tickPosition = "inside";
+                //chartOption.xAxis.startOnTick = true;
+                //chartOption.xAxis.tickmarkPlacement = "on";
+                //chartOption.xAxis.showFirstLabel = true;
+                //chartOption.xAxis.minPadding = 0;
+                //chartOption.xAxis.maxPadding = 0;
+
+                //chartOption.yAxis.startOnTick = true;
+                //chartOption.yAxis.endOnTick = false;
+                //chartOption.yAxis.minPadding = 0;
+                //chartOption.yAxis.maxPadding = 0;
+                departmentManager.chart = new Highcharts.Chart(chartOption);
+            },
+
+            initGrid: function () {
+                var gridOption = {
+                    columns: [
+                        { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                        { column: "DepartmentName", text: "部门名称", len: 160 },
+                        { column: "BeginTime", text: "开始时间", len: 140, align: "center", handler: ui.ColumnStyle.cfn.formatDateTime },
+                        { column: "EndTime", text: "结束时间", len: 140, align: "center", handler: ui.ColumnStyle.cfn.formatDateTime },
+                        { column: "SumHour", text: "耗时(小时)", len: 100, align: "right", sort: true },
+                        { column: "SumHour", text: "耗时占比", len: 365, handler: ui.ColumnStyle.cfnp.getProgressBar(350, totalHour) },
+                        { handler: ui.ColumnStyle.cfn.empty }
+                    ],
+                    selection: {
+                        type: "disabled"
+                    },
+                    pager: false
+                };
+                var grid = this.grid = $("#departmentGrid").setGridview(gridOption);
+                grid.setHeight(250);
+            },
+
+            query: function () {
+                var data = {
+                    projectId: "@ViewBag.ProjectInfo.ProjectId"
+                };
+                ui.ajax.ajaxPost(
+                    "/Statistic/GetProjectDeparemntSumHourById",
+                    JSON.stringify(data),
+                    function (success) {
+                        if (success && success.length > 0) {
+                            departmentManager.grid.createGridBody(success);
+                        } else {
+                            departmentManager.grid.empty();
+                        }
+                    },
+                    function (error) {
+                        ui.msgshow("按部门统计项目失败，" + error.message, true);
+                    }
+                );
+            },
+
+            getStatisticTimes: function () {
+                var data = {
+                    projectId: "@ViewBag.ProjectInfo.ProjectId"
+                };
+                ui.ajax.ajaxPost(
+                    "/Statistic/GetStatisticTimes",
+                    JSON.stringify(data),
+                    function (success) {
+                        if (success && success.length > 0) {
+                            departmentManager.statisticTimes = success;
+                        } else {
+                            departmentManager.statisticTimes = [];
+                        }
+                    },
+                    function (error) {
+                        ui.msgshow("获取统计时间段失败，" + error.message, true);
+                    }
+                );
+            },
+
+            statistic: function () {
+                var data = {
+                    projectId: "@ViewBag.ProjectInfo.ProjectId"
+                };
+                ui.ajax.ajaxPost(
+                    "/Statistic/GetProjectDepartmentDetailById",
+                    JSON.stringify(data),
+                    function (success) {
+                        if (success && success.length > 0) {
+                            departmentManager.prepareData(success);
+                        }
+                    },
+                    function (error) {
+                        ui.msgshow("按部门统计项目失败，" + error.message, true);
+                    }
+                );
+            },
+
+            prepareData: function (datas) {
+                if (datas.length == 0) {
+                    return;
+                }
+                var colors = ["#007EEE", "#990000", "#007A00", "#82004C", "#FF6600"];
+                var categories = [],
+                    series = [],
+                    hourMap = null,
+                    data = null;
+                for (var k in departmentManager.statisticTimes) {
+                    categories.push(departmentManager.statisticTimes[k]);
+                }
+                for (var i = 0; i < datas.length; i++) {
+                    data = datas[i];
+                    hourMap = {
+                        color: colors[i],
+                        name: data[0]["DepartmentName"],
+                        data: [],
+                        tooltip: {
+                            valueSuffix: ' 小时'
+                        }
+                    };
+                    var d = null;
+                    for (var j = 0; j < data.length; j++) {
+                        hourMap.data.push(data[j]["SumHour"]);
+                    }
+                    series.push(hourMap);
+                }
+
+                chartManager.setChart(departmentManager.chart, categories, series);
+            }
+        };
+
+        var employeeManager = {
+            initChart: function () {
+                var chartOption = chartManager.getChartOption("employeeChartPanel", "column", "按成员统计 [ @ViewBag.ProjectInfo.ProjectName ] 的耗时和成本", 0, "center");
+                employeeManager.chart = new Highcharts.Chart(chartOption);
+            },
+
+            initGrid: function () {
+                var gridOption = {
+                    columns: [
+                        { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                        { column: ["RealName", "IsInProjectTeam"], text: "成员名称", len: 100, handler: formatter.formatBg },
+                        { column: "BeginTime", text: "开始时间", len: 140, align: "center", handler: ui.ColumnStyle.cfn.formatDateTime },
+                        { column: "EndTime", text: "结束时间", len: 140, align: "center", handler: ui.ColumnStyle.cfn.formatDateTime },
+                        { column: "SumHour", text: "耗时(小时)", len: 100, align: "right", sort: true, handler: formatter.formatHour },
+                        { column: "SumHour", text: "耗时占比", len: 365, handler: ui.ColumnStyle.cfnp.getProgressBar(350, totalHour) },
+                        { column: "SumValue", text: "成本(元)", len: 120, align: "right", sort: true, handler: ui.ColumnStyle.cfnp.getFormatMoney() },
+                        { column: "SumValue", text: "成本占比", len: 365, handler: ui.ColumnStyle.cfnp.getProgressBar(350, totalValue) },
+                        { handler: ui.ColumnStyle.cfn.empty }
+                    ],
+                    selection: {
+                        type: "disabled"
+                    },
+                    pager: false
+                };
+                var grid = this.grid = $("#employeeGrid").setGridview(gridOption);
+                grid.setHeight(250);
+            },
+
+            statistic: function () {
+                var data = {
+                    projectId: "@ViewBag.ProjectInfo.ProjectId"
+                };
+                ui.ajax.ajaxPost(
+                    "/Statistic/GetProjectEmployeeDetailById",
+                    JSON.stringify(data),
+                    function (success) {
+                        if (success && success.length > 0) {
+                            employeeManager.grid.createGridBody(success);
+                            employeeManager.prepareData(success);
+                        } else {
+                            employeeManager.grid.empty();
+                        }
+                    },
+                    function (error) {
+                        ui.msgshow("按成员统计项目失败，" + error.message, true);
+                    }
+                );
+            },
+
+            prepareData: function (datas) {
+                if (datas.length == 0) {
+                    return;
+                }
+                var categories = [],
+                    series = [],
+                    hourMap = {
+                        color: "#007EEE",
+                        name: "耗时",
+                        type: 'column',
+                        data: [],
+                        yAxis: 0,
+                        tooltip: {
+                            valueSuffix: ' 小时'
+                        }
+                    },
+                    valueMap = {
+                        color: "#990000",
+                        name: "成本",
+                        type: 'column',
+                        data: [],
+                        yAxis: 1,
+                        tooltip: {
+                            valueSuffix: ' 元'
+                        }
+                    },
+                    data = null;
+                for (var i = 0; i < datas.length; i++) {
+                    data = datas[i];
+                    categories.push(data["RealName"]);
+                    hourMap.data.push(data["SumHour"]);
+                    valueMap.data.push(data["SumValue"]);
+                }
+                series.push(hourMap);
+                series.push(valueMap);
+                chartManager.setChart(employeeManager.chart, categories, series);
+            }
+        };
+
+
+        var chartManager = {
+            getChartOption: function (renderTo, type, title, rotation, align) {
+                var chartOption = {
+                    chart: {
+                        renderTo: renderTo,
+                        type: type
+                    },
+                    title: { text: title },
+                    xAxis: {
+                        categories: [],
+                        labels: {
+                            rotation: rotation,
+                            align: align,
+                            style: {
+                                fontSize: '12px'
+                            }
+                        },
+                        plotBands: []
+                    },
+                    yAxis: {},
+                    tooltip: {
+                        enabled: true,
+                        shared: true
+                    },
+                    plotOptions: {
+                        column: {
+                            shadow: false,
+                            pointWidth: 30,
+                            pointPadding: 0.5,
+                            dataLabels: {
+                                enabled: true
+                            },
+                            enableMouseTracking: true
+                        },
+                        line: {
+                            shadow: false,
+                            dataLabels: {
+                                enabled: true
+                            },
+                            enableMouseTracking: true
+                        }
+                    },
+                    series: [{ name: " ", data: [] }]
+                };
+                chartManager.addyAxis(type, chartOption);
+                if (type == "line") {
+                    chartManager.addplotBands(chartOption);
+                }
+                return chartOption;
+            },
+
+            //渲染统计图
+            setChart: function (chart, categories, series) {
+                if ($.isArray(categories)) {
+                    chart.xAxis[0].setCategories(categories, false);
+                }
+                while (chart.series.length > 0) {
+                    chart.series[0].remove(false);
+                }
+                for (var i = 0 ; i < series.length; i++) {
+                    chart.addSeries(series[i], false);
+                }
+                chart.redraw();
+            },
+
+            addyAxis: function (type, option) {
+                if (type == "line") {
+                    option.yAxis = {
+                        min: 0,
+                        title: { text: "耗时" },
+                        stackLabels: {
+                            enabled: true,
+                            style: {
+                                fontWeight: 'normal'
+                            }
+                        }
+                    };
+                } else if (type == "column") {
+                    option.yAxis = [{ // 第一条 yAxis
+                        min: 0,
+                        title: { text: '耗时' },
+                        stackLabels: {
+                            enabled: true,
+                            style: {
+                                fontWeight: 'normal'
+                            }
+                        },
+                        labels: {
+                            format: '{value}时'
+                        }
+                    }, { // 第二条 yAxis
+                        min: 0,
+                        title: { text: '成本' },
+                        stackLabels: {
+                            enabled: true,
+                            style: {
+                                fontWeight: 'normal'
+                            }
+                        },
+                        labels: {
+                            format: '{value}元'
+                        },
+                        opposite: true
+                    }];
+                }
+            },
+
+            addplotBands: function (option) {
+                option.xAxis.plotBands = [{
+                    // 计划用时区域
+                    from: Number("@ViewBag.PlanBegin"),
+                    to: Number("@ViewBag.PlanEnd"),
+                    color: 'rgba(221, 221, 221, .4)',
+                    zIndex: 1
+                },
+                {   
+                    // 实际用时区域
+                    from: Number("@ViewBag.RealBegin"),
+                    to: Number("@ViewBag.RealEnd"),
+                    color: 'rgba(0, 102, 255, .2)',
+                    zIndex: 1
+                }];
+            }
+        };
+    })();
+    </script>
+}
+

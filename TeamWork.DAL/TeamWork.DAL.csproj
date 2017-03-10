@@ -1,0 +1,120 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{DF9555F8-F466-4C8A-B9E2-6C943E6CBB4F}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>TeamWork.DAL</RootNamespace>
+    <AssemblyName>TeamWork.DAL</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\EntityFramework.6.1.1\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Activity.cs" />
+    <Compile Include="AttendanceExceptionBill.cs" />
+    <Compile Include="AuthMembership.cs" />
+    <Compile Include="AuthRole.cs" />
+    <Compile Include="AuthUser.cs" />
+    <Compile Include="AuthUserextend.cs" />
+    <Compile Include="AuthUserprofile.cs" />
+    <Compile Include="Budget.cs" />
+    <Compile Include="BusinessTripBill.cs" />
+    <Compile Include="Mapping\ActivityMapping.cs" />
+    <Compile Include="Mapping\AttendanceExceptionBillMapping.cs" />
+    <Compile Include="Mapping\BudgetMapping.cs" />
+    <Compile Include="Mapping\BusinessTripBillMapping.cs" />
+    <Compile Include="Mapping\MeetingAccessoryMapping.cs" />
+    <Compile Include="Mapping\ProjectMeetingEmployeeMapping.cs" />
+    <Compile Include="Mapping\ProjectMeetingSummaryMapping.cs" />
+    <Compile Include="Mapping\RequestLeaveBillMapping.cs" />
+    <Compile Include="Mapping\StageTempleteMapping.cs" />
+    <Compile Include="MeetingAccessory.cs" />
+    <Compile Include="ProjectMeetingEmployee.cs" />
+    <Compile Include="ProjectMeetingSummary.cs" />
+    <Compile Include="RequestLeaveBill.cs" />
+    <Compile Include="StageTemplete.cs" />
+    <Compile Include="TeamDBContext.cs" />
+    <Compile Include="Department.cs" />
+    <Compile Include="Employee.cs" />
+    <Compile Include="HolidaySetting.cs" />
+    <Compile Include="LaborCost.cs" />
+    <Compile Include="Mapping\AuthMembershipMapping.cs" />
+    <Compile Include="Mapping\AuthRoleMapping.cs" />
+    <Compile Include="Mapping\AuthUserextendMapping.cs" />
+    <Compile Include="Mapping\AuthUserMapping.cs" />
+    <Compile Include="Mapping\AuthUserprofileMapping.cs" />
+    <Compile Include="Mapping\DepartmentMapping.cs" />
+    <Compile Include="Mapping\EmployeeMapping.cs" />
+    <Compile Include="Mapping\HolidaySettingMapping.cs" />
+    <Compile Include="Mapping\LaborCostMapping.cs" />
+    <Compile Include="Mapping\OrganizationMapping.cs" />
+    <Compile Include="Mapping\PositionMapping.cs" />
+    <Compile Include="Mapping\ProjectMapping.cs" />
+    <Compile Include="Mapping\ProjectTeamMapping.cs" />
+    <Compile Include="Mapping\StageMapping.cs" />
+    <Compile Include="Mapping\SysApplicationMapping.cs" />
+    <Compile Include="Mapping\SysDictionarygroupMapping.cs" />
+    <Compile Include="Mapping\SysDictionaryitemMapping.cs" />
+    <Compile Include="Mapping\SysFunctionMapping.cs" />
+    <Compile Include="Mapping\SysLoginimageMapping.cs" />
+    <Compile Include="Mapping\SysMenuMapping.cs" />
+    <Compile Include="Mapping\WorkTimeMapping.cs" />
+    <Compile Include="Mapping\WorkTimeSettingMapping.cs" />
+    <Compile Include="Organization.cs" />
+    <Compile Include="Position.cs" />
+    <Compile Include="Project.cs" />
+    <Compile Include="ProjectTeam.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Stage.cs" />
+    <Compile Include="SysApplication.cs" />
+    <Compile Include="SysDictionarygroup.cs" />
+    <Compile Include="SysDictionaryitem.cs" />
+    <Compile Include="SysFunction.cs" />
+    <Compile Include="SysLoginimage.cs" />
+    <Compile Include="SysMenu.cs" />
+    <Compile Include="WorkTime.cs" />
+    <Compile Include="WorkTimeSetting.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,29 @@
+﻿@model STIM.Modules.Uploading.UploadEventArgs
+@{
+    Layout = null;
+
+    string errorMessage = String.Empty;
+    if(ViewBag.Error is String) 
+    {
+        errorMessage = ViewBag.Error;
+    }
+    else if(ViewBag.Error is Exception)
+    {
+        errorMessage = ViewBag.Error.Message;
+    }
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title></title>
+    <script type="text/javascript">
+        @JavascriptCodeHelper.JsonStatement("fileInfo", Model)
+        @JavascriptCodeHelper.JsonStatement("error", errorMessage)
+    </script>
+</head>
+<body>
+</body>
+</html>

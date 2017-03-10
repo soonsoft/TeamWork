@@ -1,0 +1,276 @@
+﻿
+@{
+    ViewBag.Title = "工作量统计周视图";
+}
+
+@section scriptslink {
+    @this.RegisterCtrls(
+        "columnStyle",
+        "reportView"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style type="text/css">
+        .report-view div.report-head th {
+            text-align: center !important;
+        }
+
+        #currentDate {
+            line-height: 40px;
+            padding-left: 5px;
+        }
+    </style>
+}
+
+<div class="toolbar">
+    <span id="currentDate" class="font-highlight"></span>
+</div>
+<div id="workloadReportView" class="report-view"></div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            var currentYear = @ViewBag.currentYear;
+            var currentMonth = @ViewBag.currentMonth;
+            var projectType = "@ViewBag.projectType";
+            var projectStatus = "@ViewBag.projectStatus";
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        var now = new Date();
+                        this.nowYear = now.getFullYear();
+                        this.preYear = this.nowYear - 1;
+                        this.nextYear = this.nowYear + 1;
+                        var gridOption = {
+                            dataGroupColumns: [
+                                [
+                                    { column: "projectName", text: "项目名称", len: 300, rowspan: 2, handler: ui.ColumnStyle.cfn.formatParagraph },
+                                    { text: "第一周"},
+                                    { text: "第二周" },
+                                    { text: "第三周" },
+                                    { text: "第四周" }
+                                ],
+                                []
+                            ],
+                            selection: {
+                                type: "disabled"
+                            },
+                            pager: false
+                        };
+                        this.monthList = formatter.getMonthList();
+                        var dayColumn = {};
+                        var weekList = ["one", "two", "three", "four", "five", "six"];
+                        this.weekDate = [];
+                        for (var i = 0; i < this.monthList.length; i = i + 7) {
+                            this.weekDate.push(this.monthList[i]);
+                            dayColumn = { column: [weekList.shift(), "projectId", "projectName"], text: ui.str.dateFormat(this.monthList[i], "MM/dd") + "-" + ui.str.dateFormat(this.monthList[i + 6], "MM/dd"), len: 100, align: "right",
+                                handler: reportGridFormatter.formatDay };
+                            gridOption.dataGroupColumns[1].push(dayColumn);
+                        }
+                        if (gridOption.dataGroupColumns[1].length > 4) {
+                            gridOption.dataGroupColumns[0].push({ text: "第五周", len: 100, align: "right" });
+                        }
+                        if(gridOption.dataGroupColumns[1].length > 5) {
+                            gridOption.dataGroupColumns[0].push({ text: "第六周", len: 100, align: "right" });
+                        }
+                        gridOption.dataGroupColumns[0].push({ column: "total", text: "合计", len: 100, align: "right", rowspan: 2, handler: reportGridFormatter.formatTotalValue });
+                        gridOption.dataGroupColumns[0].push({ text: ui.ColumnStyle.cnfn.empty, handler: ui.ColumnStyle.cfn.empty, rowspan: 2 });
+                        this.workloadReportGrid = $("#workloadReportView").setReportView(gridOption);
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+                            pageLogic.workloadReportGrid.setSize(width, height);
+                        });
+                    },
+                    afterCtrls: function () {
+                        $("#currentDate").text(currentYear + "年" + currentMonth + "月" + "(单位：人月)");
+                    },
+                    events: function () {
+                        masterpage.pushBack(function () {
+                            window.history.go(-1);
+                        });
+                    },
+                    datas: function () {
+                        pageLogic.loadWorkloadData(this.monthList[0], this.monthList[this.monthList.length - 1]);
+                    }
+                },
+
+                loadWorkloadData: function (start, end) {
+                    end.setDate(end.getDate() + 1);
+                    var data = {
+                        start: start,
+                        end: end,
+                        projectType: projectType,
+                        projectStatus: projectStatus
+                    };
+                    ui.ajax.ajaxPost("/Statistic/getWorkloadForMonth",
+                        JSON.stringify(data),
+                        function (success) {
+                            var result = success.Result;
+                            if (result.length > 0) {
+                                var i, item, list = [], dateMap = {}, pMap = {};
+                                var total = {
+                                    projectId: null,
+                                    projectName: "周总计",
+                                    one: 0,
+                                    two: 0,
+                                    three: 0,
+                                    four: 0,
+                                    five: 0,
+                                    six: 0,
+                                    total: 0
+                                };
+                                var weekList = ["one", "two", "three", "four", "five", "six"];
+                                var j, currentWeekStr;
+                                for (i = 0; i < result.length; i++) {
+                                    item = result[i];
+                                    item.SumHour = item.SumHour / 8 / 21.75;
+
+                                    if (!pMap.hasOwnProperty(item.ProjectId)) {
+                                        pMap[item.ProjectId] = {
+                                            projectId: item.ProjectId,
+                                            projectName: item.ProjectName,
+                                            one: 0,
+                                            two: 0,
+                                            three: 0,
+                                            four: 0,
+                                            five: 0,
+                                            six: 0,
+                                            total: 0
+                                        }
+                                    }
+                                    for (j = 1; j <= pageLogic.weekDate.length; j++) {
+                                        currentWeekStr = ui.str.dateFormat(pageLogic.weekDate[j], "yyyy-MM-dd");
+                                        if(j == pageLogic.weekDate.length) {
+                                            currentWeekStr = ui.str.dateFormat(pageLogic.weekDate[j - 1], "yyyy-MM-dd");
+                                            if (item.DateStr >= currentWeekStr) {
+                                                pMap[item.ProjectId][weekList[j - 1]] += item.SumHour;
+                                                pMap[item.ProjectId].total += item.SumHour;
+                                                total[weekList[j - 1]] += item.SumHour;
+                                                total.total += item.SumHour;
+                                                break;
+                                            }
+                                        }
+                                        if (item.DateStr < currentWeekStr) {
+                                            pMap[item.ProjectId][weekList[j - 1]] += item.SumHour;
+                                            pMap[item.ProjectId].total += item.SumHour;
+                                            total[weekList[j - 1]] += item.SumHour;
+                                            total.total += item.SumHour;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                var gridList = [];
+                                for (var key in pMap) {
+                                    gridList.push(pMap[key]);
+                                }
+                                gridList.push(total);
+                                pageLogic.workloadReportGrid.createReportBody(gridList);
+                            } else {
+                                pageLogic.workloadReportGrid.empty();
+                            }
+                        }, function (error) {
+                            ui.msgshow("查询工作量失败，" + error.message, true);
+                        })
+                }
+            };
+
+            var formatter = {
+                getMonthList: function () {
+                    var days = [];
+                    //获得上个月最后一天的日期对象
+                    var preMonth = new Date(currentYear, currentMonth - 1, 0);
+                    //获得这个月第一天的日期对象
+                    var nowMonth = new Date(currentYear, currentMonth - 1, 1);
+                    //获取下个月第一天的日期对象
+                    var nextMonth = new Date(currentYear, currentMonth, 1);
+
+                    var firstWeek = nowMonth.getDay();
+                    var y = preMonth.getFullYear(),
+                        m = preMonth.getMonth(),
+                        d = preMonth.getDate();
+                    if (firstWeek > 1) {
+                        for (var i = d - (firstWeek - 2) ; i <= d; i++) {
+                            days.push(this.createDay(y, m, i));
+                        }
+                    }
+                    //获得当前月最后一天
+                    var lastDay = new Date(currentYear, currentMonth, 0).getDate();
+                    for (i = 1; i <= lastDay; i++) {
+                        days.push(this.createDay(currentYear, currentMonth - 1, i));
+                    }
+
+                    firstWeek = nextMonth.getDay();
+                    y = nextMonth.getFullYear();
+                    m = nextMonth.getMonth();
+                    var count = 42 - days.length;
+                    while(count > 7) {
+                        count = count - 7;
+                    }
+                    if (firstWeek > 1 || count > 0 && count < 7) {
+                        for (i = 1; i <= count; i++) {
+                            days.push(this.createDay(y, m, i));
+                        }
+                    }
+                    return days;
+                },
+                createDay: function (year, month, day) {
+                    var date = new Date(year, month, day);
+                    return date;
+                }
+            };
+
+            var reportGridFormatter = {
+                formatMonth: function (content) {
+                    var mon = $("<a href='javascript:void(0)' />");
+                    mon.text(content);
+                    return mon;
+                },
+                formatTotalValue: function (content) {
+                    var span = $("<span class='current-year-total' />");
+                    span.text(ui.fixedNumber(content, 2), 2);
+                    return span;
+                },
+                formatDay: function (content, column) {
+                    if (content[0] == 0 || content[1] == null || "@ViewBag.forRole".toLowerCase() == "true") {
+                        return $("<span>" + ui.fixedNumber(content[0], 2) + "</span>");
+                    }
+                    var a = $("<a href='javascript:void(0)' />");
+                    a.text(ui.fixedNumber(content[0], 2));
+                    a.click({ dateStr: column.text, content: content, column: column }, function (e) {
+                        var dateStr = e.data.dateStr;
+                        var list = dateStr.split("-");
+                        var startList = list[0].split("/");
+                        var endList = list[1].split("/");
+                        var preYear = currentYear;
+                        if(startList[0] > endList[0]) {
+                            preYear -= 1;
+                        }
+                        var weekList = ["one", "two", "three", "four", "five", "six"];
+                        var weekStrList = ["一", "二", "三", "四", "五", "六"];
+                        var weekStr;
+                        for(var i = 0; i < weekList.length; i++) {
+                            if(weekList[i] == column.column[0]) {
+                                weekStr = "第" + weekStrList[i] + "周";
+                                break;
+                            }
+                        }
+                        var url = "/Statistic/WorkloadForDayStatistic?start=" + ui.str.dateFormat(new Date(preYear, startList[0] - 1, startList[1]), "yyyy-MM-dd HH:mm:ss")
+                                    + "&end=" + ui.str.dateFormat(new Date(currentYear, endList[0] - 1, parseInt(endList[1]) + 1), "yyyy-MM-dd HH:mm:ss") + "&projectId=" + e.data.content[1]
+                                    + "&projectName=" + e.data.content[2] + "-" + currentYear + "年" + currentMonth + "月" + weekStr + "-总计：" + ui.fixedNumber(e.data.content[0], 2) + "(人月)";
+                        window.location.href = url;
+                    });
+                    return a;
+                }
+            };
+
+        })();
+    </script>
+}

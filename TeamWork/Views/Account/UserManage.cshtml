@@ -1,0 +1,1053 @@
+﻿@{
+    ViewBag.Title = "成员管理";
+
+    bool isAdminPage = ViewBag.Applications != null;
+}
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+
+    @this.RegisterCtrls(
+        "tabPanel",
+        "columnStyle",
+        "gridview",
+        "tools",
+        "dateChooser",
+        "selectionList",
+        "selectionTree",
+        "form",
+        "validate"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style type="text/css">
+        form input[type='text'] {
+            width:188px;
+        }
+
+        form select {
+            width:188px;
+        }
+
+        ul.function-tree {
+            width: 100%;
+            height: auto;
+        }
+
+            ul.function-tree li {
+                list-style: none;
+                width:auto;
+                margin-left: 10px;
+            }
+
+                ul.function-tree li span {
+                    line-height: 24px;
+                }
+    </style>
+}
+
+@section tabs {
+    <li class="tab-item tab-button">
+        <span>成员管理</span>
+        <i class="pointer"></i>
+    </li>
+    <li class="tab-item tab-button">
+        <span>角色管理</span>
+        <i class="pointer"></i>
+    </li>
+}
+
+<div id="tabBodyPanel" class="tab-body-panel">
+    <div class="tab-body">
+        <div id="userToolbar" class="toolbar">
+            <ul class="tools">
+                <li>
+                    <div id="userFilter" style="margin-top:8px;"></div>
+                </li>
+            </ul>
+            <ul class="tools" style="float:right;">
+                <li class="action-buttons">
+                    @if (isAdminPage)
+                    {
+                        <a id="queryUser" class="tool-action-button" href="javascript:void(0)" title="查询">
+                            <i class="fa fa-search"></i>
+                        </a>
+                    }
+                    <a id="addUserBtn" class="tool-action-button" href="javascript:void(0)" title="新用户">
+                        <i class="fa fa-plus"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div id="userPanel" style="position:relative;width:100%;overflow:hidden">
+            <div id="userGrid" class="grid-view"></div>
+            <div id="userData" class="ctrl-form">
+                <form id="userForm">
+                    <dl class="fold-panel">
+                        <dt>基本信息</dt>
+                        <dd>
+                            <label>姓名</label><span class="required">*</span>
+                            <br />
+                            <input id="realName" name="realName" type="text" />
+                            <br />
+                            <label>性别</label>
+                            <br />
+                            <select id="Gender" name="Gender">
+                                <option value="1">男</option>
+                                <option value="0">女</option>
+                            </select>
+                            <br />
+                            @if (ViewBag.Organizations != null)
+                            {
+                                <label>所属机构</label>
+                                <br />
+                                @Html.DropDownList("organization", (SelectList)ViewBag.Organizations)
+                                <br />
+                            }
+                            @if (ViewBag.Departments != null)
+                            {
+                                <label>所属部门</label>
+                                <br />
+                                @Html.DropDownList("department", (SelectList)ViewBag.Departments)
+                                <br />
+                            }
+                            @if (ViewBag.Positions != null)
+                            {
+                                <label>职位</label>
+                                <br />
+                                @Html.DropDownList("position", (SelectList)ViewBag.Positions)
+                                <br />
+                            }
+                            <label>状态</label>
+                            <br />
+                            @Html.DropDownList("Status", (SelectList)ViewBag.Status)
+                            <br />
+                        </dd>
+                        <dt>用户信息</dt>
+                        <dd>
+                            <label>用户名</label><span class="required">*</span>
+                            <br />
+                            <input id="userName" name="userName" type="text" />
+                            <br />
+                            <label>角色</label><span class="required">*</span>
+                            <br />
+                            <input id="roles" name="roles" type="text" readonly="readonly" class="select-text" />
+                            <br />
+                            <label>账户有效性</label>
+                            <br />
+                            <input id="userEnabled" type="checkbox" checked="checked" />
+                            <label for="userEnabled" class="switch-text">启用</label>
+                        </dd>
+                        <dt>个人信息</dt>
+                        <dd style="display:none;">
+                            <label>生日</label>
+                            <br />
+                            <input id="Birthday" name="Birthday" type="text" class="date-text" />
+                            <br />
+                            <label>手机号码</label>
+                            <br />
+                            <input id="CellPhoneNumber" name="CellPhoneNumber" type="text" />
+                            <br />
+                            <label>固定电话</label>
+                            <br />
+                            <input id="LinePhoneNumber" name="LinePhoneNumber" type="text" />
+                            <br />
+                            <label>邮箱</label>
+                            <br />
+                            <input id="Email" name="Email" type="text" />
+                            <br />
+                            <label>QQ</label>
+                            <br />
+                            <input id="QQ" name="QQ" type="text" />
+                            <br />
+                            <label>身份证号码</label>
+                            <br />
+                            <input id="ID" name="ID" type="text" />
+                            <br />
+                            <label>通信地址</label>
+                            <br />
+                            <input id="Address" name="Address" type="text" />
+                            <br />
+                        </dd>
+                    </dl>
+                </form>
+            </div>
+            <button id="userSave" type="button" class="button background-highlight">保存</button>
+            @if (isAdminPage)
+            {
+                <button id="deleteUser" type="button" class="button" style="margin-right:5px;">删除</button>
+            }
+        </div>
+    </div>
+    <div class="tab-body">
+        <div id="roleToolbar" class="toolbar">
+            <ul class="tools" style="float:right;">
+                <li class="action-buttons">
+                    <a id="addRoleBtn" class="tool-action-button" href="javascript:void(0)" title="添加角色">
+                        <i class="fa fa-plus"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div id="rolePanel" style="position:relative;width:100%;overflow:hidden">
+            <div id="roleGrid" class="grid-view"></div>
+            <div id="roleData" class="ctrl-form">
+                <form id="roleForm">
+                    <label>角色名称</label><span class="required">*</span>
+                    <br />
+                    <input id="roleName" name="roleName" type="text" />
+                    <br />
+                    <label>角色描述</label><span class="required">*</span>
+                    <br />
+                    <input id="roleText" name="roleText" type="text" />
+                    <br />
+                    <label>功能</label>
+                    <br />
+                    <input id="functions" name="functions" type="text" class="select-text" />
+                </form>
+            </div>
+            <button id="roleSave" type="button" class="button background-highlight">保存</button>
+        </div>
+        
+    </div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            @JavascriptCodeHelper.BooleanStatement("isAdminPage", isAdminPage)
+            var hasUserCode = false,
+                hasOrganization = false,
+                hasDepartment = false,
+                hasPosition = false;
+            var checkFormElements = function () {
+                hasUserCode = $("#userCode").length > 0;
+                hasOrganization = $("#organization").length > 0;
+                hasDepartment = $("#department").length > 0;
+                hasPosition = $("#position").length > 0;
+            };
+            var tabManager = null;
+            var pageLogic = window.pageLogic = {
+                init: {
+                    before: function () {
+                        masterpage.initToolbar("userToolbar");
+                        masterpage.initToolbar("roleToolbar");
+
+                        tabManager = ui.tab.createTabManager(function(e, index) {
+                            if (index === 0) {
+                                this.tryCallLoadFunc(index, pageLogic.loadUserData, pageLogic, 1, pageLogic.userGrid.pageSize);
+                            } else if (index === 1) {
+                                this.tryCallLoadFunc(index, pageLogic.loadRoleData, pageLogic);
+                            }
+                        });
+                        tabManager.addTools(["userTool1", "userTool2"], "roleTool");
+                        this.tab = ui.tab.createTabs({
+                            tabPanelId: "headerTags",
+                            bodyPanelId: "tabBodyPanel"
+                        });
+                        this.tab.changing($.proxy(tabManager.tabChanging, tabManager));
+                        this.tab.changed($.proxy(tabManager.tabChanged, tabManager));
+
+                        checkFormElements();
+                        //分类折叠表单
+                        $(".fold-panel").foldPanel();
+                        this.userCtrlPanel =
+                            $("#userData").toCtrlPanel({
+                                parent: "userPanel"
+                            });
+                        if(isAdminPage) {
+                            this.userCtrlPanel.buttonAppend("deleteUser");
+                        }
+                        this.userCtrlPanel.buttonAppend("userSave");
+                        this.userCtrlPanel.hided(function () {
+                            pageLogic.userGrid.cancelSelection();
+                        });
+
+                        this.roleCtrlPanel =
+                            $("#roleData").toCtrlPanel({
+                                parent: "rolePanel"
+                            });
+                        this.roleCtrlPanel.buttonAppend("roleSave");
+                        this.roleCtrlPanel.hided(function () {
+                            pageLogic.roleGrid.cancelSelection();
+                        });
+
+                        //用户
+                        var gridOption = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "UserId", text: "", len: 80, align: "center", handler: columnFormatter.optionButton },
+                                { column: "UserName", text: "用户名", len: 160, sort: true }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "a",
+                                multiple: false
+                            },
+                            pager: {
+                                pageIndex: 1,
+                                pageSize: 100
+                            }
+                        };
+                        if (hasUserCode) {
+                            gridOption.columns.push({ column: "UserCode", text: "用户编号", len: 80 });
+                        }
+                        gridOption.columns.push(
+                                { column: "RealName", text: "姓名", len: 120, sort: true },
+                                { column: "Gender", text: "性别", len: 60, align: "center", handler: userManager.formatter.gender },
+                                { column: "Roles", text: "角色", len: 240, handler: columnFormatter.roleText },
+                                { column: "Enabled", text: "状态", len: 60, align: "center", handler: ui.ColumnStyle.cfnp.getFormatBoolean("启用", "禁用") });
+                        if (hasOrganization) {
+                            gridOption.columns.push({ column: "OrganizationName", text: "所属机构", len: 120 });
+                        }
+                        if (hasDepartment) {
+                            gridOption.columns.push({ column: "DepartmentName", text: "所属部门", len: 120 });
+                        }
+                        if (hasPosition) {
+                            gridOption.columns.push({ column: "PositionName", text: "职位", len: 120 });
+                        }
+                        gridOption.columns.push(
+                            { column: ["PositionUnitPrice", "PositionUnitValue", "UserUnitPrice", "UserUnitValue"], text: "成本(人/月)", len: 130, align: "right", handler: userManager.formatter.costValue },
+                            { column: "CellPhoneNumber", text: "手机", len: 120, align: "center", handler: ui.ColumnStyle.cfn.cellPhoneNumber },
+                            { column: "Email", text: "邮箱", len: 240 },
+                            { column: "StatusName", text: "在职状态", len: 100, align: "center" },
+                            { handler: ui.ColumnStyle.cfn.empty });
+
+                        var userGrid = pageLogic.userGrid = $("#userGrid").setGridview(gridOption);
+                        userGrid.selected(function (e, element, data) {
+                            userManager.onUpdating(data.rowData);
+                        });
+                        userGrid.deselected(function (e, element, data) {
+                            if (userManager.isUpdate) {
+                                pageLogic.userCtrlPanel.hide();
+                            }
+                        });
+                        userGrid.rebind(function (e) {
+                            pageLogic.userCtrlPanel.hide();
+                        });
+                        userGrid.pageTurning(function (e, pageIndex, pageSize) {
+                            pageLogic.loadUserData(pageIndex, pageSize);
+                        });
+
+                        //角色
+                        gridOption = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "RoleName", text: "角色名称", len: 120 },
+                                { column: "RoleText", text: "角色描述", len: 240 },
+                                { column: "Functions", text: "功能集", len: 100, align: "center", handler: columnFormatter.functions },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                multiple: false
+                            },
+                            pager: {
+                                disabled: true
+                            }
+                        };
+                        var roleGrid = pageLogic.roleGrid = $("#roleGrid").setGridview(gridOption);
+                        roleGrid.selected(function (e, element, data) {
+                            roleManager.onUpdating(data.rowData);
+                        });
+                        roleGrid.deselected(function (e, element, data) {
+                            if (roleManager.isUpdate) {
+                                pageLogic.roleCtrlPanel.hide();
+                            }
+                        });
+                        roleGrid.rebind(function (e) {
+                            pageLogic.roleCtrlPanel.hide();
+                        });
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight;
+
+                            pageLogic.tab.setBodyHeight(height);
+                            $("#userPanel").css("heigth", (height - masterpage.toolbar.height) + "px");
+                            pageLogic.userGrid.setHeight(height - masterpage.toolbar.height);
+                            pageLogic.userCtrlPanel.setSizeLocation();
+
+                            $("#rolePanel").css("heigth", (height - masterpage.toolbar.height) + "px");
+                            pageLogic.roleGrid.setHeight(height - masterpage.toolbar.height);
+                            pageLogic.roleCtrlPanel.setSizeLocation();
+
+                            pageLogic.tab.setBodiesLocation();
+                            pageLogic.tab.restore();
+                        });
+                    },
+                    afterCtrls: function () {
+                        this.filterView = $("#userFilter").createFilterTools({
+                            data: [
+                                { text: "在职", value: "1", selected: true },
+                                { text: "离职", value: "2" }
+                            ]
+                        });
+                        this.filterView.selected(function(e, item) {
+                            pageLogic.loadUserData(pageLogic.userGrid.pageIndex, pageLogic.userGrid.pageSize, item.value);
+                        });
+
+                        var roleList = pageLogic.roleList = $("#roles").setSelectList({
+                            multiple: true,
+                            width: 186,
+                            valueField: "RoleId",
+                            textField: "RoleText"
+                        });
+                        roleList.selected(roleSelected);
+
+                        pageLogic.funcTree = $("#functions").setSelectTree({
+                            multiple: true,
+                            width: 186,
+                            valueField: "FunctionId",
+                            textField: "FunctionName",
+                            parentField: "ParentFuncId",
+                            canSelectNode: true,
+                            defaultOpen: true
+                        });
+                        pageLogic.funcTree.selected(functionSelected);
+
+                        this.userEnabled = $("#userEnabled").switchButton();
+                        this.userEnabled.changed(function() {
+                            if(this.checked()) {
+                                this.switchBox.next().text("启用");
+                            } else {
+                                this.switchBox.next().text("禁用");
+                            }
+                        });
+
+                        $("#Birthday").dateChooser();
+
+                        pageLogic.functionsView = ui.createHoverView({
+                            height: 360
+                        });
+                        pageLogic.functionsView.showing(function (e) {
+                            this.empty();
+                            var treeData = this.target.data("functions"),
+                                ul = $("<ul class='function-tree' />");
+                            formatFunctionTree(ul, treeData, "ParentFuncId");
+                            this.append(ul);
+                        });
+
+                        pageLogic.userValidate = $("#userForm").setValidate({
+                            rules: {
+                                userName: { required: true, maxlength: 100 },
+                                realName: { required: true, maxlength: 50 },
+                                CellPhoneNumber: { mobile: true },
+                                LinePhoneNumber: { phone: true },
+                                Email: { email : true },
+                                QQ: { digits: true },
+                                ID: { CID: true },
+                                Address: { maxlength: 200 }
+                            }
+                        });
+
+                        pageLogic.roleValidate = $("#roleForm").setValidate({
+                            rules: {
+                                roleName: {
+                                    required: true, custom: {
+                                        method: $.proxy(roleManager.checkRoleName, roleManager)
+                                    }
+                                },
+                                roleText: { required: true, maxlength: 100 }
+                            },
+                            messages: {
+                                roleName: {
+                                    custom: "角色名称不能重复"
+                                }
+                            }
+                        });
+                    },
+                    events: function () {
+                        $("#addUserBtn").click($.proxy(userManager.onAdding, userManager));
+                        if(isAdminPage) {
+                            $("#queryUser").click(function(e) {
+                                tabManager.resetAt(1);
+                                pageLogic.loadUserData(1, pageLogic.userGrid.pageSize);
+                            });
+                            $("#deleteUser").confirmClick({
+                                backgroundColor: "#C62828",
+                                handler: function () {
+                                    userManager.onDelete();
+                                }
+                            });
+                            $("#queryRole").click(function(e) {
+                                tabManager.resetAt(0);
+                                pageLogic.loadRoleData();
+                            });
+                        }
+                        $("#userSave").click($.proxy(userManager.onSave, userManager));
+
+                        $("#addRoleBtn").click($.proxy(roleManager.onAdding, roleManager));
+                        $("#roleSave").click($.proxy(roleManager.onSave, roleManager));
+                    },
+                    datas: function() {
+                        this.tab.setIndex(0);
+                    }
+                },
+
+                loadUserData: function (pageIndex, pageSize) {
+                    var data = {
+                        status: "1",
+                        pageIndex: pageIndex,
+                        pageSize: pageSize
+                    };
+                    if (arguments.length == 3) {
+                        data.status = pageLogic.filterView.getCurrent().value;
+                    }
+                    var app = "default";
+                    if(isAdminPage) {
+                        app = $("#apps").val();
+                        data.applicationName = app;
+                    }
+                    data.loadedRoles = roleManager.hasRoleList(app);
+
+                    ui.ajax.ajaxPost(
+                        "/Account/GetAllUsers",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (pageIndex == 1)
+                                pageLogic.userGrid.pageIndex = pageIndex;
+                            if (success) {
+                                pageLogic.userGrid.createGridBody(success.Result, success.RowCount);
+
+                                roleManager.refreshRoleList(success.Roles, true);
+                            } else {
+                                pageLogic.userGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载用户失败，" + error.message, true);
+                        }
+                    );
+                },
+                saveUser: function (data, callback, caller) {
+                    if(isAdminPage) {
+                        data.applicationName = $("#apps").val();
+                    }
+                    ui.ajax.ajaxPostOnce(
+                        "userSave",
+                        "/Account/SaveUser",
+                        JSON.stringify(data),
+                        function (success) {
+                            caller = caller || pageLogic;
+                            if (success.Result) {
+                                callback.call(caller, success.Data);
+                            } else {
+                                ui.msgshow(success.ErrorMessage);
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("保存用户失败，" + error.message, true);
+                        }
+                    );
+                },
+                resetPassword: function (userId) {
+                    ui.ajax.ajaxPost(
+                        "/Account/ResetPassword",
+                        JSON.stringify({ userId: userId }),
+                        function (success) {
+                            if (success.Result) {
+                                ui.msgshow("密码重置为“1”");
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("重置密码失败，" + error.message, true);
+                        }
+                    );
+                },
+                deleteUser: function(userId) {
+                    ui.ajax.ajaxPost(
+                        "/Account/DeleteUser",
+                        JSON.stringify({ userId: userId }),
+                        function (success) {
+                            if (success.Result) {
+                                pageLogic.loadUserData(
+                                    pageLogic.userGrid.pageIndex,
+                                    pageLogic.userGrid.pageSize);
+                            } else {
+                                ui.msgshow("没有删除任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("删除用户失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                loadRoleData: function() {
+                    var data = null;
+                    if(isAdminPage) {
+                        data = {
+                            applicationName: $("#apps").val()
+                        };
+                    }
+                    ui.ajax.ajaxPost(
+                        "/Account/GetAllRoles",
+                        !data ? null : JSON.stringify(data),
+                        function (success) {
+                            if (success) {
+                                pageLogic.roleGrid.createGridBody(success.Result);
+
+                                roleManager.refreshRoleList(success.Result);
+                                if ($.isArray(success.Functions)) {
+                                    pageLogic.funcTree.setData(success.Functions);
+                                } else {
+                                    pageLogic.funcTree.empty();
+                                }
+                            } else {
+                                pageLogic.roleGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载角色失败，" + error.message, true);
+                        }
+                    );
+                },
+                saveRole: function (data, callback, caller) {
+                    if(isAdminPage) {
+                        data.applicationName = $("#apps").val();
+                    }
+                    ui.ajax.ajaxPostOnce(
+                        "roleSave",
+                        "/Account/SaveRole",
+                        JSON.stringify(data),
+                        function (success) {
+                            caller = caller || pageLogic;
+                            if (success.Result) {
+                                callback.call(caller, success.Data);
+                                roleManager.refreshRoleList(pageLogic.roleGrid.dataTable);
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("保存角色失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+            var columnFormatter = {
+                roleText: function (content, columnObj) {
+                    var span = $("<p />");
+                    var text = "";
+                    if ($.isArray(content)) {
+                        for (var i = 0; i < content.length; i++) {
+                            text += content[i].RoleText;
+                            if (i < content.length - 1) {
+                                text += " | ";
+                            }
+                        }
+                        span.text(text);
+                    }
+                    return span;
+                },
+                optionButton: function (content, columnObj) {
+                    var a = $("<a href='javascript:void(0)'>重置密码</a>");
+                    a.prop("id", "rp_" + content);
+                    a.click(userManager.onResetPassword);
+                    return a;
+                },
+                functions: function (content, columnObj) {
+                    if (!content || content.length <= 0) {
+                        return;
+                    }
+                    var treeData = ui.data.listToTree(content, "ParentFuncId", "FunctionId");
+                    var a = $("<a href='javascript:void(0)' class='hover-target' />");
+                    a.html("悬停查看&nbsp;&nbsp;");
+                    a.addHoverView(pageLogic.functionsView);
+                    a.data("functions", treeData);
+                    return a;
+                }
+            };
+
+            var formatFunctionTree = function (ul, list) {
+                var i, len = list.length,
+                    item, li, span, childUl;
+                for (i = 0; i < len; i++) {
+                    item = list[i];
+                    li = $("<li />");
+                    span = $("<span />").text(item.FunctionName);
+                    li.append(span);
+                    if (item.children && item.children.length > 0) {
+                        childUl = $("<ul />");
+                        arguments.callee.call(this, childUl, item.children);
+                        li.append(childUl);
+                    }
+                    ul.append(li);
+                }
+            };
+
+            var roleSelected = function (e, elem, data) {
+                var text = "";
+                var list = this.getMultipleSelection();
+                for (var i = 0; i < list.length; i++) {
+                    if (i > 0) {
+                        text += "，";
+                    }
+                    text += list[i].RoleText;
+                }
+                this.element.val(text);
+            };
+
+            var functionSelected = function (e, elem, treeData) {
+                if (treeData.isNode) {
+                    this.selectChildNode(elem, treeData.isSelected);
+                }
+
+                if (!treeData.isRoot) {
+                    this.selectParentNode(elem, treeData.isSelected);
+                }
+
+                var selectedData = this.getMultipleSelection();
+                var text = [];
+                for (var i = 0; i < selectedData.length; i++) {
+                    text.push(selectedData[i].FunctionName);
+                }
+                this.element.removeAttr("title");
+                if (selectedData.length > 2) {
+                    this.element.val(text[0] + "...");
+                    this.element.attr("title", text.join("，"));
+                } else {
+                    this.element.val(text.join("，"));
+                }
+            };
+
+            var checkedValue = function (dataTable, value, valueField, isUpdate) {
+                var count = 0;
+                var i, len;
+                if (!dataTable) {
+                    return false;
+                }
+                for (i = 0, len = dataTable.length; i < len; i++) {
+                    if (dataTable[i][valueField] === value) {
+                        count++;
+                        break;
+                    }
+                    if (count == 2) {
+                        break;
+                    }
+                }
+                if (isUpdate) {
+                    return count < 2;
+                } else {
+                    return count == 0;
+                }
+            };
+
+            var userManager = {
+                formatter: {
+                    gender: function (content, columnObj) {
+                        var span = $("<span class='state-text' />");
+                        if (content) {
+                            span.text("男").css("background-color", "#2E94FC");
+                        } else {
+                            span.text("女").css("background-color", "#FF1D82");
+                        }
+                        return span;
+                    },
+                    costValue: function(value, column) {
+                        var costValue = value.UserUnitValue;
+                        if (ui.core.type(costValue) !== "number") {
+                            costValue = value.PositionUnitValue;
+                            if (ui.core.type(costValue) !== "number") {
+                                return null;
+                            }
+                        }
+                        arguments[0] = costValue;
+                        return masterpage.formatter.getMonthCostValue.apply(this, arguments);
+                    }
+                },
+                checkUserName: function (value, elem) {
+                    return checkedValue(pageLogic.userGrid.dataTable,
+                        value, "UserName", this.isUpdate);
+                },
+                formReset: function () {
+                    $("#userForm")[0].reset();
+                    $("#userName").prop("readonly", false);
+                    pageLogic.userEnabled.checked(true);
+                    pageLogic.roleList.cancelSelection();
+                    pageLogic.userValidate.clearErrorStyle();
+                },
+                dataToForm: function (data) {
+                    $("#userForm")[0].reset();
+                    pageLogic.userValidate.clearErrorStyle();
+
+                    var userName = $("#userName");
+                    userName.val(data.UserName);
+                    userName.prop("readonly", true);
+                    $("#realName").val(data.RealName);
+                    $("#roles").val("");
+                    pageLogic.roleList.setMultipleSelection(data.Roles);
+                    pageLogic.userEnabled.checked(data.Enabled);
+
+                    if (hasUserCode) {
+                        $("#userCode").val(data.UserCode);
+                    }
+                    if (hasOrganization) {
+                        $("#organization").val(data.Organization);
+                    }
+                    if (hasDepartment) {
+                        $("#department").val(data.Department);
+                    }
+                    if (hasPosition) {
+                        $("#position").val(data.Position);
+                    }
+                    $("#Status").val(data.Status);
+                    $("#Gender").val(data.Gender ? "1" : "0");
+                    if (data.Birthday) {
+                        $("#Birthday").val(ui.str.dateFormat(ui.str.jsonToDate(data.Birthday), "yyyy-MM-dd"));
+                    }
+                    $("#CellPhoneNumber").val(data.CellPhoneNumber);
+                    $("#LinePhoneNumber").val(data.LinePhoneNumber);
+                    $("#Email").val(data.Email);
+                    $("#QQ").val(data.QQ);
+                    $("#ID").val(data.ID);
+                    $("#Address").val(data.Address);
+                },
+                onAdding: function () {
+                    this.formReset();
+
+                    this.isUpdate = false;
+                    pageLogic.userGrid.cancelSelection();
+                    pageLogic.userCtrlPanel.show();
+                },
+                onUpdating: function (data) {
+                    this.dataToForm(data);
+
+                    this.isUpdate = true;
+                    pageLogic.userCtrlPanel.show();
+                },
+                onSave: function () {
+                    if (!pageLogic.userValidate.form()) {
+                        return;
+                    }
+                    var statusOpt = $("#Status").selectOption();
+                    var data = {
+                        userId: null,
+                        userName: $("#userName").val(),
+                        enabled: pageLogic.userEnabled.checked(),
+                        userCode: null,
+                        realName: $("#realName").val(),
+                        organization: null,
+                        organizationName: null,
+                        department: null,
+                        departmentName: null,
+                        position: null,
+                        positionName: null,
+                        status: statusOpt.value || null,
+                        roleIds: null
+                    };
+                    data.employeeInfo = {
+                        Gender: $("#Gender").val() === "0" ? false : true,
+                        Birthday: $("#Birthday").val() || null,
+                        CellPhoneNumber: $("#CellPhoneNumber").val() || null,
+                        LinePhoneNumber: $("#LinePhoneNumber").val() || null,
+                        Email: $("#Email").val() || null,
+                        QQ: $("#QQ").val() || null,
+                        ID: $("#ID").val() || null,
+                        Address: $("#Address").val() || null
+                    };
+                    var roles = pageLogic.roleList.getMultipleSelection();
+                    if (roles == null || roles.length == 0) {
+                        ui.msgshow("还没有为用户指定角色");
+                        return;
+                    }
+                    data.roleIds = [];
+                    for (var i = 0; i < roles.length; i++) {
+                        data.roleIds[i] = roles[i].RoleId;
+                    }
+
+                    var row,
+                        callback;
+                    if (this.isUpdate) {
+                        row = pageLogic.userGrid.getCurrentSelection();
+                        data.employeeInfo.EmployeeId = data.userId = row.rowData.UserId;
+                        callback = function (d) {
+                            d.Roles = roles;
+                            d.StatusName = statusOpt.text;
+                            pageLogic.userGrid.updateRowByIndex(row.rowIndex, d);
+                            pageLogic.userGrid.cancelSelection();
+                        };
+                    } else {
+                        callback = function (d) {
+                            d.Roles = roles;
+                            d.StatusName = statusOpt.text;
+                            pageLogic.userGrid.insertRow(0, d);
+                            this.formReset();
+                        };
+                    }
+
+                    if (hasUserCode) {
+                        data.userCode = $("#userCode").val();
+                        if (!data.userCode) {
+                            data.userCode = null;
+                        }
+                    }
+                    var tempElem = null;
+                    if (hasOrganization) {
+                        tempElem = $("#organization").selectOption();
+                        data.organization = tempElem.value;
+                        data.organizationName = tempElem.text;
+                    }
+                    if (hasDepartment) {
+                        tempElem = $("#department").selectOption();
+                        data.department = tempElem.value;
+                        data.departmentName = tempElem.text;
+                    }
+                    if (hasPosition) {
+                        tempElem = $("#position").selectOption();
+                        data.position = tempElem.value;
+                        data.positionName = tempElem.text;
+                    }
+                    pageLogic.saveUser(data, callback, this);
+                },
+                onResetPassword: function (e) {
+                    var id = e.target.id;
+                    id = id.split("_")[1];
+                    if (id) {
+                        pageLogic.resetPassword(id);
+                    }
+                },
+                onDelete: function() {
+                    var row = pageLogic.userGrid.getCurrentSelection();
+                    if(!row) {
+                        ui.msgshow("还没有选择要删除的用户");
+                        return;
+                    }
+                    if(!window.confirm("您确定要删除该用户吗？")) {
+                        return;
+                    }
+                    var userId = row.rowData.UserId;
+                    pageLogic.deleteUser(userId);
+                }
+            };
+
+            var roleManager = {
+                checkRoleName: function (value, elem) {
+                    return checkedValue(pageLogic.roleGrid.dataTable,
+                        value, "RoleName", this.isUpdate);
+                },
+                formReset: function () {
+                    $("#roleForm")[0].reset();
+                    $("#roleName").prop("readonly", false);
+                    $("#functions").removeAttr("title");
+                    pageLogic.funcTree.cancelSelection();
+                    pageLogic.roleValidate.clearErrorStyle();
+                },
+                dataToForm: function (data) {
+                    var roleName = $("#roleName");
+                    roleName.val(data.RoleName);
+                    roleName.prop("readonly", true);
+                    $("#roleText").val(data.RoleText);
+                    pageLogic.funcTree.setMultipleSelection(data.Functions);
+                    pageLogic.roleValidate.clearErrorStyle();
+                },
+                onAdding: function () {
+                    this.formReset();
+
+                    this.isUpdate = false;
+                    pageLogic.roleGrid.cancelSelection();
+                    pageLogic.roleCtrlPanel.show();
+                },
+                onUpdating: function (data) {
+                    this.dataToForm(data);
+
+                    this.isUpdate = true;
+                    pageLogic.roleCtrlPanel.show();
+                },
+                onSave: function () {
+                    if (!pageLogic.roleValidate.form()) {
+                        return;
+                    }
+                    var data = {
+                        roleId: null,
+                        roleName: $("#roleName").val(),
+                        roleText: $("#roleText").val(),
+                        functions: []
+                    };
+                    var funcs = pageLogic.funcTree.getMultipleSelection();
+                    var i = 0;
+                    for (i = 0; i < funcs.length; i++) {
+                        data.functions.push(funcs[i].FunctionId);
+                    }
+                    var row,
+                        callback;
+                    if (this.isUpdate) {
+                        row = pageLogic.roleGrid.getCurrentSelection();
+                        data.roleId = row.rowData.RoleId;
+                        var oldFunctions = row.rowData.Functions;
+                        var flag = data.functions.length == oldFunctions.length;
+                        if (flag) {
+                            for (i = 0; i < data.functions.length; i++) {
+                                if (data.functions[i] !== oldFunctions[i].FunctionId) {
+                                    flag = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if (flag) {
+                            data.functions = null;
+                        }
+
+                        callback = function (d) {
+                            d.Functions = this.cloneFunctions(funcs);
+                            pageLogic.roleGrid.updateRowByIndex(row.rowIndex, d);
+                            pageLogic.roleGrid.cancelSelection();
+                        };
+                    } else {
+                        callback = function (d) {
+                            d.Functions = this.cloneFunctions(funcs);
+                            pageLogic.roleGrid.insertRow(0, d);
+                            this.formReset();
+                        };
+                    }
+                    pageLogic.saveRole(data, callback, this);
+                },
+                cloneFunctions: function(funcs) {
+                    var i = 0,
+                        f,
+                        clone = [];
+                    for (; i < funcs.length; i++) {
+                        f = funcs[i];
+                        clone[i] = {
+                            FunctionId: f.FunctionId,
+                            FunctionCode: f.FunctionCode,
+                            FunctionName: f.FunctionName,
+                            Parent: f.Parent,
+                            ParentFuncId: f.ParentFuncId,
+                            Enabled: f.Enabled
+                        };
+                    }
+                    return clone;
+                },
+                roleDict: {},
+                hasRoleList: function (appName) {
+                    return this.roleDict.hasOwnProperty(appName);
+                },
+                refreshRoleList: function (roles, isLoadUser) {
+                    var app;
+                    if (isAdminPage) {
+                        app = $("#apps").val();
+                        if (isLoadUser) {
+                            if (roles) {
+                                this.roleDict[app] = roles;
+                            } else {
+                                roles = this.roleDict[app];
+                            }
+                        } else {
+                            this.roleDict[app] = roles;
+                        }
+                    }
+                    pageLogic.roleList.setData(roles);
+                }
+            };
+        })();
+    </script>
+}

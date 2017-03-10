@@ -1,0 +1,431 @@
+﻿@using Newtonsoft.Json
+@{
+    ViewBag.Title = "项目模块管理";
+}
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "form",
+        "validate"
+    )
+}
+
+@section scriptsHead{
+}
+
+@section styles {
+    <style type="text/css">
+        div#leftBar {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            bottom: 0px;
+            width: 240px;
+            border-top-style: solid;
+            border-top-width: 1px;
+            border-right-style: solid;
+            border-right-width: 1px;
+            overflow: auto;
+        }
+
+        div#rightPanel {
+            position: absolute;
+            top: 0px;
+            left: 241px;
+            bottom: 0px;
+            right: 0px;
+        }
+
+        div#leftBar li.group-item {
+            height:40px;
+            line-height:40px;
+            font-size:14px;
+            overflow:hidden;
+            cursor:pointer;
+        }
+
+            div#leftBar li.group-item:hover {
+                background-color: #E1E1E1;
+            }
+
+        div#leftBar li.group-item-selected {
+        }
+
+        div#leftBar li.group-item span {
+            display:inline-block;
+            height: 24px;
+            line-height: 22px;
+            vertical-align: top;
+            margin-top: 7px;
+            margin-left:10px;
+            margin-right:10px;
+            border-bottom-width: 2px;
+            border-bottom-style: solid;
+            border-bottom-color: transparent;
+        }
+
+        div#leftBar li.group-item-selected span {
+        }
+
+        form input[type='text'] {
+            width: 188px;
+        }
+
+        form select {
+            width: 188px;
+        }
+
+        form textarea {
+            width: 188px;
+            height: 84px;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul class="tools" style="float:right;">
+        <li>
+            <button id="newBtn" class="tool-button button-highlight">新模板项</button>
+        </li>
+        <li>
+            <button id="upBtn" class="tool-button">上移</button>
+        </li>
+        <li>
+            <button id="downBtn" class="tool-button">下移</button>
+        </li>
+    </ul>
+    <br style="clear:right;" />
+</div>
+<div id="templetePanel" class="content-panel" style="position:relative;">
+    <div id="leftBar" class="theme-border-color theme-ctrl-background-color"></div>
+    <div id="rightPanel">
+        <div id="templeteGrid" class="grid-view"></div>
+        <div id="templeteData" class="ctrl-form">
+            <form id="templeteForm">
+                <input id="stageTempleteId" type="hidden" />
+                <label>阶段名称</label><span class="required">*</span>
+                <br />
+                <input id="stageName" name="stageName" type="text" />
+                <br />
+                <label>描述</label>
+                <br />
+                <textarea id="description" name="description"></textarea>
+                <br />
+            </form>
+        </div>
+        <input id="removeBtn" type="button" class="button" value="删除" style="margin-right:5px;" />
+        <input id="saveBtn" type="button" class="button background-highlight" value="保存" />
+    </div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            window._projectTypes = @MvcHtmlString.Create(JsonConvert.SerializeObject(ViewBag.ProjectTypes));
+            
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        //列表
+                        gridOption = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "StageName", text: "阶段名称", len: 120 },
+                                { column: "Description", text: "描述", len: 300 },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "a",
+                                multiple: false
+                            },
+                            pager: {
+                                disabled: true
+                            }
+                        };
+                        var templeteGrid = pageLogic.templeteGrid = $("#templeteGrid").setGridview(gridOption);
+
+                        pageLogic.templeteGrid.selected(function (e, element, data) {
+                            templeteManager.onUpdating(data.rowData);
+                        });
+                        pageLogic.templeteGrid.deselected(function (e, element, data) {
+                            if (templeteManager.isUpdate) {
+                                pageLogic.templeteCtrlPanel.hide();
+                            }
+                        });
+                        pageLogic.templeteGrid.rebind(function (e) {
+                            pageLogic.templeteCtrlPanel.hide();
+                        });
+
+                        //表单面板
+                        var templeteCtrlPanel = pageLogic.templeteCtrlPanel =
+                        $("#templeteData").toCtrlPanel({
+                            parent: $("#rightPanel")
+                        });
+                        templeteCtrlPanel.buttonAppend($("#removeBtn"));
+                        templeteCtrlPanel.buttonAppend($("#saveBtn"));
+                        templeteCtrlPanel.hided(function () {
+                            pageLogic.templeteGrid.cancelSelection();
+                        });
+
+                        //左侧边栏
+                        leftBarManager.createTemplateGroup();
+                    },
+
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+
+                            $("#templetePanel").css("height", height + "px");
+
+                            pageLogic.templeteGrid.setHeight(height);
+                            pageLogic.templeteCtrlPanel.setSizeLocation();
+                        });
+                    },
+
+                    afterCtrls: function () {
+                        pageLogic.templeteValidate = $("#templeteForm").setValidate({
+                            rules: {
+                                stageName: { required: true, maxlength: 50 },
+                                description: { maxlength: 200 }
+                            }
+                        });
+                    },
+
+                    events: function () {
+                        $("#newBtn").click($.proxy(templeteManager.onAdding, templeteManager));
+                        $("#upBtn").click($.proxy(templeteManager.onUp, templeteManager));
+                        $("#downBtn").click($.proxy(templeteManager.onDown, templeteManager));
+                        $("#saveBtn").click($.proxy(templeteManager.onSave, templeteManager));
+                        $("#removeBtn").click($.proxy(templeteManager.onDelete, templeteManager));
+                    }
+                },
+
+                //获取所有模板信息
+                getTempletes: function () {
+                    var param = {
+                        projectType: pageLogic.curProjectType
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Project/GetTempletes",
+                        JSON.stringify(param),
+                        function (success) {
+                            if (success) {
+                                pageLogic.templeteGrid.createGridBody(success.Result);
+                            } else {
+                                pageLogic.templeteGrid.empty();
+                            }
+                            pageLogic.isSort = false;
+                        },
+                        function (error) {
+                            ui.msgshow("加载模板信息失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                //保存模板信息
+                SaveTemplete: function (data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "saveBtn",
+                        "/Project/SaveTemplete",
+                        JSON.stringify(data),
+                        function (success) {
+                            caller = caller || pageLogic;
+                            if (success.Result) {
+                                data.StageTempleteId = success.ID;
+                                callback.call(caller, data);
+                            } else {
+                                if (success.ErrorMessage) {
+                                    ui.msgshow(success.ErrorMessage);
+                                } else {
+                                    ui.msgshow("没有任何数据改变");
+                                }
+                            }
+                            pageLogic.isSort = false;
+                        },
+                        function (error) {
+                            ui.msgshow("保存模板失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                //删除模板信息
+                deleteTemplete: function (id) {
+                    ui.ajax.ajaxPost(
+                        "/Project/DeleteTemplete",
+                        JSON.stringify({ stageTempleteId: id }),
+                        function (success) {
+                            if (success.Result) {
+                                pageLogic.getTempletes();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("删除失败，" + error.message, true);
+                        }
+                    )
+                }
+            };
+
+            var leftBarManager = {
+                createTemplateGroup: function () {
+                    var datas = window._projectTypes,
+                        length = datas.length,
+                        data = null;
+                    var content = $("#leftBar");
+                    var ul = $("<ul />").prop("id", "groupList"),
+                        li = null;
+                    for (var i = 0; i < length; i++) {
+                        data = datas[i];
+                        if (data) {
+                            li = $("<li />").addClass("group-item");
+                            li.append($("<span />").text(data.DictItemValue));
+                            li.data("DictItemId", data.DictItemId);
+                            ul.append(li);
+                        }
+                    }
+                    content.append(ul);
+                    ul.click($.proxy(this.getDictItems, this));
+                    this.selectDictGroup(0);
+                },
+
+                selectDictGroup: function (index) {
+                    var elem;
+                    var groupList = $("#groupList");
+                    if(groupList.length == 0) {
+                        return;
+                    }
+                    var items = groupList.children();
+                    if (items.length > 0 && index >= 0 && index < items.length) {
+                        elem = $(items[index]);
+                        this._selectGroupItem(elem);
+                    }
+                },
+
+                _selectGroupItem: function (elem) {
+                    var projectTypeId = elem.data("DictItemId");
+                    pageLogic.curProjectType = projectTypeId;
+                    var li = elem.parent().find("li.group-item-selected")
+                        .removeClass("group-item-selected font-highlight");
+                    li.find("span").removeClass("border-highlight");
+                    elem.addClass("group-item-selected font-highlight");
+                    elem.find("span").addClass("border-highlight");
+
+                    pageLogic.getTempletes();
+                },
+
+                getDictItems: function (e) {
+                    var elem = $(e.target),
+                        nodeName;
+                    while((nodeName = elem.nodeName()) !== "LI") {
+                        if(nodeName === "UL") {
+                            return;
+                        }
+                        elem = elem.parent();
+                    }
+                    this._selectGroupItem(elem);
+                }
+            };
+
+            var templeteManager = {
+                onAdding: function () {
+                    this.formReset();
+
+                    this.isUpdate = false;
+                    pageLogic.templeteGrid.cancelSelection();
+                    pageLogic.templeteCtrlPanel.show();
+                },
+
+                onUpdating: function (data) {
+                    this.dataToForm(data);
+
+                    this.isUpdate = true;
+                    pageLogic.templeteCtrlPanel.show();
+                },
+
+                onSave: function () {
+                    if (!pageLogic.templeteValidate.form()) {
+                        return;
+                    }
+
+                    var data;
+                    var row, callback;
+                    if (this.isUpdate) {
+                        row = pageLogic.templeteGrid.getCurrentSelection();
+                        data = ui.obj.clone({}, row.rowData);
+
+                        data.StatgeTempleteId = $("#stageTempleteId").val();
+                        data.StageName = $("#stageName").val();
+                        data.Description = $("#description").val();
+
+                        callback = (function (d) {
+                            pageLogic.templeteGrid.updateRowByIndex(row.rowIndex, d);
+                            pageLogic.templeteGrid.cancelSelection();
+                        });
+                    } else {
+                        data = {
+                            StatgeTempleteId: $("#stageTempleteId").val(),
+                            ProjectType: pageLogic.curProjectType,
+                            StageName: $("#stageName").val(),
+                            Description: $("#description").val()
+                        };
+
+                        callback = (function (d) {
+                            pageLogic.templeteGrid.appendRow(d);
+                            this.formReset();
+                        });
+                    }
+
+                    data.stageTempleteIds = [];
+                    if (pageLogic.isSort) {
+                        var datas = pageLogic.templeteGrid.dataTable,
+                            length = datas.length,
+                            ids = [];
+                        for (var i=0; i<length; i++) {
+                            ids.push(datas[i]["StageTempleteId"]);
+                        }
+                        data.stageTempleteIds = ids;
+                    }
+
+                    pageLogic.SaveTemplete(data, callback, this);
+                },
+
+                onDelete: function() {
+                    var id = pageLogic.templeteGrid.getCurrentSelection().rowData.StageTempleteId;
+                    pageLogic.deleteTemplete(id);
+                },
+
+                onUp: function() {
+                    pageLogic.templeteGrid.currentUp();
+                    pageLogic.isSort = true;
+                },
+
+                onDown: function() {
+                    pageLogic.templeteGrid.currentDown();
+                    pageLogic.isSort = true;
+                },
+
+                formReset: function () {
+                    $("#templeteForm")[0].reset();
+                    $("#stageTempleteId").val("");
+                    pageLogic.templeteValidate.clearErrorStyle();
+                },
+
+                dataToForm: function (data) {
+                    $("#templeteForm")[0].reset();
+                    $("#stageTempleteId").val(data["StatgeTempleteId"]);
+                    $("#stageName").val(data["StageName"]);
+                    $("#description").val(data["Description"]);
+                }
+            };
+        })();
+    </script>
+}
+
+
+
+
+

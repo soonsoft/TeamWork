@@ -1,0 +1,291 @@
+﻿@{
+    ViewBag.Title = "成员统计";
+}
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/UI/Highcharts/highcharts.js"></script>
+    @{
+        if (UserContext.CurrentUser.IsBackgroundDark())
+        {
+            @MvcHtmlString.Create("<script type=\"text/javascript\" src=\"/Scripts/UI/Highcharts/themes/metro-dark.js\"></script>")
+        }
+        else
+        {
+            @MvcHtmlString.Create("<script type=\"text/javascript\" src=\"/Scripts/UI/Highcharts/themes/metro.js\"></script>")
+        }
+    }
+
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "dateChooser"
+    )
+}
+@section scriptsHead {
+}
+@section styles {
+    <style type="text/css">
+        .toolbar input {
+            width: 100px;
+        }
+
+        .toolbar select {
+            width: 100px;
+        }
+
+        div.top_separator {
+            width: 100%;
+            height: 6px;
+            border-top-width: 1px;
+            border-top-style: solid;
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+        }
+
+        div.bottom_separator {
+            width: 100%;
+            height: 24px;
+            border-top-width: 1px;
+            border-top-style: solid;
+        }
+    </style>
+}
+
+    <div id="toolbar" class="toolbar">
+        <ul class="tools" style="float:right;">
+            <li>
+                <span>状态:</span>
+                @Html.DropDownList("queryEmpStatus", (SelectList)ViewBag.QueryEmployeeStatus)
+            </li>
+            <li>
+                <span>开始时间:</span>
+                <input id="queryEmpBeginTime" type="text" class="date-text" />
+                ~
+                <input id="queryEmpEndTime" type="text" class="date-text" />
+            </li>
+            <li>
+                <button id="statisticEmployee" class="tool-button button-highlight">统计</button>
+            </li>
+        </ul>
+        <br style="clear:right;" />
+    </div>
+    <div id="employeeChartPanel"></div>
+    <div class="top_separator theme-toolbar-color theme-border-color"></div>
+    <div id="employeeGrid" class="grid-view"></div>
+    <div class="bottom_separator theme-toolbar-color theme-border-color"></div>
+
+@section scriptsBody {
+
+        <script type="text/javascript">
+;
+            (function () {
+                var pageLogic = window.pageLogic = {
+                    init: {
+                        beforeCtrls: function () {
+                            var gridOption = {
+                                columns: [
+                                    { len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                    { column: ["EmployeeId", "EmployeeName"], text: "成员姓名", len: 200, handler: formater.formatStaffName },
+                                    { column: "SumHour", align: "right", text: "耗时(小时)", len: 100, sort: true },
+                                    { column: ["SumHour", "TotalHour"], text: "耗时占比", len: 365, handler: ui.ColumnStyle.cfnp.getProgressBar() },
+                                    { column: "SumValue", text: "成本(元)", len: 120, align: "right", sort: true, handler: ui.ColumnStyle.cfnp.getFormatMoney() },
+                                    { column: "DepartmentName", text: "部门", len: 120 },
+                                    { text: "", handler: ui.ColumnStyle.cfn.empty }
+                                ],
+                                selection: {
+                                    type: "disabled"
+                                },
+                                pager: false
+                            };
+                            var employeeGrid = pageLogic.employeeGrid = $("#employeeGrid").setGridview(gridOption);
+                            employeeGrid.setHeight(250);
+                        },
+
+                        layout: function () {
+                            masterpage.resize(function () {
+                                //40 是toolbar的高度
+                                var height = masterpage.contentBodyHeight - 40,
+                                    width = masterpage.contentBodyWidth;
+
+                                $("#employeeChartPanel").css({ "height": height - 33 - 250 + "px" });
+                            });
+
+                            chartManager.chartInit();
+                        },
+
+                        afterCtrls: function () {
+                            $("#queryEmpBeginTime").dateChooser();
+                            $("#queryEmpEndTime").dateChooser();
+                        },
+
+                        events: function () {
+                            $("#statisticEmployee").click(function () {
+                                pageLogic.statisticEmployee();
+                            });
+                        },
+
+                        datas: function () {
+                            pageLogic.statisticEmployee();
+                        }
+                    },
+
+                    statisticEmployee: function () {
+                        var data = {
+                            status: $("#queryEmpStatus").val() || null,
+                            beginTime: $("#queryEmpBeginTime").val() || null,
+                            endTime: $("#queryEmpEndTime").val() || null
+                        };
+                        ui.ajax.ajaxPost(
+                            "/Statistic/StatisticEmployee",
+                            JSON.stringify(data),
+                            function (success) {
+                                if (success) {
+                                    if (success.GridResults && success.GridResults.length > 0) {
+                                        pageLogic.employeeGrid.createGridBody(success.GridResults);
+                                    } else {
+                                        pageLogic.employeeGrid.empty();
+                                    }
+                                    if (success.ChartResults && success.ChartResults) {
+                                        chartManager.prepareData(success.ChartResults);
+                                    }
+                                } else {
+                                    pageLogic.employeeGrid.empty();
+                                }
+                            },
+                            function (error) {
+                                ui.msgshow("加载项目信息失败，" + error.message, true);
+                            }
+                        );
+                    }
+
+                };
+
+                var formater = {
+                    formatStaffName: function (value, column) {
+                        if (value == undefined || value == null) {
+                            return;
+                        }
+                        var link = $("<a target='_blank' />");
+                        link.text(value[1]);
+                        link.prop("href", "/Statistic/EmployeeDetailStatistic?employeeId=" + value[0]);
+                        return link;
+                    }
+                };
+
+                var chartManager = {
+                    //初始化统计图
+                    chartInit: function () {
+                        var chartOption = {
+                            chart: {
+                                renderTo: "employeeChartPanel",
+                                type: "column"
+                            },
+                            title: { text: "成员统计" },
+                            //legend: false,
+                            xAxis: {
+                                categories: [],
+                                labels: {
+                                    rotation: -30,
+                                    align: 'right',
+                                    style: {
+                                        fontSize: '12px'
+                                    }
+                                }
+                            },
+                            yAxis: {
+                                min: 0,
+                                title: { text: "耗时" },
+                                stackLabels: {
+                                    enabled: true,
+                                    style: {
+                                        fontWeight: 'normal',
+                                        color: "gray"
+                                    }
+                                },
+                                labels: {
+                                    format: '{value}时'
+                                }
+                            },
+                            tooltip: {
+                                enabled: true,
+                                shared: true
+                                //useHTML: true,
+                                //headerFormat: '<span style="font-size:13px">{point.key}</span>',
+                                //pointFormat: '<table><tr><td style="color:{series.color};padding:1px;">{series.name}: </td>' +
+                                //                        '<td style="font-weight:normal;padding:1px;"><b>{point.y:.2f} </b></td></tr>',
+                                //footerFormat: '</table>'
+
+                                //formatter: function () {
+                                //    return '<b>' + this.x + '</b><br/>' +
+                                //            this.series.name + '：' + this.y;
+                                //}
+                            },
+                            plotOptions: {
+                                column: {
+                                    stacking: "normal",
+                                    //pointWidth: 30,
+                                    //pointPadding: 0.05,
+                                    shadow: false,
+                                    dataLabels: {
+                                        enabled: false, //如果为true，则每个柱状的分段也显示值
+                                        color: "#gray"
+                                        //rotation: -90,
+                                        //x: 4
+                                    }
+                                }
+                            },
+                            series: [{ name: " ", data: [] }]
+                        };
+                        this.cardInfoChart = new Highcharts.Chart(chartOption);
+                    },
+
+                    //为渲染统计图准备数据
+                    prepareData: function (datas) {
+                        if (datas.length == 0) {
+                            return;
+                        }
+                        var categories = [],
+                            series = [],
+                            data = null;
+                        var colors = ["#007EEE", "#EC001D", "#FFB900", "#3CD21F", "#FF6600"];
+                        for (var m = 0; m < datas[0].length; m++) {
+                            var map = {
+                                color: colors[m],
+                                name: datas[0][m]["AttendanceName"],
+                                type: 'column',
+                                data: [],
+                                yAxis: 0,
+                                tooltip: {
+                                    valueSuffix: ' 小时'
+                                }
+                            }
+                            series.push(map);
+                        }
+
+                        for (var i = 0; i < datas.length; i++) {
+                            data = datas[i];
+                            var len = data.length;
+                            categories.push(data[0]["EmployeeName"]);
+                            for (var j = 0; j < len; j++) {
+                                series[j].data.push(data[j]["SumHour"]);
+                            }
+                        }
+                        this.setChart(categories, series);
+                    },
+
+                    //渲染统计图
+                    setChart: function (categories, series) {
+                        this.cardInfoChart.xAxis[0].setCategories(categories, false);
+                        while (this.cardInfoChart.series.length > 0) {
+                            this.cardInfoChart.series[0].remove(false);
+                        }
+                        for (var i = 0 ; i < series.length; i++) {
+                            this.cardInfoChart.addSeries(series[i], false);
+                        }
+                        this.cardInfoChart.redraw();
+                    }
+                };
+
+
+            })();
+        </script>;
+}

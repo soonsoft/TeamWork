@@ -1,0 +1,317 @@
+﻿
+@{
+    ViewBag.Title = "工作量统计";
+}
+
+@section scriptslink {
+    @this.RegisterCtrls(
+        "columnStyle",
+        "reportView"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style type="text/css">
+        .report-view div.report-head th {
+            text-align: center !important;
+        }
+
+    </style>
+}
+
+<div class="toolbar">
+    <ul class="tools">
+        <li>
+            <span>工作量统计(单位：人月)</span>
+        </li>
+    </ul>
+    <ul class="tools" style="float:right;">
+        <li>
+            <span>项目状态</span>
+        </li>
+        <li>
+            @Html.DropDownList("queryProStatus", (SelectList)ViewBag.QueryProjectStatus)
+        </li>
+        <li>
+            <span>项目类型</span>
+        </li>
+        <li>
+            @Html.DropDownList("queryProType", (SelectList)ViewBag.QueryProjectTypes)
+        </li>
+    </ul>
+    <br style="clear:both;" />
+</div>
+<div id="workloadReportView" class="report-view"></div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        var now = new Date();
+                        this.nowYear = now.getFullYear();
+                        this.preYear = this.nowYear - 1;
+                        this.nextYear = this.nowYear + 1;
+                        var gridOption = {
+                            fixedGroupColumns: [
+                            ],
+                            dataGroupColumns: [
+                                [
+                                    { column: "projectName", text: "项目名称", len: 200, rowspan: 2, handler: ui.ColumnStyle.cfn.formatParagraph },
+                                    { column: "preSum", text: reportGridFormatter.formatPreYear, len: 100, rowspan: 2, align: "right", handler: reportGridFormatter.formatYearValue },
+                                    {
+                                        text: function (column, gridview) {
+                                            var now = $("<span id='nowYear' />");
+                                            now.text(pageLogic.nowYear);
+                                            return now;
+                                        }, colspan: 13
+                                    },
+                                    { column: "nextSum", text: reportGridFormatter.formatNextYear, len: 100, rowspan: 2, align: "right", handler: reportGridFormatter.formatYearValue }
+                                ],
+                                [
+                                    { column: ["Jan", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["Feb", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["Mar", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["Apr", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["May", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["Jun", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["Jul", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["Aug", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["Sept", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["Oct", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["Nov", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: ["Dec", "projectId", "projectName"], text: reportGridFormatter.formatMonth, len: 70, align: "right", handler: reportGridFormatter.formatDay },
+                                    { column: "nowSum", text: reportGridFormatter.formatYearTotalText, len: 70, align: "right", handler: reportGridFormatter.formatYearTotalValue }
+                                ]
+                            ],
+                            selection: {
+                                type: "disabled"
+                            },
+                            pager: false
+                        };
+                        this.workloadReportGrid = $("#workloadReportView").setReportView(gridOption);
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+                            pageLogic.workloadReportGrid.setSize(width, height);
+                        });
+                    },
+                    afterCtrls: function () {
+                    },
+                    events: function () {
+                        $("#queryProStatus").change(function (e) {
+                            pageLogic.loadWorkloadData();
+                        });
+                        $("#queryProType").change(function (e) {
+                            pageLogic.loadWorkloadData();
+                        });
+                    },
+                    datas: function () {
+                        //默认显示激活项目
+                        $("#queryProStatus").val("102-01");
+                        pageLogic.loadWorkloadData();
+                    }
+                },
+
+                loadWorkloadData: function () {
+                    var currentDate = new Date();
+                    var preDate = new Date(this.preYear, 0, 1, 0, 0, 0);
+                    var data = {
+                        start: preDate,
+                        end: currentDate,
+                        status: $("#queryProStatus").val(),
+                        type: $("#queryProType").val()
+                    };
+                    ui.ajax.ajaxPost("/Statistic/getWorkloadForYear",
+                        JSON.stringify(data),
+                        function (success) {
+                            var result = success.Result;
+                            if (result.length > 0) {
+                                var i, item, list = [], dateMap = {}, pMap = {};
+                                var total = {
+                                    projectId: null,
+                                    projectName: "总计",
+                                    preSum: 0,
+                                    nextSum: 0,
+                                    Jan: 0,
+                                    Feb: 0,
+                                    Mar: 0,
+                                    Apr: 0,
+                                    May: 0,
+                                    Jun: 0,
+                                    Jul: 0,
+                                    Aug: 0,
+                                    Sept: 0,
+                                    Oct: 0,
+                                    Nov: 0,
+                                    Dec: 0,
+                                    nowSum: 0
+                                };
+                                var monthList = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+                                var currentMonth = null;
+                                for (i = 0; i < result.length; i++) {
+                                    item = result[i];
+                                    
+                                    if (!pMap.hasOwnProperty(item.ProjectId)) {
+                                        pMap[item.ProjectId] = {
+                                            projectId: item.ProjectId,
+                                            projectName: item.ProjectName,
+                                            preSum: 0,
+                                            nextSum: 0,
+                                            Jan: 0,
+                                            Feb: 0,
+                                            Mar: 0,
+                                            Apr: 0,
+                                            May: 0,
+                                            Jun: 0,
+                                            Jul: 0,
+                                            Aug: 0,
+                                            Sept: 0,
+                                            Oct: 0,
+                                            Nov: 0,
+                                            Dec: 0,
+                                            nowSum: 0
+                                        }
+                                    }
+                                    if (ui.str.isNullOrEmpty(item.DateStr)) {
+                                        continue;
+                                    }
+                                    list = item.DateStr.split("-");
+                                    item.SumHour = item.SumHour / 8 / 21.75;
+
+                                    if (list[0] < pageLogic.nowYear) {
+                                        pMap[item.ProjectId].preSum += item.SumHour;
+                                        total.preSum += item.SumHour;
+                                    } else if (list[0] > pageLogic.nowYear) {
+                                        pMap[item.ProjectId].nextSum += item.SumHour;
+                                        total.nextSum += item.SumHour;
+                                    } else {
+                                        if (!dateMap.hasOwnProperty(item.DateStr)) {
+                                            dateMap[item.DateStr] = item.SumHour;
+                                        } else {
+                                            dateMap[item.DateStr] += item.SumHour;
+                                        }
+                                        currentMonth = parseInt(list[1]);
+                                        pMap[item.ProjectId][monthList[currentMonth - 1]] += item.SumHour;
+                                        pMap[item.ProjectId].nowSum += item.SumHour;
+                                        total[monthList[currentMonth - 1]] += item.SumHour;
+                                        total.nowSum += item.SumHour;
+                                    }
+                                }
+
+                                var gridList = [];
+                                for (var key in pMap) {
+                                    gridList.push(pMap[key]);
+                                }
+                                gridList.push(total);
+                                pageLogic.workloadReportGrid.createReportBody(gridList);
+                            } else {
+                                pageLogic.workloadReportGrid.empty();
+                            }
+                        }, function (error) {
+                            ui.msgshow("查询工作量失败，" + error.message, true);
+                        })
+                }
+            };
+
+            var reportGridFormatter = {
+                formatPreYear: function (content, gridview) {
+                    var pre = $("<a id='preYear' href='javascript:void(0)' />");
+                    pre.text(pageLogic.preYear);
+                    pre.click(clickHander.preYearClickHander);
+                    return pre;
+                },
+                formatNextYear: function (content, gridview) {
+                    var next = $("<a id='nextYear' href='javascript:void(0)' />");
+                    next.click(clickHander.nextYearClickHander);
+                    next.text(pageLogic.nextYear);
+                    return next;
+                },
+                formatMonth: function (content) {
+                    var mon = $("<a href='javascript:void(0)' />");
+                    var monthList = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+                    var currentMon = null;
+                    for (var i = 0; i < monthList.length; i++) {
+                        if (content.column[0] == monthList[i]) {
+                            currentMon = i + 1;
+                            break;
+                        }
+                    }
+                    mon.text(currentMon + "月");
+                    mon.click(function (e) {
+                        var status = $("#queryProStatus").val();
+                        window.location.href = "/Statistic/WorkloadForWeekStatistic?currentYear=" + pageLogic.nowYear + "&currentMonth=" + currentMon
+                                                + "&projectType=" + $("#queryProType").val() + "&projectStatus=" + status;
+                    });
+                    return mon;
+                },
+                formatDay: function (content, column) {
+                    if (content[0] == 0 || content[1] == null || "@ViewBag.forRole".toLowerCase() == "true") {
+                        return $("<span>" + ui.fixedNumber(content[0], 2) + "</span>");
+                    }
+                    var a = $("<a href='javascript:void(0)' />");
+                    a.text(ui.fixedNumber(content[0], 2));
+                    a.click({ column: column, content: content }, function (e) {
+                        var month = e.data.column.columnIndex - 1;
+                        var url = "/Statistic/WorkloadForDayStatistic?start=" + ui.str.dateFormat(new Date(pageLogic.nowYear, month - 1, 1), "yyyy-MM-dd HH:mm:ss")
+                                    + "&end=" + ui.str.dateFormat(new Date(pageLogic.nowYear, month, 0, 23, 59, 59), "yyyy-MM-dd HH:mm:ss") + "&projectId=" + e.data.content[1]
+                                    + "&projectName=" + e.data.content[2] + "-" + month + "月" + "-总计：" + ui.fixedNumber(e.data.content[0], 2) + "(人月)";
+                        window.location.href = url;
+                    });
+                    return a;
+                },
+                formatYearTotalText: function() {
+                    return $("<span class='current-year-total' >合计</span>");
+                },
+                formatYearTotalValue: function (content) {
+                    var span = $("<span class='current-year-total' />");
+                    span.text(ui.fixedNumber(content, 2), 2);
+                    return span;
+                },
+                formatYearValue: function (content) {
+                    var span = $("<span />");
+                    var num = ui.fixedNumber(content, 2);
+                    span.text(num);
+                    return span;
+                }
+            };
+
+            var clickHander = {
+                preYearClickHander: function (e) {
+                    var current = pageLogic.preYear;
+                    var preDate = new Date(current - 1, 0, 1, 1, 1, 1);
+                    var nextDate = new Date(pageLogic.nowYear, 11, 31, 23, 59, 59);
+                    pageLogic.preYear -= 1;
+                    pageLogic.nowYear -= 1;
+                    pageLogic.nextYear -= 1;
+                    $("#preYear").text(pageLogic.preYear);
+                    $("#nowYear").text(pageLogic.nowYear);
+                    $("#nextYear").text(pageLogic.nextYear);
+                    pageLogic.loadWorkloadData(preDate, nextDate);
+                },
+                nextYearClickHander: function (e) {
+                    var now = new Date();
+                    var nowYear = now.getFullYear();
+                    if (pageLogic.nextYear > nowYear) {
+                        return;
+                    }
+                    var preDate = new Date(pageLogic.nowYear, 0, 1, 1, 1, 1);
+                    var nextDate = new Date(pageLogic.nextYear + 1, 11, 31, 23, 59, 59);
+                    pageLogic.preYear += 1;
+                    pageLogic.nowYear += 1;
+                    pageLogic.nextYear += 1;
+                    $("#preYear").text(pageLogic.preYear);
+                    $("#nowYear").text(pageLogic.nowYear);
+                    $("#nextYear").text(pageLogic.nextYear);
+                    pageLogic.loadWorkloadData(preDate, nextDate);
+                }
+            };
+        })();
+    </script>
+}

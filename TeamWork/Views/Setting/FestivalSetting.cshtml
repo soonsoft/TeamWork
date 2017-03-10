@@ -1,0 +1,604 @@
+﻿@{
+    ViewBag.Title = "节假日管理";
+}
+
+@section scriptslink {
+    @this.RegisterCtrls(
+        "button",
+        "tabPanel",
+        "calendar",
+        "columnStyle",
+        "gridview",
+        "chooser",
+        "tools",
+        "form"
+    )
+}
+
+@section styles {
+    <style type="text/css">
+        .ctrl-form input {
+            width: 188px;
+        }
+    </style>
+}
+
+@section tabs {
+    <li class="tab-item tab-button">
+        <span>作息时间</span>
+        <i class="pointer"></i>
+    </li>
+    <li class="tab-item tab-button">
+        <span>节假日</span>
+        <i class="pointer"></i>
+    </li>
+}
+
+<div id="tabBodyPanel" class="tab-body-panel">
+    <div class="tab-body">
+        <div id="timeToolbar" class="toolbar">
+            <ul class="tools" style="float:right;">
+                <li class="action-buttons">
+                    <a id="addBtn" class="tool-action-button" href="javascript:void(0)" title="新作息时间">
+                        <i class="fa fa-plus"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div id="workTimeContainer" style="position:relative;width:100%;overflow:hidden;">
+            <div id="workTimeGrid" class="grid-view"></div>
+            <div id="workTimeDetail" class="ctrl-form">
+                <form id="workTimeForm">
+                    <label>上午上班时间</label>
+                    <br />
+                    <input id="amStart" type="text" />
+                    <br />
+                    <label>上午下班时间</label>
+                    <br />
+                    <input id="amEnd" type="text" />
+                    <br />
+                    <label>下午上班时间</label>
+                    <br />
+                    <input id="pmStart" type="text" />
+                    <br />
+                    <label>下午下班时间</label>
+                    <br />
+                    <input id="pmEnd" type="text" />
+                    <br />
+                    <label>是否启用</label>
+                    <br />
+                    <input id="isEnabled" type="checkbox" checked="checked" />
+                    <label for="isEnabled" class="switch-text">是</label>
+                </form>
+                <button id="workTimeSave" class="button background-highlight">确定</button>
+                <button id="deleteBtn" class="button" style="margin-left:10px;">删除</button>
+            </div>
+        </div>
+    </div>
+    <div class="tab-body">
+        <div id="holidayToolbar" class="toolbar">
+            <ul class="tools">
+                <li>
+                    <a id="prev" class="image-button direct button-left" style="vertical-align: top; margin-top: 8px;"></a>
+                </li>
+                <li>
+                    <a id="today" class="image-button button-today" style="vertical-align: top; margin-top: 8px;"></a>
+                </li>
+                <li>
+                    <a id="next" class="image-button direct button-right" style="vertical-align: top; margin-top: 8px;"></a>
+                </li>
+                <li>
+                    <span id="calendarTitle" class="font-highlight" style="font-size: 16px; line-height: 40px;"></span>
+                </li>
+            </ul>
+            <ul class="tools" style="float:right;">
+                <li class="action-buttons">
+                    <a id="initBtn" class="tool-action-button" href="javascript:void(0)" title="初始化">
+                        <i class="fa fa-play"></i>
+                    </a>
+                    <a id="holidayBtn" class="tool-action-button" href="javascript:void(0)" title="设置为放假">
+                        <i class="fa fa-tree"></i>
+                    </a>
+                    <a id="normalBtn" class="tool-action-button" href="javascript:void(0)" title="设置为上班">
+                        <i class="fa fa-desktop"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div id="holidayPanel" style="position:relative;width:100%;overflow:hidden;">
+            <div id="contentPanel" class="content-panel"></div>
+            <div id="holidayDetail" class="ctrl-form">
+                <form id="holidayForm">
+                    <label>假日描述：</label>
+                    <br />
+                    <input id="festivalText" type="text" />
+                    <br />
+                    <label>是否为周末：</label>
+                    <br />
+                    <input id="weekend" type="checkbox" checked="checked" />
+                    <label for="weekend" class="switch-text">是</label>
+                </form>
+                <button id="holidaySave" class="button background-highlight">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        masterpage.initToolbar("timeToolbar");
+                        masterpage.initToolbar("holidayToolbar");
+
+                        tabManager = ui.tab.createTabManager(function (e, index) {
+                            if (index === 0) {
+                                this.tryCallLoadFunc(index, pageLogic.loadWorkTime, pageLogic);
+                            } else if (index === 1) {
+                            }
+                        });
+                        this.tab = ui.tab.createTabs({
+                            tabPanelId: "headerTags",
+                            bodyPanelId: "tabBodyPanel"
+                        });
+                        this.tab.changing($.proxy(tabManager.tabChanging, tabManager));
+                        this.tab.changed($.proxy(tabManager.tabChanged, tabManager));
+
+                        //工时时间
+                        var gridOption = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "AMStartTime", align: "center", text: "开始时间(上午)", len: 120, handler: formatter.dateFormat },
+                                { column: "AMEndTime", align: "center", text: "结束时间(上午)", len: 120, handler: formatter.dateFormat },
+                                { column: "PMStartTime", align: "center", text: "开始时间(下午)", len: 120, handler: formatter.dateFormat },
+                                { column: "PMEndTime", align: "center", text: "结束时间(下午)", len: 120, handler: formatter.dateFormat },
+                                { column: "WorkHour", text: "工作时间", len: 80, align: "right", handler: ui.ColumnStyle.cfnp.getFormatNumber(1) },
+                                { column: "Enabled", text: "是否启用", len: 100, align: "center", handler: ui.ColumnStyle.cfnp.getFormatBoolean("启用", "禁用") },
+                                { text: "", handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "a",
+                                multiple: false
+                            },
+                            pager: false
+                        };
+                        var workTimeGrid = pageLogic.workTimeGrid = $("#workTimeGrid").setGridview(gridOption);
+                        workTimeGrid.selected(function (e, element, data) {
+                            pageLogic.isNew = false;
+                            $("#deleteBtn").css("display", "inline-block");
+                            pageLogic.timeCtrlPanel.show();
+                            var rowData = data.rowData;
+                            $("#amStart").val(formatter.dateFormat(rowData.AMStartTime));
+                            $("#amEnd").val(formatter.dateFormat(rowData.AMEndTime));
+                            $("#pmStart").val(formatter.dateFormat(rowData.PMStartTime));
+                            $("#pmEnd").val(formatter.dateFormat(rowData.PMEndTime));
+                            this.isEnabled.check(rowData.Enabled);
+                        });
+                        workTimeGrid.deselected(function (e, element, data) {
+                            pageLogic.timeCtrlPanel.hide();
+                        });
+
+                        var timeCtrlPanel = pageLogic.timeCtrlPanel =
+                            $("#workTimeDetail").toCtrlPanel({
+                                parent: "workTimeContainer"
+                            });
+                        timeCtrlPanel.buttonAppend($("#workTimeSave"));
+                        timeCtrlPanel.buttonAppend($("#deleteBtn"));
+                        timeCtrlPanel.hided(function () {
+                            pageLogic.workTimeGrid.cancelSelection();
+                        });
+
+                        var holidayCtrlPanel = pageLogic.holidayCtrlPanel =
+                            $("#holidayDetail").toCtrlPanel({
+                                parent: $("#holidayPanel")
+                            });
+                        holidayCtrlPanel.buttonAppend($("#holidaySave"));
+                        holidayCtrlPanel.hided(function () {
+                            pageLogic.calendar.currentView.cancelSelection();
+                        });
+                        
+                        pageLogic.calendar = $("#contentPanel").setCalendar({
+                            defaultView: "YearView",
+                            sundayFirst: true,
+                            unitTime: 15,
+                            yearMultipleSelect: true
+                        });
+                        pageLogic.calendar.changed(function (e, view) {
+                            $("#calendarTitle").text(view.getTitle());
+                            pageLogic.loadHoliday();
+                        });
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.tab.setBodyHeight(height);
+                            $("#workTimeContainer").css("height", (height - 40) + "px");
+                            $("#holidayPanel").css("height", (height - 40) + "px");
+
+                            pageLogic.workTimeGrid.setHeight(height - 40);
+                            pageLogic.calendar.setSize(width, height - 40);
+
+                            pageLogic.timeCtrlPanel.setSizeLocation();
+                            pageLogic.holidayCtrlPanel.setSizeLocation();
+
+                            var toolWidth = width - $("#tabPanel").width() - 10 - 10;
+                            $("#holidayTools").css("width", toolWidth + "px");
+
+                            pageLogic.tab.setBodiesLocation();
+                            pageLogic.tab.restore();
+                        });
+                    },
+                    afterCtrls: function () {
+                        var option = {
+                            data: null,
+                            spliter: ":",
+                            size: "M"
+                        };
+                        option.data = getSelectItems();
+                        var c1 = $("#amStart").setChooser(option);
+                        option.data = getSelectItems();
+                        var c2 = $("#amEnd").setChooser(option);
+                        option.data = getSelectItems();
+                        var c3 = $("#pmStart").setChooser(option);
+                        option.data = getSelectItems();
+                        var c4 = $("#pmEnd").setChooser(option);
+
+                        c1.defaultSelectValue = c2.defaultSelectValue = c3.defaultSelectValue = c4.defaultSelectValue = function () {
+                            var now = new Date();
+                            var hour = now.getHours();
+                            var values = [
+                                hour < 10 ? "0" + hour : hour.toString(),
+                                "00"
+                            ];
+                            return values;
+                        };
+
+                        this.isEnabled = $("#isEnabled").switchButton();
+                        this.isEnabled.changed(function() {
+                            if(this.checked()) {
+                                this.switchBox.next().text("是");
+                            } else {
+                                this.switchBox.next().text("否");
+                            }
+                        });
+                        this.weekend = $("#weekend").switchButton();
+                        this.weekend.changed(function() {
+                            if(this.checked()) {
+                                this.switchBox.next().text("是");
+                            } else {
+                                this.switchBox.next().text("否");
+                            }
+                        });
+
+                        $("#calendarTitle").text(pageLogic.calendar.getTitle());
+                    },
+                    events: function () {
+                        $("#addBtn").click(function (e) {
+                            pageLogic.timeCtrlPanel.show();
+                            $("#workTimeForm")[0].reset();
+                            $("#deleteBtn").css("display", "none");
+                            pageLogic.isNew = true;
+                        });
+                        $("#deleteBtn").confirmClick({
+                            backgroundColor: "#C62828",
+                            handler: function () {
+                                pageLogic.deleteWorkTime();
+                            }
+                        });
+                        $("#workTimeSave").click(function (e) {
+                            pageLogic.saveWorkTime();
+                        });
+
+                        $("#initBtn").click(function () {
+                            pageLogic.isInit = true;
+                            pageLogic.saveHoliday();
+                        });
+                        $("#holidayBtn").click(function (e) {
+                            $("#festivalText").val("");
+                            var dates = pageLogic.calendar.currentView.getMultipleSelection();
+                            if (dates.length < 1) {
+                                ui.msgshow("没有需要操作的信息。");
+                                return;
+                            }
+                            pageLogic.holidayCtrlPanel.show();
+                            
+                        }); 
+                        $("#normalBtn").click(function (e) {
+                            var dates = pageLogic.calendar.currentView.getMultipleSelection();
+                            if (dates.length < 1) {
+                                ui.msgshow("没有需要操作的信息。");
+                                return;
+                            }
+                            pageLogic.deleteHoliday(dates);
+                        });
+                        $("#holidaySave").click(function (e) {
+                            pageLogic.isInit = false;
+                            pageLogic.saveHoliday();
+                        });
+
+                        $("#prev").click(function (e) {
+                            pageLogic.calendar.prev();
+                        });
+                        $("#today").click(function (e) {
+                            pageLogic.calendar.today();
+                        });
+                        $("#next").click(function (e) {
+                            pageLogic.calendar.next();
+                        });
+                    },
+                    loadData: function () {
+                        pageLogic.tab.setIndex(0, false);
+                        pageLogic.loadWorkTime();
+                    }
+                },
+
+                loadWorkTime: function () {
+                    pageLogic.timeCtrlPanel.hide();
+                    ui.ajax.ajaxPost(
+                        "/Setting/GetWorkTimeSetting",
+                        null,
+                        function (success) {
+                            if (success) {
+                                pageLogic.workTimeGrid.createGridBody(success, success.length);
+                            } else {
+                                pageLogic.workTimeGird.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载工时设置失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                saveWorkTime: function () {
+                    var current = pageLogic.workTimeGrid.getCurrentSelection();
+                    var amStart = $("#amStart").val();
+                    var amEnd = $("#amEnd").val();
+                    var pmStart = $("#pmStart").val();
+                    var pmEnd = $("#pmEnd").val();
+                    var workHour = formatter.formatWorkHour(amStart, amEnd, pmStart, pmEnd);
+                    var enabled = this.isEnabled.checked();
+                    var workTime = {
+                        AMStartTime: amStart,
+                        AMEndTime: amEnd,
+                        PMStartTime: pmStart,
+                        PMEndTime: pmEnd,
+                        Enabled: enabled,
+                        WorkHour: workHour
+                    };
+                    if (current != null) {
+                        workTime["WorkTimeSettingId"] = current.rowData.WorkTimeSettingId;
+                    }
+                    ui.ajax.ajaxPost(
+                        "/Setting/SaveWorkTimeSetting",
+                        JSON.stringify(workTime),
+                        function (success) {
+                            pageLogic.timeCtrlPanel.hide();
+                            if (success) {
+                                pageLogic.loadWorkTime();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("保存工时设置失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                deleteWorkTime: function () {
+                    var selected = pageLogic.workTimeGrid.getCurrentSelection();
+                    var data = {
+                        timeId: selected.rowData.WorkTimeSettingId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Setting/DeleteWorkTimeSetting",
+                        data ? JSON.stringify(data) : null,
+                        function (success) {
+                            pageLogic.timeCtrlPanel.hide();
+                            if (success) {
+                                pageLogic.loadWorkTime();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("删除工时设置失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                loadHoliday: function () {
+                    var data = {
+                        year: pageLogic.calendar.currentView.year
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Setting/GetHolidaySetting",
+                        data ? JSON.stringify(data) : null,
+                        function (success) {
+                            if (success.length > 0) {
+                                $("#initBtn").css("display", "none");
+                                $("#holidayBtn").css("display", "inline-block");
+                                $("#normalBtn").css("display", "inline-block");
+                                pageLogic.calendar.currentView.addSchedules(success,
+                                    function (d) {
+                                        return ui.str.jsonToDate(d.HolidayDate);
+                                    },
+                                    function (d) {
+                                        if (d.Festival) {
+                                            this.prop("title", d.Festival);
+                                        }
+                                    }
+                                );
+                            } else {
+                                $("#initBtn").css("display", "inline-block");
+                                $("#holidayBtn").css("display", "none");
+                                $("#normalBtn").css("display", "none");
+                                pageLogic.calendar.currentView.selectCell(getWeekendDates(pageLogic.calendar.currentView.year));
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载节假日失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                saveHoliday: function () {
+                    var dates = pageLogic.calendar.currentView.getMultipleSelection();
+                    var holiday = {};
+                    var holidays = [];
+                    var weekend = this.weekend.checked();
+                    var festival = $("#festivalText").val();
+                    for (var i = 0; i < dates.length; i++) {
+                        holiday = {
+                            HolidayDate: dates[i],
+                            IsWeekend: weekend,
+                            Festival: festival,
+                            SettingYear: pageLogic.calendar.currentView.year
+                        };
+                        holidays.push(holiday);
+                    }
+                    var data = {
+                        holidays: holidays,
+                        isInit: pageLogic.isInit
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Setting/SaveHolidaySetting",
+                        data ? JSON.stringify(data) : null,
+                        function (success) {
+                            pageLogic.holidayCtrlPanel.hide();
+                            pageLogic.calendar.currentView.cancelSelection();
+                            if (success) {
+                                $("#initBtn").css("display", "none");
+                                $("#holidayBtn").css("display", "inline-block");
+                                $("#normalBtn").css("display", "inline-block");
+                                pageLogic.calendar.currentView.addSchedules(holidays,
+                                    function (d) {
+                                        return ui.str.jsonToDate(d.HolidayDate);
+                                    },
+                                    function (d) {
+                                        if (d.Festival) {
+                                            this.prop("title", d.Festival);
+                                        }
+                                    }
+                                );
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("添加节假日失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                deleteHoliday: function (dates) {
+                    var holiday = {};
+                    var holidays = [];
+                    var weekend = this.weekend.checked();
+                    var festival = $("#festivalText").val();
+                    for (var i = 0; i < dates.length; i++) {
+                        holiday = {
+                            HolidayDate: dates[i],
+                            IsWeekend: weekend,
+                            Festival: festival,
+                            SettingYear: pageLogic.calendar.currentView.year
+                        };
+                        holidays.push(holiday);
+                    }
+                    ui.ajax.ajaxPost(
+                        "/Setting/DeleteHolidaySetting",
+                        holidays ? JSON.stringify(holidays) : null,
+                        function (success) {
+                            if (success) {
+                                ui.msgshow("添加工作日成功。");
+                                pageLogic.calendar.currentView.cancelSelection();
+                                pageLogic.calendar.currentView.removeSchedules(holidays,
+                                    function (d) {
+                                        return ui.str.jsonToDate(d.HolidayDate);
+                                    },
+                                    function (d) {
+                                        if (d.Festival) {
+                                            this.removeAttr("title");
+                                        }
+                                    }
+                                );
+                            } else {
+                                ui.msgshow("没有需要添加的工作日。");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("添加工作日失败，" + error.message, true);
+                        } 
+                    );
+                }
+            };
+
+            var getSelectItems = function () {
+                var data = [];
+                //时
+                var i, limit, item;
+                limit = 24;
+                item = {
+                    list: [],
+                    title: "时"
+                };
+                for (i = 0; i < limit; i++) {
+                    item.list[i] = (i < 10) ? "0" + i : i.toString();
+                }
+                data.push(item);
+                //分
+                item = {
+                    list: ["00", "30"],
+                    title: "分"
+                };
+                data.push(item)
+                return data;
+            };
+
+            var formatter = {
+                dateFormat: function (date) {
+                    var str = "";
+                    var now = new Date();
+                    date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), date.Hours, date.Minutes);
+                    str = ui.str.dateFormat(date, "HH:mm");
+                    return str;
+                },
+
+                formatWorkHour: function (amStart, amEnd, pmStart, pmEnd) {
+                    var t1 = formatter.timeDifference(pmEnd, pmStart);
+                    var t2 = formatter.timeDifference(amEnd, amStart);
+                    var time = ui.str.numberFormatScale((t1 + t2), 1);
+                    return time;
+                },
+
+                timeDifference: function (t1, t2) {
+                    t1 = t1.split(":");
+                    t2 = t2.split(":");
+                    var val1 = t1[0] * 60 * 60 + t1[1] * 60,
+                        val2 = t2[0] * 60 * 60 + t2[1] * 60;
+                    return Math.abs((val2 - val1)) / 60 / 60;
+                }
+            };
+
+            var getWeekendDates = function (year) {
+                var saturday = new Date(year, 0, 1),
+                    sunday;
+                var data = [];
+                saturday.setDate(saturday.getDate() + 6 - saturday.getDay());
+                while (saturday.getFullYear() == year) {
+                    data.push(new Date(saturday.getTime()));
+                    sunday = new Date(saturday.getFullYear(), saturday.getMonth(), saturday.getDate() + 1);
+                    if (sunday.getFullYear() != year) {
+                        break;
+                    }
+                    data.push(sunday);
+
+                    saturday.setDate(saturday.getDate() + 7);
+                }
+                return data;
+            };
+
+        })();
+    </script>
+}
+

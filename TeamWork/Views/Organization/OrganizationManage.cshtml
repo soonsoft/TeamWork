@@ -1,0 +1,325 @@
+﻿
+@{
+    ViewBag.Title = "机构管理";
+}
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "form",
+        "validate"
+    )
+}
+
+@section scriptsHead{
+}
+
+@section styles {
+    <style type="text/css">
+        form input[type='text'] {
+            width: 188px;
+        }
+
+        form select {
+            width: 188px;
+        }
+
+        form textarea {
+            width: 188px;
+            height: 84px;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul class="tools" style="float:right;">
+        <li>
+            <label>机构名称:</label>
+            <input id="queryOrgName" type="text" />
+        </li>
+        <li>
+            <button id="queryOrg" class="tool-button">查询</button>
+        </li>
+        <li>
+            <button id="newOrg" class="tool-button button-highlight">新机构</button>
+        </li>
+    </ul>
+    <br style="clear:right;" />
+</div>
+<div id="orgPanel" class="content-panel" style="position:relative;">
+    <div id="orgGrid" class="grid-view"></div>
+    <div id="orgData" class="ctrl-form">
+        <form id="orgForm">
+            <input id="orgId" type="hidden" />
+            <label>机构类型</label><span class="required">*</span>
+            <br />
+            @Html.DropDownList("orgType", (SelectList)ViewBag.OrganizationType)
+            <br />
+            <label>机构名称</label>
+            <br />
+            <input id="orgName" name="orgName" type="text" />
+            <br />
+            <label>机构全称</label>
+            <br />
+            <input id="orgFullName" name="orgFullName" type="text" />
+            <br />
+            <label>所属机构</label>
+            <br />
+            @Html.DropDownList("parentOrg", (SelectList)ViewBag.parentOrganizations)
+            <br />
+            <label>总经理</label>
+            <br />
+            @Html.DropDownList("orgCEO", (SelectList)ViewBag.Employees)
+            <br />
+            <label>电话</label>
+            <br />
+            <input id="orgPhone1" name="orgPhone1" type="text" />
+            <br />
+            <label>备用电话</label>
+            <br />
+            <input id="orgPhone2" name="orgPhone2" type="text" />
+            <br />
+            <label>地址</label>
+            <br />
+            <textarea id="orgAddress" name="orgAddress"></textarea>
+            <br />
+        </form>
+    </div>
+    <input id="orgSave" type="button" class="button background-highlight" value="保存" />
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        //列表
+                        gridOption = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "OrganizationTypeName", text: "机构类型", len: 120 },
+                                { column: "OrganizationName", text: "机构名称", len: 120 },
+                                { column: "CEO", text: "总经理", len: 120 },
+                                { column: "LinePhoneNumber", text: "电话", len: 120 },
+                                { column: "Address", text: "地址" },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "a",
+                                multiple: false
+                            },
+                            pager: {
+                                pageIndex: 1,
+                                pageSize: 100
+                            }
+                        };
+                        var orgGrid = pageLogic.orgGrid = $("#orgGrid").setGridview(gridOption);
+
+                        pageLogic.orgGrid.selected(function (e, element, data) {
+                            orgManager.onUpdating(data.rowData);
+                        });
+                        pageLogic.orgGrid.deselected(function (e, element, data) {
+                            if (orgManager.isUpdate) {
+                                pageLogic.orgCtrlPanel.hide();
+                            }
+                        });
+                        pageLogic.orgGrid.rebind(function (e) {
+                            pageLogic.orgCtrlPanel.hide();
+                        });
+                        pageLogic.orgGrid.pageTurning(function (e, pageIndex, pageSize) {
+                            pageLogic.getAllOrganizations(pageIndex, pageSize);
+                        });
+
+                        //表单面板
+                        var orgCtrlPanel = pageLogic.orgCtrlPanel =
+                        $("#orgData").toCtrlPanel({
+                            parent: $("#orgPanel")
+                        });
+                        orgCtrlPanel.buttonAppend($("#orgSave"));
+                        orgCtrlPanel.hided(function () {
+                            pageLogic.orgGrid.cancelSelection();
+                        });
+                    },
+
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.orgGrid.setHeight(height);
+                            pageLogic.orgCtrlPanel.setSizeLocation();
+                        });
+                    },
+
+                    afterCtrls: function () {
+                        pageLogic.orgValidate = $("#orgForm").setValidate({
+                            rules: {
+                                OrganizationType: { required: true },
+                                orgName: { maxlength: 50 },
+                                orgFullName: { maxlength: 200 },
+                                orgCEO: { maxlength: 50 },
+                                orgPhone1: { maxlength: 30 },
+                                orgPhone2: { maxlength: 30 },
+                                Address: { maxlength: 300 }
+                            }
+                        });
+                    },
+                    events: function () {
+                        $("#queryOrg").click(function () {
+                            pageLogic.getAllOrganizations(1, pageLogic.orgGrid.pageSize);
+                        });
+                        $("#newOrg").click($.proxy(orgManager.onAdding, orgManager));
+                        $("#orgSave").click($.proxy(orgManager.onSave, orgManager));
+                    },
+                    loadData: function () {
+                        pageLogic.getAllOrganizations();
+                    }
+                },
+
+                //获取所有机构信息
+                getAllOrganizations: function (pageIndex, pageSize) {
+                    var param = {
+                        organizationName: $("#queryOrgName").val() || null,
+                        pageIndex: pageIndex || 1,
+                        pageSize: pageSize || pageLogic.orgGrid.pageSize
+                    };
+
+                    ui.ajax.ajaxPost(
+                        "/Organization/GetAllOrganizations",
+                        JSON.stringify(param),
+                        function (success) {
+                            if (pageIndex == 1)
+                                pageLogic.orgGrid.pageIndex = pageIndex;
+                            if (success) {
+                                pageLogic.orgGrid.createGridBody(success.Result, success.RowCount);
+                            } else {
+                                pageLogic.orgGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载机构信息失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                //保存机构信息
+                saveOrganization: function (data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "orgSave",
+                        "/Organization/SaveOrganization",
+                        JSON.stringify(data),
+                        function (success) {
+                            caller = caller || pageLogic;
+                            if (success.Result) {
+                                data.OrganizationId = success.ID;
+                                callback.call(caller, data);
+                            } else {
+                                if (success.ErrorMessage) {
+                                    ui.msgshow(success.ErrorMessage);
+                                } else {
+                                    ui.msgshow("没有任何数据改变");
+                                }
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("保存机构失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+            var orgManager = {
+                onAdding: function () {
+                    this.formReset();
+
+                    this.isUpdate = false;
+                    pageLogic.orgGrid.cancelSelection();
+                    pageLogic.orgCtrlPanel.show();
+                },
+
+                onUpdating: function (data) {
+                    this.dataToForm(data);
+
+                    this.isUpdate = true;
+                    pageLogic.orgCtrlPanel.show();
+                },
+
+                onSave: function () {
+                    if (!pageLogic.orgValidate.form()) {
+                        return;
+                    }
+
+                    var data;
+                    var row, callback;
+                    var orgType = $("#orgType").selectOption(),
+                        ceo = $("#orgCEO").selectOption();
+                    if (this.isUpdate) {
+                        row = pageLogic.orgGrid.getCurrentSelection();
+                        data = ui.obj.clone({}, row.rowData);
+
+                        data.OrganizationId = $("#orgId").val();
+                        data.OrganizationType = orgType.value;
+                        data.OrganizationTypeName = orgType.text;
+                        data.OrganizationName = $("#orgName").val();
+                        data.FullName = $("#orgFullName").val();
+                        data.ParentId = $("#parentOrg").val();
+                        data.CEOId = ceo.value;
+                        data.CEO = ceo.text;
+                        data.LinePhoneNumber = $("#orgPhone1").val();
+                        data.LinePhoneNumber2 = $("#orgPhone2").val();
+                        data.Address = $("#orgAddress").val();
+
+                        callback = (function (d) {
+                            pageLogic.orgGrid.updateRowByIndex(row.rowIndex, d);
+                            pageLogic.orgGrid.cancelSelection();
+                        });
+                    } else {
+                        data = {
+                            OrganizationId: $("#orgId").val(),
+                            OrganizationType: orgType.value,
+                            OrganizationTypeName: orgType.text,
+                            OrganizationName: $("#orgName").val(),
+                            FullName: $("#orgFullName").val(),
+                            ParentId: $("#parentOrg").val(),
+                            CEOId: ceo.value,
+                            CEO: ceo.text,
+                            LinePhoneNumber: $("#orgPhone1").val(),
+                            LinePhoneNumber2: $("#orgPhone2").val(),
+                            Address: $("#orgAddress").val()
+                        };
+
+                        callback = (function (d) {
+                            pageLogic.orgGrid.insertRow(0, d);
+                            this.formReset();
+                        });
+                    }
+                    pageLogic.saveOrganization(data, callback, this);
+                },
+
+                formReset: function () {
+                    $("#orgForm")[0].reset();
+                    $("#orgId").val("");
+                    pageLogic.orgValidate.clearErrorStyle();
+                },
+
+                dataToForm: function (data) {
+                    $("#orgForm")[0].reset();
+                    $("#orgId").val(data["OrganizationId"]);
+                    $("#orgType").val(data["OrganizationType"]);
+                    $("#orgName").val(data["OrganizationName"]);
+                    $("#orgFullName").val(data["FullName"]);
+                    $("#parentOrg").val(data["ParentId"]);
+                    $("#orgCEO").val(data["CEOId"]);
+                    $("#orgPhone1").val(data["LinePhoneNumber"]);
+                    $("#orgPhone2").val(data["LinePhoneNumber2"]);
+                    $("#orgAddress").val(data["Address"]);
+                }
+            };
+        })();
+    </script>
+}

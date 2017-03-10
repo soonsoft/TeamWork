@@ -1,0 +1,610 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>
+    </ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{02922266-D77B-4C0A-90DE-36299684C938}</ProjectGuid>
+    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>TeamWork</RootNamespace>
+    <AssemblyName>TeamWork</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <MvcBuildViews>false</MvcBuildViews>
+    <UseIISExpress>true</UseIISExpress>
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
+    <UseGlobalApplicationHostFile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\EntityFramework.6.1.1\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer">
+      <HintPath>..\packages\EntityFramework.6.1.1\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.Data.Edm, Version=5.6.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Data.Edm.5.6.0\lib\net40\Microsoft.Data.Edm.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Data.OData, Version=5.6.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Data.OData.5.6.0\lib\net40\Microsoft.Data.OData.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.Owin.3.0.0\lib\net45\Microsoft.Owin.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.Owin.Security.3.0.0\lib\net45\Microsoft.Owin.Security.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Owin.Security.Cookies, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.Owin.Security.Cookies.3.0.0\lib\net45\Microsoft.Owin.Security.Cookies.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Owin, Version=1.0.0.0, Culture=neutral, PublicKeyToken=f0ebd12fd5e55cc5, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
+    </Reference>
+    <Reference Include="STIM.Core">
+      <HintPath>..\packages\STIMFramework\STIM.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="STIM.Data.EntityFrameworkExtensions, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\STIMFramework\STIM.Data.EntityFrameworkExtensions.dll</HintPath>
+    </Reference>
+    <Reference Include="STIM.Modules">
+      <HintPath>..\packages\STIMFramework\STIM.Modules.dll</HintPath>
+    </Reference>
+    <Reference Include="STIM.Web">
+      <HintPath>..\packages\STIMFramework\STIM.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http.Formatting, Version=5.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Client.5.2.2\lib\net45\System.Net.Http.Formatting.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Spatial, Version=5.6.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Spatial.5.6.0\lib\net40\System.Spatial.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.DynamicData" />
+    <Reference Include="System.Web.Entity" />
+    <Reference Include="System.Web.ApplicationServices" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.2\lib\net45\System.Web.Helpers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Http, Version=5.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Core.5.2.2\lib\net45\System.Web.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Http.OData">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.OData.5.3.1\lib\net45\System.Web.Http.OData.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Http.WebHost, Version=5.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.WebHost.5.2.2\lib\net45\System.Web.Http.WebHost.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Mvc, Version=5.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.Mvc.5.2.2\lib\net45\System.Web.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Optimization, Version=1.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.Web.Optimization.1.1.3\lib\net40\System.Web.Optimization.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.Razor.3.2.2\lib\net45\System.Web.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.2\lib\net45\System.Web.WebPages.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Deployment, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.2\lib\net45\System.Web.WebPages.Deployment.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.2\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Web.Abstractions" />
+    <Reference Include="System.Web.Routing" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Web.Services" />
+    <Reference Include="System.EnterpriseServices" />
+    <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <Private>True</Private>
+      <HintPath>..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http">
+    </Reference>
+    <Reference Include="System.Net.Http.WebRequest">
+    </Reference>
+    <Reference Include="Antlr3.Runtime">
+      <Private>True</Private>
+      <HintPath>..\packages\Antlr.3.4.1.9004\lib\Antlr3.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="WebGrease, Version=1.6.5135.21930, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\WebGrease.1.6.0\lib\WebGrease.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="App_Start\BundleConfig.cs" />
+    <Compile Include="App_Start\FilterConfig.cs" />
+    <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="App_Start\Startup.Auth.cs" />
+    <Compile Include="App_Start\WebApiConfig.cs" />
+    <Compile Include="Controllers\AccountController.cs" />
+    <Compile Include="Controllers\AttendanceController.cs" />
+    <Compile Include="Controllers\FileController.cs" />
+    <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\OrganizationController.cs" />
+    <Compile Include="Controllers\ProjectController.cs" />
+    <Compile Include="Controllers\RequestBillController.cs" />
+    <Compile Include="Controllers\SettingController.cs" />
+    <Compile Include="Controllers\StatisticController.cs" />
+    <Compile Include="Controllers\WeatherController.cs" />
+    <Compile Include="Controllers\WebApi\AccountApiController.cs" />
+    <Compile Include="Controllers\WebApi\MenuApiController.cs" />
+    <Compile Include="Controllers\WebApi\RecordApiController.cs" />
+    <Compile Include="Controllers\WorkTimeController.cs" />
+    <Compile Include="Global.asax.cs">
+      <DependentUpon>Global.asax</DependentUpon>
+    </Compile>
+    <Compile Include="Models\ResultData.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Startup.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Content\font-awesome.css" />
+    <Content Include="Content\font-awesome.min.css" />
+    <Content Include="Content\fonts\fontawesome-webfont.svg" />
+    <Content Include="Content\icons\ccsq-print.png" />
+    <Content Include="Content\icons\ccsq.png" />
+    <Content Include="Content\icons\cloud.png" />
+    <Content Include="Content\icons\date.png" />
+    <Content Include="Content\icons\departmentManage.png" />
+    <Content Include="Content\icons\dictionary.png" />
+    <Content Include="Content\icons\favicon.ico" />
+    <Content Include="Content\icons\favicon_base.ico" />
+    <Content Include="Content\icons\festival.png" />
+    <Content Include="Content\icons\hyjy.png" />
+    <Content Include="Content\icons\IE.png" />
+    <Content Include="Content\icons\kqyc-print.png" />
+    <Content Include="Content\icons\kqyc.png" />
+    <Content Include="Content\icons\laborCost.png" />
+    <Content Include="Content\icons\login-images.png" />
+    <Content Include="Content\icons\memberManage.png" />
+    <Content Include="Content\icons\memberManager.png" />
+    <Content Include="Content\icons\memberStataistic.png" />
+    <Content Include="Content\icons\menu-button.png" />
+    <Content Include="Content\icons\menu.png" />
+    <Content Include="Content\icons\messaging.png" />
+    <Content Include="Content\icons\notepad.png" />
+    <Content Include="Content\icons\oStataistic.png" />
+    <Content Include="Content\icons\pjsq-print.png" />
+    <Content Include="Content\icons\positionManage.png" />
+    <Content Include="Content\icons\project-statistic.png" />
+    <Content Include="Content\icons\projectManage.png" />
+    <Content Include="Content\icons\projectStatistic.png" />
+    <Content Include="Content\icons\qjsq.png" />
+    <Content Include="Content\icons\qq.png" />
+    <Content Include="Content\icons\queryRecord.png" />
+    <Content Include="Content\icons\record.png" />
+    <Content Include="Content\icons\recordManage.png" />
+    <Content Include="Content\icons\Settings.png" />
+    <Content Include="Content\icons\statistic.png" />
+    <Content Include="Content\icons\stats.png" />
+    <Content Include="Content\icons\sys-setting.png" />
+    <Content Include="Content\icons\sys-setting1.png" />
+    <Content Include="Content\icons\templete.png" />
+    <Content Include="Content\icons\time.png" />
+    <Content Include="Content\icons\user-manager.png" />
+    <Content Include="Content\icons\Weather.png" />
+    <Content Include="Content\icons\workload.png" />
+    <Content Include="Content\images\appbar.sort.png" />
+    <Content Include="Content\images\arrow.png" />
+    <Content Include="Content\images\bingImage.jpg" />
+    <Content Include="Content\images\Building.png" />
+    <Content Include="Content\images\c5.png" />
+    <Content Include="Content\images\calbutton.png" />
+    <Content Include="Content\images\dictgrouplist.png" />
+    <Content Include="Content\images\direction24.png" />
+    <Content Include="Content\images\direction32.png" />
+    <Content Include="Content\images\disabled_d.png" />
+    <Content Include="Content\images\disabled_d1.png" />
+    <Content Include="Content\images\disabled_l.png" />
+    <Content Include="Content\images\disabled_l1.png" />
+    <Content Include="Content\images\flyingdots.gif" />
+    <Content Include="Content\images\form-info.png" />
+    <Content Include="Content\images\form.png" />
+    <Content Include="Content\images\icon.png" />
+    <Content Include="Content\images\image-button-24.png" />
+    <Content Include="Content\images\image-button-32.png" />
+    <Content Include="Content\images\image-button-ex-24.png" />
+    <Content Include="Content\images\image-button-ex-32.png" />
+    <Content Include="Content\images\input-bg.gif" />
+    <Content Include="Content\images\layer.png" />
+    <Content Include="Content\images\login-logo.png" />
+    <Content Include="Content\images\login-text-shadow.png" />
+    <Content Include="Content\images\loginwt.png" />
+    <Content Include="Content\images\marker.png" />
+    <Content Include="Content\images\mask.png" />
+    <Content Include="Content\images\photo-man.jpg" />
+    <Content Include="Content\images\photo-woman.jpg" />
+    <Content Include="Content\images\pin.png" />
+    <Content Include="Content\images\protrait.png" />
+    <Content Include="Content\images\star.png" />
+    <Content Include="Content\images\up.png" />
+    <Content Include="Content\images\wheel.png" />
+    <Content Include="Content\images\write.png" />
+    <Content Include="Content\Menu.css" />
+    <Content Include="Content\Project.css" />
+    <Content Include="Content\Site.css" />
+    <Content Include="Content\SiteMobile.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Amber.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Blue.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.BlueGray.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Brown.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Carmine.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Cyan.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.DarkRed.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Default.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Golden.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.GrassGreen.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Gray.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Green.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.GreenLight.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Indigo.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Jade.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Light.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Lip.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Olive.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Orange.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Pink.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.PinkPurple.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Purple.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Red.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.Rose.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.SeaBlue.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.SkyBlue.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.SkyLine.css" />
+    <Content Include="Content\themes\metro.color\ui.metro.SpaceGray.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.button.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.button.ex.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.calendar.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.chooser.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.colorPicker.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.contentWindow.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.dateChooser.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.flowView.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.form.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.gridview.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.groupList.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.images.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.list.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.optionList.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.reportView.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.selectionList.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.selectionTree.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.simpleUploader.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.tabPanel.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.tiles.css" />
+    <Content Include="Content\themes\metro.dark\ui.dark.tools.css" />
+    <Content Include="Content\themes\metro.dark\ui.Site.metro.Dark.css" />
+    <Content Include="Content\themes\metro\ui.metro.button.32.css" />
+    <Content Include="Content\themes\metro\ui.metro.button.css" />
+    <Content Include="Content\themes\metro\ui.metro.button.ex.32.css" />
+    <Content Include="Content\themes\metro\ui.metro.button.ex.css" />
+    <Content Include="Content\themes\metro\ui.metro.calendar.css" />
+    <Content Include="Content\themes\metro\ui.metro.chooser.css" />
+    <Content Include="Content\themes\metro\ui.metro.colorPicker.css" />
+    <Content Include="Content\themes\metro\ui.metro.contentWindow.css" />
+    <Content Include="Content\themes\metro\ui.metro.dateChooser.css" />
+    <Content Include="Content\themes\metro\ui.metro.flowView.css" />
+    <Content Include="Content\themes\metro\ui.metro.form.css" />
+    <Content Include="Content\themes\metro\ui.metro.gridview.css" />
+    <Content Include="Content\themes\metro\ui.metro.groupList.css" />
+    <Content Include="Content\themes\metro\ui.metro.images.css" />
+    <Content Include="Content\themes\metro\ui.metro.list.css" />
+    <Content Include="Content\themes\metro\ui.metro.navigation.css" />
+    <Content Include="Content\themes\metro\ui.metro.optionList.css" />
+    <Content Include="Content\themes\metro\ui.metro.reportView.css" />
+    <Content Include="Content\themes\metro\ui.metro.ribbon.css" />
+    <Content Include="Content\themes\metro\ui.metro.selectionList.css" />
+    <Content Include="Content\themes\metro\ui.metro.selectionTree.css" />
+    <Content Include="Content\themes\metro\ui.metro.simpleUploader.css" />
+    <Content Include="Content\themes\metro\ui.metro.tabPanel.css" />
+    <Content Include="Content\themes\metro\ui.metro.tiles.css" />
+    <Content Include="Content\themes\metro\ui.metro.tools.css" />
+    <Content Include="Content\themes\metro\ui.metro.uploader.css" />
+    <Content Include="Content\weather\0.jpg" />
+    <Content Include="Content\weather\1.jpg" />
+    <Content Include="Content\weather\10.jpg" />
+    <Content Include="Content\weather\11.jpg" />
+    <Content Include="Content\weather\12.jpg" />
+    <Content Include="Content\weather\13.jpg" />
+    <Content Include="Content\weather\14.jpg" />
+    <Content Include="Content\weather\15.jpg" />
+    <Content Include="Content\weather\16.jpg" />
+    <Content Include="Content\weather\17.jpg" />
+    <Content Include="Content\weather\18.jpg" />
+    <Content Include="Content\weather\19.jpg" />
+    <Content Include="Content\weather\2.jpg" />
+    <Content Include="Content\weather\20.jpg" />
+    <Content Include="Content\weather\29.jpg" />
+    <Content Include="Content\weather\3.jpg" />
+    <Content Include="Content\weather\30.jpg" />
+    <Content Include="Content\weather\31.jpg" />
+    <Content Include="Content\weather\4.jpg" />
+    <Content Include="Content\weather\5.jpg" />
+    <Content Include="Content\weather\6.jpg" />
+    <Content Include="Content\weather\7.jpg" />
+    <Content Include="Content\weather\70.jpg" />
+    <Content Include="Content\weather\8.jpg" />
+    <Content Include="Content\weather\9.jpg" />
+    <Content Include="Content\weather\99.jpg" />
+    <Content Include="Content\weather\N0.jpg" />
+    <Content Include="Content\weather\N1.jpg" />
+    <Content Include="Content\weather\N10.jpg" />
+    <Content Include="Content\weather\N11.jpg" />
+    <Content Include="Content\weather\N12.jpg" />
+    <Content Include="Content\weather\N13.jpg" />
+    <Content Include="Content\weather\N14.jpg" />
+    <Content Include="Content\weather\N15.jpg" />
+    <Content Include="Content\weather\N16.jpg" />
+    <Content Include="Content\weather\N17.jpg" />
+    <Content Include="Content\weather\N18.jpg" />
+    <Content Include="Content\weather\N19.jpg" />
+    <Content Include="Content\weather\N2.jpg" />
+    <Content Include="Content\weather\N20.jpg" />
+    <Content Include="Content\weather\N29.jpg" />
+    <Content Include="Content\weather\N3.jpg" />
+    <Content Include="Content\weather\N30.jpg" />
+    <Content Include="Content\weather\N31.jpg" />
+    <Content Include="Content\weather\N4.jpg" />
+    <Content Include="Content\weather\N5.jpg" />
+    <Content Include="Content\weather\N6.jpg" />
+    <Content Include="Content\weather\N7.jpg" />
+    <Content Include="Content\weather\N70.jpg" />
+    <Content Include="Content\weather\N8.jpg" />
+    <Content Include="Content\weather\N9.jpg" />
+    <Content Include="Content\weather\N99.jpg" />
+    <Content Include="favicon.ico" />
+    <Content Include="fonts\glyphicons-halflings-regular.svg" />
+    <Content Include="Global.asax" />
+    <Content Include="Content\fonts\fontawesome-webfont.eot" />
+    <Content Include="Content\fonts\fontawesome-webfont.ttf" />
+    <Content Include="Content\fonts\fontawesome-webfont.woff" />
+    <Content Include="Content\fonts\fontawesome-webfont.woff2" />
+    <Content Include="Content\fonts\FontAwesome.otf" />
+    <None Include="Properties\PublishProfiles\TeamWork.pubxml" />
+    <None Include="Properties\PublishProfiles\worktime - FTP.pubxml" />
+    <None Include="Properties\PublishProfiles\worktime - Web Deploy.pubxml" />
+    <Content Include="Scripts\jquery-1.11.3.js" />
+    <Content Include="Scripts\jquery-1.11.3.min.js" />
+    <Content Include="Scripts\jquery-2.1.4.js" />
+    <Content Include="Scripts\jquery-2.1.4.min.js" />
+    <None Include="Scripts\jquery.validate-vsdoc.js" />
+    <Content Include="Scripts\jquery.validate.js" />
+    <Content Include="Scripts\jquery.validate.min.js" />
+    <Content Include="Scripts\jquery.validate.unobtrusive.js" />
+    <Content Include="Scripts\jquery.validate.unobtrusive.min.js" />
+    <Content Include="Scripts\Page\cav.js" />
+    <Content Include="Scripts\Page\ui.masterpage.js" />
+    <Content Include="Scripts\Page\ui.messagebox.js" />
+    <Content Include="Scripts\UI\Highcharts\adapters\standalone-framework.js" />
+    <Content Include="Scripts\UI\Highcharts\adapters\standalone-framework.src.js" />
+    <Content Include="Scripts\UI\Highcharts\highcharts-3d.js" />
+    <Content Include="Scripts\UI\Highcharts\highcharts-3d.src.js" />
+    <Content Include="Scripts\UI\Highcharts\highcharts-more.js" />
+    <Content Include="Scripts\UI\Highcharts\highcharts-more.src.js" />
+    <Content Include="Scripts\UI\Highcharts\highcharts.js" />
+    <Content Include="Scripts\UI\Highcharts\highcharts.src.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\broken-axis.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\broken-axis.src.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\canvas-tools.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\canvas-tools.src.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\data.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\data.src.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\drilldown.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\drilldown.src.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\exporting.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\exporting.src.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\funnel.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\funnel.src.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\heatmap.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\heatmap.src.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\no-data-to-display.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\no-data-to-display.src.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\solid-gauge.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\solid-gauge.src.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\treemap.js" />
+    <Content Include="Scripts\UI\Highcharts\modules\treemap.src.js" />
+    <Content Include="Scripts\UI\Highcharts\themes\dark-blue.js" />
+    <Content Include="Scripts\UI\Highcharts\themes\dark-green.js" />
+    <Content Include="Scripts\UI\Highcharts\themes\dark-unica.js" />
+    <Content Include="Scripts\UI\Highcharts\themes\gray.js" />
+    <Content Include="Scripts\UI\Highcharts\themes\grid-light.js" />
+    <Content Include="Scripts\UI\Highcharts\themes\grid.js" />
+    <Content Include="Scripts\UI\Highcharts\themes\metro-dark.js" />
+    <Content Include="Scripts\UI\Highcharts\themes\metro.js" />
+    <Content Include="Scripts\UI\Highcharts\themes\sand-signika.js" />
+    <Content Include="Scripts\UI\Highcharts\themes\skies.js" />
+    <Content Include="Scripts\UI\ui.calendar.js" />
+    <Content Include="Scripts\UI\ui.chooser.js" />
+    <Content Include="Scripts\UI\ui.color.js" />
+    <Content Include="Scripts\UI\ui.colorPicker.js" />
+    <Content Include="Scripts\UI\ui.columnStyle.js" />
+    <Content Include="Scripts\UI\ui.contentWindow.js" />
+    <Content Include="Scripts\UI\ui.core.js" />
+    <Content Include="Scripts\UI\ui.dateChooser.js" />
+    <Content Include="Scripts\UI\ui.effect.js" />
+    <Content Include="Scripts\UI\ui.flowView.js" />
+    <Content Include="Scripts\UI\ui.form.js" />
+    <Content Include="Scripts\UI\ui.gridview.js" />
+    <Content Include="Scripts\UI\ui.groupList.js" />
+    <Content Include="Scripts\UI\ui.images.js" />
+    <Content Include="Scripts\UI\ui.list.js" />
+    <Content Include="Scripts\UI\ui.optionList.js" />
+    <Content Include="Scripts\UI\ui.reportView.js" />
+    <Content Include="Scripts\UI\ui.selectionList.js" />
+    <Content Include="Scripts\UI\ui.selectionTree.js" />
+    <Content Include="Scripts\UI\ui.simpleUploader.js" />
+    <Content Include="Scripts\UI\ui.tabPanel.js" />
+    <Content Include="Scripts\UI\ui.tiles.js" />
+    <Content Include="Scripts\UI\ui.tools.js" />
+    <Content Include="Scripts\UI\ui.validate.js" />
+    <Content Include="Scripts\UI\Uploader\FileUploader.xap" />
+    <Content Include="Scripts\UI\Uploader\ui.uploader - 复制.js" />
+    <Content Include="Scripts\UI\Uploader\ui.uploader.js" />
+    <Content Include="Web.config">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Web.Debug.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </Content>
+    <Content Include="Web.Release.config">
+      <DependentUpon>Web.config</DependentUpon>
+    </Content>
+    <Content Include="Views\Web.config" />
+    <Content Include="Views\_ViewStart.cshtml" />
+    <Content Include="Views\Shared\Building.cshtml" />
+    <Content Include="Views\Shared\Error.cshtml" />
+    <Content Include="Views\Shared\FileUploadResult.cshtml" />
+    <Content Include="Views\Shared\_Layout.cshtml" />
+    <Content Include="Views\Shared\_MenuPartial.cshtml" />
+    <Content Include="Views\Account\ChangePassword.cshtml" />
+    <Content Include="Views\Account\Login.cshtml" />
+    <Content Include="Views\Account\UserManage.cshtml" />
+    <Content Include="Views\Home\Index.cshtml" />
+    <Content Include="Views\Setting\DictionarySetting.cshtml" />
+    <Content Include="Views\Setting\LoginImageSetting.cshtml" />
+    <Content Include="Views\Setting\MenuSetting.cshtml" />
+    <Content Include="Views\WorkTime\Record.cshtml" />
+    <Content Include="Views\Project\Manage.cshtml" />
+    <Content Include="Views\Organization\DepartmentManage.cshtml" />
+    <Content Include="Views\Organization\OrganizationManage.cshtml" />
+    <Content Include="Views\Organization\PositionManage.cshtml" />
+    <Content Include="Views\Setting\FestivalSetting.cshtml" />
+    <Content Include="Views\WorkTime\QueryRecord.cshtml" />
+    <Content Include="Views\WorkTime\RecordManage.cshtml" />
+    <Content Include="Views\Shared\_LayoutMobile.cshtml" />
+    <Content Include="Views\Project\LaborCostManage.cshtml" />
+    <Content Include="Views\Project\TempleteManage.cshtml" />
+    <Content Include="Views\Statistic\RecordStatistic.cshtml" />
+    <Content Include="Views\WorkTime\RecordMobile.cshtml" />
+    <Content Include="Views\Home\IndexMobile.cshtml" />
+    <Content Include="Views\Account\LoginMobile.cshtml" />
+    <Content Include="Views\Statistic\ProjectStatistic.cshtml" />
+    <Content Include="Views\Statistic\EmployeeStatistic.cshtml" />
+    <Content Include="Views\Statistic\ProjectDetailStatistic.cshtml" />
+    <Content Include="Views\Statistic\EmployeeDetailStatistic.cshtml" />
+    <Content Include="Views\Project\ProjectMeetingContent.cshtml" />
+    <Content Include="Views\Attendance\Attended.cshtml" />
+    <Content Include="Views\Statistic\WorkloadStatistic.cshtml" />
+    <Content Include="Views\Statistic\WorkloadForWeekStatistic.cshtml" />
+    <Content Include="Views\Statistic\WorkloadForDayStatistic.cshtml" />
+    <Content Include="Views\Account\Information.cshtml" />
+    <Content Include="Views\RequestBill\Leave.cshtml" />
+    <Content Include="Views\Shared\_LayoutPrint.cshtml" />
+    <Content Include="Views\RequestBill\LeavePrint.cshtml" />
+    <Content Include="Views\Setting\Menu.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="App_Data\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="fonts\glyphicons-halflings-regular.woff" />
+    <Content Include="fonts\glyphicons-halflings-regular.ttf" />
+    <Content Include="fonts\glyphicons-halflings-regular.eot" />
+    <Content Include="packages.config">
+      <SubType>Designer</SubType>
+    </Content>
+    <None Include="Project_Readme.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TeamWork.BLL\TeamWork.BLL.csproj">
+      <Project>{24de2276-a1c9-488b-b579-3b579f7d45e1}</Project>
+      <Name>TeamWork.BLL</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TeamWork.DAL\TeamWork.DAL.csproj">
+      <Project>{df9555f8-f466-4c8a-b9e2-6c943e6cbb4f}</Project>
+      <Name>TeamWork.DAL</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
+  <Target Name="MvcBuildViews" AfterTargets="AfterBuild" Condition="'$(MvcBuildViews)'=='true'">
+    <AspNetCompiler VirtualPath="temp" PhysicalPath="$(WebProjectOutputDir)" />
+  </Target>
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>True</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>17948</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>http://localhost:17948/</IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>False</UseCustomServer>
+          <CustomServerUrl>
+          </CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target> -->
+</Project>

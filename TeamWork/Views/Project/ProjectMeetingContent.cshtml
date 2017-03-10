@@ -1,0 +1,512 @@
+﻿@{
+    ViewBag.Title = "项目会议纪要";
+}
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "contentWindow",
+        "selectionTree",
+        "list",
+        "groupList",
+        "form",
+        "dateChooser",
+        "validate",
+        "simpleUploader"
+    )
+}
+@section scriptsHead{
+}
+@section styles {
+    <style type="text/css">
+        #meetingForm input, textarea {
+            width: 280px;
+        }
+
+        table th {
+            width: 80px;
+            font-weight: normal;
+            text-align: right;
+            padding-right: 10px;
+        }
+
+        .content-text {
+            width:618px; 
+            height:100px; 
+            margin-top:5px; 
+            border:solid 1px #DCDCDC; 
+            background-color:#FFFFFF;
+            overflow:auto;
+        }
+    </style>
+}
+
+<div class="toolbar">
+    <ul class="tools" style="float:right;">
+        <li>
+            <span>项目名称</span>
+            <input id="sltProjectId" type="text" class="select-text" />
+            <input id="hidProjectId" type="hidden" />
+        </li>
+        <li>
+            <input id="sltIsSelf" type="checkbox" value="1" checked="checked" />
+            <label for="sltIsSelf">与我相关</label>
+        </li>
+        <li>
+            <button id="queryBtn" class="tool-button button-highlight">查询</button>
+            <button id="addBtn" class="tool-button">添加</button>
+        </li>
+    </ul>
+</div>
+<div id="mainPanel" style="position:relative; height:100%;">
+    <div id="meetingGrid" class="grid-view"></div>
+    <div id="meetingData">
+        <form id="meetingForm">
+            <table>
+                <tr>
+                    <th>
+                        <span>所属项目</span>
+                    </th>
+                    <td>
+                        <input id="sltProjectName" type="text" class="select-text" />
+                        <input id="hidProjectName" type="hidden" />
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>开会时间</span>
+                    </th>
+                    <td>
+                        <input id="startTime" type="text" class="date-text" />
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>议题</span>
+                    </th>
+                    <td>
+                        <input id="txtContent" type="text" />
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>参与人员</span>
+                    </th>
+                    <td>
+                        <a id="addEmployee" href="javascript:void(0)" class="button-add" style="margin-right: 5px;" title="添加"></a>
+                        <a id="removeEmployee" href="javascript:void(0)" class="button-minus" style="margin-right: 5px;" title="移除"></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th></th>
+                    <td>
+                        <div id="projectMeetingList" class="content-text" style="height: 150px;"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>结论</span>
+                    </th>
+                    <td>
+                        <textarea id="txtResult" style="width:620px; height:400px;"></textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>附件</span>
+                    </th>
+                    <td>
+                        <a id="uploadAcces" href="javascript:void(0)" class="image-button button-upload" style="margin-right: 5px;" title="添加"></a>
+                        <a id="removeAcces" href="javascript:void(0)" class="image-button button-minus" style="margin-right: 5px;" title="移除"></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th></th>
+                    <td>
+                        <div id="txtAcces" class="content-text"></div>
+                    </td>
+                </tr>
+               
+            </table>
+        </form>
+        <button id="saveBtn" class="button background-highlight">保存</button>
+        <button id="cancelBtn" class="button">取消</button>
+    </div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        @JavascriptCodeHelper.JsonStatement("projectsData", ViewBag.Projects)
+        @JavascriptCodeHelper.JsonStatement("empList", ViewBag.AllEmployees)
+        ; (function () {
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        var meetingContentWindow = pageLogic.meetingContentWindow =
+                            $("#meetingData").putWindow({
+                                show: "up",
+                                hide: "down",
+                                done: "up",
+                                title: "会议纪要",
+                                width: 800,
+                                height: 600,
+                                isRespond: true,
+                                resizeable: false,
+                                draggable: true
+                            });
+                        meetingContentWindow
+                            .buttonAppend("saveBtn")
+                            .buttonAppend("cancelBtn");
+
+                        //列表
+                        var gridOption = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "ProjectName", text: "项目名称", len: 200 },
+                                { column: "StageName", text: "项目阶段", len: 100 },
+                                { column: "Content", text: "议题", len: 200 },
+                                { column: "StartTime", text: "会议时间", len: 150, handler: ui.ColumnStyle.cfn.formatDateTime },
+                                { column: "EmployeeName", text: "参与人员", len: 200 },
+                                { column: "Result", text: "结论", len: 300 },
+                                { column: "Url", text: "附件", len: 300, handler: ui.ColumnStyle.cfn.formatParagraph },
+                                { column: "", text: "", len: 130 },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "input[type='checkbox']",
+                                multiple: false
+                            },
+                            pager: {
+                                pageIndex: 1,
+                                pageSize: 100
+                            }
+                        };
+                        var meetingGrid = pageLogic.meetingGrid = $("#meetingGrid").setGridview(gridOption);
+                        meetingGrid.selected(function (e, elem, data) {
+                            pageLogic.clearFormData();
+                            var item = data.rowData;
+                            pageLogic.projectTree.setCurrentSelection(item.ProjectId);
+                            $("#sltProjectName").prop("disabled", true);
+                            var date = ui.str.jsonToDate(item.StartTime);
+                            date = ui.str.dateFormat(date, "yyyy-MM-dd");
+                            $("#startTime").val(date);
+                            $("#txtContent").val(item.Content);
+                            $("#txtResult").text(item.Result);
+                            pageLogic.empTree.setMultipleSelection(item.EmployeeId.toString());
+                            pageLogic.currentMeetingId = item.MeetingId;
+                            var filePath, list = [], fileName;
+                            if (item.Url != null) {
+                                for (var i = 0; i < item.Url.length; i++) {
+                                    filePath = item.Url[i];
+                                    if (ui.str.isNullOrEmpty(filePath)) {
+                                        continue;
+                                    }
+                                    list = filePath.split("/");
+                                    fileName = list[list.length - 1];
+                                    pageLogic.accessDataList.push(filePath);
+                                    pageLogic.accessList.add(fileName);
+                                }
+                            }
+                            
+                            pageLogic.meetingContentWindow.show();
+                        });
+                        meetingGrid.deselected(function () {
+                        });
+                    },
+
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40;
+                            $("#mainPanel").css("height", height - 40 + "px");
+                            pageLogic.meetingGrid.setHeight(height);
+                        });
+                    },
+
+                    afterCtrls: function () {
+                        $("#sltIsSelf").metroCheckbox();
+                        pageLogic.projectNameTree = $("#sltProjectId").setSelectTree({
+                            width: 203,
+                            valueField: "ProjectId",
+                            textField: "ProjectName",
+                            parentField: "ParentId",
+                            defaultOpen: true,
+                            data: projectsData
+                        });
+                        pageLogic.projectNameTree.selected(function (e, elem, treeData) {
+                            this.element.val(treeData.data.ProjectName);
+                            $("#hidProjectId").val(treeData.data.ProjectId);
+                        });
+                        pageLogic.projectNameTree.canceled(function (e) {
+                            this.element.val("");
+                            $("#hidProjectId").val("");
+                        });
+
+                        pageLogic.projectTree = $("#sltProjectName").setSelectTree({
+                            width: 203,
+                            valueField: "ProjectId",
+                            textField: "ProjectName",
+                            parentField: "ParentId",
+                            defaultOpen: true,
+                            data: projectsData
+                        });
+                        pageLogic.projectTree.selected(function (e, elem, treeData) {
+                            this.element.val(treeData.data.ProjectName);
+                            $("#hidProjectName").val(treeData.data.ProjectId);
+                        });
+                        pageLogic.projectTree.canceled(function (e) {
+                            this.element.val("");
+                            $("#hidProjectName").val("");
+                        });
+
+                        pageLogic.projectMeetingList = $("#projectMeetingList").setGroupList({
+                            width: 240,
+                            multiple: false,
+                            groupField: "DepartmentName",
+                            h1Field: "RealName",
+                            h2Field: "PositionName",
+                            data: null
+                        });
+
+                        pageLogic.empTree = $("#addEmployee").setSelectTree({
+                            multiple: true,
+                            width: 236,
+                            valueField: "EmployeeId",
+                            textField: "RealName",
+                            childField: "children",
+                            data: groupList(empList, "Deparetment", function (item) {
+                                return {
+                                    EmployeeId: item.Department,
+                                    RealName: item.DepartmentName
+                                };
+                            }),
+                            defaultOpen: true
+                        });
+                        pageLogic.empTree.selected(function (e, elem, treeData) {
+                            pageLogic.projectMeetingList.setData(this.getMultipleSelection());
+                        });
+                        
+                        pageLogic.accessList = $("#txtAcces").setList({
+                            width: 240,
+                            valueField: "FilePath",
+                            textField: "FileName"
+                        });
+
+                        $("#startTime").dateChooser();
+
+                        var dataList = pageLogic.accessDataList = [];
+                        var uploader = $("#uploadAcces").setSimpleUploader({
+                            url: "/File/MenuIconUpload",
+                            filter: "*.*"
+                        });
+                        uploader.uploaded(function (e, fileInfo) {
+                            pageLogic.accessDataList.push(fileInfo.FilePath);
+                            pageLogic.accessList.add(fileInfo);
+                        });
+                        uploader.error(function (e, errorMsg) {
+                            ui.msgshow(errorMsg, true);
+                        });
+                    },
+
+                    events: function () {
+                        $("#queryBtn").click(function (e) {
+                            pageLogic.meetingGrid.pageIndex = 1;
+                            pageLogic.loadProjectMeetingDatas();
+                        });
+                        $("#addBtn").click(function (e) {
+                            pageLogic.clearFormData();
+                            $("#sltProjectName").prop("disabled", false);
+                            pageLogic.currentMeetingId = null;
+                            pageLogic.meetingContentWindow.show();
+                        });
+
+                        $("#saveBtn").click(function (e) {
+                            pageLogic.saveMeetingData();
+                        });
+                        $("#cancelBtn").click(function (e) {
+                            pageLogic.meetingContentWindow.hide();
+                        });
+
+                        $("#removeEmployee").click(function (e) {
+                            var removeItem = pageLogic.projectMeetingList.getCurrentSelection(),
+                                data = [],
+                                i, j, flag;
+                            if (removeItem) {
+                                for (i = 0; i < pageLogic.projectMeetingList.data.length; i++) {
+                                    if (removeItem.index == i) {
+                                        continue;
+                                    }
+                                    data.push(pageLogic.projectMeetingList.data[i]);
+                                }
+                                if (data.length > 0) {
+                                    pageLogic.empTree.setMultipleSelection(data);
+                                } else {
+                                    pageLogic.projectMeetingList.empty();
+                                    pageLogic.empTree.cancelSelection();
+                                }
+                            }
+                        });
+
+                        $("#removeAcces").click(function (e) {
+                            var removeItem = pageLogic.accessList.getSelection();
+                            if (removeItem) {
+                                pageLogic.accessList.removeAt(removeItem.index);
+                            }
+                        });
+                    },
+                    datas: function () {
+                        pageLogic.loadProjectMeetingDatas();
+                    }
+                },
+
+                clearFormData: function() {
+                    $("#meetingForm")[0].reset();
+                    pageLogic.projectTree.cancelSelection();
+                    pageLogic.projectMeetingList.empty();
+                    pageLogic.empTree.cancelSelection();
+                    pageLogic.accessList.clear();
+                    pageLogic.accessDataList = [];
+                },
+
+                loadProjectMeetingDatas: function () {
+                    var projectId = $("#hidProjectId").val();
+                    var check = $("#sltIsSelf").prop("checked");
+                    var isSelf = "0";
+                    if (check == true) {
+                        isSelf = "1";
+                    }
+                    var data = {
+                        projectId: projectId,
+                        isSelf: isSelf,
+                        pageIndex: pageLogic.meetingGrid.pageIndex,
+                        pageSize: pageLogic.meetingGrid.pageSize
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Project/QueryProjectMeetingDatas",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success) {
+                                var list = success.Result;
+                                var nameStr = "";
+                                var i, item, map = {};
+                                var j, emp, flag = false;
+                                for (i = 0; i < list.length; i++) {
+                                    item = list[i];
+                                    if (!map.hasOwnProperty(item.MeetingId)) {
+                                        map[item.MeetingId] = {
+                                            MeetingId: item.MeetingId,
+                                            ProjectId: item.ProjectId,
+                                            ProjectName: item.ProjectName,
+                                            StageId: item.StageId,
+                                            StageName: item.StageName,
+                                            Content: item.Content,
+                                            Result: item.Result,
+                                            CreateUser: item.CreateUser,
+                                            StartTime: item.StartTime,
+                                            EmployeeId: [item.EmployeeId],
+                                            EmployeeName: item.EmployeeName,
+                                            Url: [item.Url]
+                                        };
+                                    } else {
+                                        flag = false;
+                                        for (j = 0; j < map[item.MeetingId].EmployeeId.length; j++) {
+                                            emp = map[item.MeetingId].EmployeeId[j];
+                                            if (item.EmployeeId === emp) {
+                                                flag = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!flag) {
+                                            map[item.MeetingId].EmployeeId.push(item.EmployeeId);
+                                            map[item.MeetingId].EmployeeName = map[item.MeetingId].EmployeeName + "," + item.EmployeeName;
+                                        }
+                                        map[item.MeetingId].Url.push(item.Url);
+                                    }
+                                }
+                                var gridList = [];
+                                for (var k in map) {
+                                    gridList.push(map[k]);
+                                }
+                                pageLogic.meetingGrid.createGridBody(gridList, gridList.length);
+                            } else {
+                                pageLogic.meetingGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载项目信息失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                saveMeetingData: function () {
+                    var list = pageLogic.empTree.getMultipleSelection();
+                    var empGuidList = [], empNameList = [];
+                    var i, emp;
+                    for (i = 0; i < list.length; i++) {
+                        emp = list[i];
+                        empGuidList.push(emp.EmployeeId);
+                        empNameList.push(emp.RealName);
+                    }
+                    var data = {
+                        ProjectId: $("#hidProjectName").val(),
+                        Content: $("#txtContent").val(),
+                        StartTime: $("#startTime").val(),
+                        empGuidList: empGuidList,
+                        empNameList: empNameList,
+                        Result: $("#txtResult").val(),
+                        AccesList: []
+                    };
+                    if (pageLogic.accessDataList != null || pageLogic.accessDataList.length > 0){
+                        data.AccesList = pageLogic.accessDataList;
+                    }
+                    
+                    if (!ui.str.isNullOrEmpty(pageLogic.currentMeetingId)) {
+                        data["MeetingId"] = pageLogic.currentMeetingId;
+                    }
+                    ui.ajax.ajaxPost(
+                        "/Project/SaveProjectMeetingDatas",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success) {
+                                ui.msgshow("保存会议纪要成功");
+                                pageLogic.meetingContentWindow.hide();
+                                pageLogic.loadProjectMeetingDatas();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载项目信息失败，" + error.message, true);
+                        }
+                    );
+                }
+
+            };
+
+            var groupList = function (list, group, groupItemAction) {
+                var data = [];
+                if (!$.isArray(list)) {
+                    return data;
+                }
+                if (!$.isFunction(groupItemAction)) {
+                    groupItemAction = ui.core.noop;
+                }
+                var temp = {};
+                var i, j, item;
+                for (i = 0; i < list.length; i++) {
+                    item = list[i];
+                    if (!temp.hasOwnProperty(item[group])) {
+                        temp[item[group]] = groupItemAction(item);
+                        temp[item[group]].children = [];
+                    }
+                    temp[item[group]].children.push(item);
+                }
+                for (var key in temp) {
+                    data.push(temp[key]);
+                }
+                return data;
+            };
+
+        })();
+    </script>
+}

@@ -1,0 +1,296 @@
+﻿@using TeamWork.BLL.Models
+@{
+    ViewBag.Title = "请假单打印";
+    Layout = "~/Views/Shared/_LayoutPrint.cshtml";
+
+    List<LeaveBillModel> bills = (List<LeaveBillModel>)ViewBag.PrintBills;
+}
+
+@section scriptslink {
+    @this.RegisterCtrls()
+}
+
+@section styles {
+    <style type="text/css">
+        .bill-title {
+            font-size: 20px;
+            text-align:center;
+            padding: 0px;
+            margin: 0px;
+            font-weight: bold;
+            height: 56px;
+            line-height: 56px;
+        }
+
+        .bill-table {
+            width: 593px;
+            margin-top: 1px;
+            margin-bottom: 1px;
+            margin-left: auto;
+            margin-right: auto;
+            table-layout: fixed;
+            border-top: solid 1px #000000;
+            border-left: solid 1px #000000;
+            font-size: 13px;
+        }
+
+        .bill-table td, th {
+            height: 39px;
+            text-align: left;
+            line-height: 39px;
+            font-weight: normal;
+            border-right: solid 1px #000000;
+            border-bottom: solid 1px #000000;
+        }
+
+        .bill-table th {
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .bill-table td span,
+        .bill-table th span {
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+
+        .bill-table td p {
+            padding-left: 5px;
+            padding-right: 5px;
+            height: 80px;
+        }
+
+        .bill-footer {
+            font-size: 12px;
+            height: 24px;
+            line-height: 24px;
+            padding-left: 1px;
+        }
+
+        .margin-top-bottom {
+            width: 715px;
+            height: 60px;
+            background-color: #FFFFFF;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+            overflow: visible;
+        }
+
+        .paper-panel {
+            width: 100%;
+            height: 980px;
+            top: 60px;
+            position: absolute;
+            background-color: #FFFFFF;
+        }
+    </style>
+}
+
+<div style="position:absolute;"></div>
+
+@if (bills != null)
+{
+    int count = bills.Count;
+    LeaveBillModel bill = null;
+    for (int i = 0; i < count; i++)
+    {
+        bill = bills[i];
+        i++;
+    <div class="noprint margin-top-bottom">
+        <div class="paper-panel"></div>
+    </div>
+    <div class="print-paper">
+        <h2 class="bill-title">请&nbsp;假&nbsp;申&nbsp;请&nbsp;单</h2>
+        <table class="bill-table" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+                <td colspan="4" style="text-align:right">
+                    <span>申请时间：</span>
+                    <span>@(bill.CreateTime.ToString("yyyy年MM月dd日"))</span>
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    <span>
+                        部门
+                    </span>
+                </th>
+                <td>
+                    <span>@bill.DepartmentName</span>
+                </td>
+                <th>
+                    <span>姓名</span>
+                </th>
+                <td>
+                    <span>@bill.EmployeeName</span>
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    <span>请假假种</span>
+                </th>
+                <td colspan="3">
+                    <span>@bill.LeaveTypeName</span>
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    <span>请假时间</span>
+                </th>
+                <td colspan="3">
+                    <span>@bill.LeaveStart.ToString("MM月dd日HH时mm分")</span>
+                    <span>至</span>
+                    <span>@bill.LeaveEnd.ToString("MM月dd日HH时mm分")</span>
+                    <span>其中工作日</span>
+                    <span>@bill.WorkDayCount</span>
+                    <span>天</span>
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    <span>请假事由</span>
+                </th>
+                <td colspan="3">
+                    <p>@bill.LeaveReason</p>
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    <span>项目经理签字</span>
+                </th>
+                <td></td>
+                <th>
+                    <span>时间</span>
+                </th>
+                <td></td>
+            </tr>
+            <tr>
+                <th>
+                    <span>部门经理签字</span>
+                </th>
+                <td></td>
+                <th>
+                    <span>时间</span>
+                </th>
+                <td></td>
+            </tr>
+            <tr>
+                <th style="line-height:1.2em">
+                    <span>总经理签字</span>
+                    <br />
+                    <span>（三天以上）</span>
+                </th>
+                <td></td>
+                <th>
+                    <span>时间</span>
+                </th>
+                <td></td>
+            </tr>
+        </table>
+        <div class="bill-footer">
+            <span>备注：此单提交综合管理部留存。</span>
+        </div>
+
+        @if (i < count)
+        {
+            bill = bills[i];
+
+            <h2 class="bill-title" style="margin-top:56px;">请&nbsp;假&nbsp;申&nbsp;请&nbsp;单</h2>
+            <table class="bill-table" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td colspan="4" style="text-align:right">
+                        <span>申请时间：</span>
+                        <span>@(bill.CreateTime.ToString("yyyy年MM月dd日"))</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>
+                            部门
+                        </span>
+                    </th>
+                    <td>
+                        <span>@bill.DepartmentName</span>
+                    </td>
+                    <th>
+                        <span>姓名</span>
+                    </th>
+                    <td>
+                        <span>@bill.EmployeeName</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>请假假种</span>
+                    </th>
+                    <td colspan="3">
+                        <span>@bill.LeaveTypeName</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>请假时间</span>
+                    </th>
+                    <td colspan="3">
+                        <span>@bill.LeaveStart.ToString("MM月dd日HH时mm分")</span>
+                        <span>至</span>
+                        <span>@bill.LeaveEnd.ToString("MM月dd日HH时mm分")</span>
+                        <span>其中工作日</span>
+                        <span>@bill.WorkDayCount</span>
+                        <span>天</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>请假事由</span>
+                    </th>
+                    <td colspan="3">
+                        <p>@bill.LeaveReason</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>项目经理签字</span>
+                    </th>
+                    <td></td>
+                    <th>
+                        <span>时间</span>
+                    </th>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th>
+                        <span>部门经理签字</span>
+                    </th>
+                    <td></td>
+                    <th>
+                        <span>时间</span>
+                    </th>
+                    <td></td>
+                </tr>
+                <tr>
+                    <th style="line-height:1.2em;">
+                        <span>总经理签字</span>
+                        <br />
+                        <span>（三天以上）</span>
+                    </th>
+                    <td></td>
+                    <th>
+                        <span>时间</span>
+                    </th>
+                    <td></td>
+                </tr>
+            </table>
+            <div class="bill-footer">
+                <span>备注：此单提交综合管理部留存。</span>
+            </div>
+        }
+    </div>
+    <div class="noprint margin-top-bottom"></div>
+        if (i < count - 1)
+        {
+            <div class="noprint next-pager" style="width:100%;height:48px;"></div>
+        }
+    }
+}
+

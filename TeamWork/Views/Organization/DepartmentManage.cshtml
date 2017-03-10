@@ -1,0 +1,299 @@
+﻿
+@{
+    ViewBag.Title = "部门管理";
+}
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "form",
+        "validate"
+    )
+}
+
+@section scriptsHead{
+}
+
+@section styles {
+    <style type="text/css">
+        form input[type='text'] {
+            width: 188px;
+        }
+
+        form select {
+            width: 188px;
+        }
+
+        form textarea {
+            width: 188px;
+            height: 84px;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul class="tools" style="float:right;">
+        <li>
+            <label>部门名称:</label>
+            <input id="queryDeptName" type="text" />
+        </li>
+        <li>
+            <label>所属机构:</label>
+            <input id="queryOrgName" type="text" />
+        </li>
+        <li>
+            <button id="queryDept" class="tool-button">查询</button>
+        </li>
+        <li>
+            <button id="newDept" class="tool-button button-highlight">新部门</button>
+        </li>
+    </ul>
+    <br style="clear:right;" />
+</div>
+<div id="deptPanel" class="content-panel" style="position:relative;">
+    <div id="deptGrid" class="grid-view"></div>
+    <div id="deptData" class="ctrl-form">
+        <form id="deptForm">
+            <input id="deptId" type="hidden" />
+            <label>部门名称</label><span class="required">*</span>
+            <br />
+            <input id="deptName" name="deptName" type="text" />
+            <br />
+            <label>部门类型</label>
+            <br />
+            <select id="deptType"><option></option></select>
+            <br />
+            <label>上级部门</label>
+            <br />
+            @Html.DropDownList("parentDept", (SelectList)ViewBag.parentDepartments)
+            <br />
+            <label>所属机构</label><span class="required">*</span>
+            <br />
+            @Html.DropDownList("belongOrg", (SelectList)ViewBag.Organizations)
+            <br />
+        </form>
+    </div>
+    <input id="deptSave" type="button" class="button background-highlight" value="保存" />
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        //列表
+                        gridOption = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "DepartmentName", text: "部门名称", len: 120 },
+                                //{ column: "DepartmentType", text: "部门类型", len: 120 },
+                                { column: "ParentName", text: "上级部门", len: 150 },
+                                { column: "OrganizationName", text: "所属机构", len: 200 },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "a",
+                                multiple: false
+                            },
+                            pager: {
+                                pageIndex: 1,
+                                pageSize: 100
+                            }
+                        };
+                        var deptGrid = pageLogic.deptGrid = $("#deptGrid").setGridview(gridOption);
+
+                        pageLogic.deptGrid.selected(function (e, element, data) {
+                            deptManager.onUpdating(data.rowData);
+                        });
+                        pageLogic.deptGrid.deselected(function (e, element, data) {
+                            if (deptManager.isUpdate) {
+                                pageLogic.deptCtrlPanel.hide();
+                            }
+                        });
+                        pageLogic.deptGrid.rebind(function (e) {
+                            pageLogic.deptCtrlPanel.hide();
+                        });
+                        pageLogic.deptGrid.pageTurning(function (e, pageIndex, pageSize) {
+                            pageLogic.getAllDepartments(pageIndex, pageSize);
+                        });
+
+                        //表单面板
+                        var deptCtrlPanel = pageLogic.deptCtrlPanel =
+                        $("#deptData").toCtrlPanel({
+                            parent: $("#deptPanel")
+                        });
+                        deptCtrlPanel.buttonAppend($("#deptSave"));
+                        deptCtrlPanel.hided(function () {
+                            pageLogic.deptGrid.cancelSelection();
+                        });
+                    },
+
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.deptGrid.setHeight(height);
+                            pageLogic.deptCtrlPanel.setSizeLocation();
+                        });
+                    },
+
+                    afterCtrls: function () {
+                        pageLogic.deptValidate = $("#deptForm").setValidate({
+                            rules: {
+                                deptName: { required: true, maxlength: 50 },
+                                belongOrg: { required: true }
+                            }
+                        });
+                    },
+
+                    events: function () {
+                        $("#queryDept").click(function () {
+                            pageLogic.getAllDepartments(1, pageLogic.deptGrid.pageSize);
+                        });
+                        $("#newDept").click($.proxy(deptManager.onAdding, deptManager));
+                        $("#deptSave").click($.proxy(deptManager.onSave, deptManager));
+                    },
+                    loadData: function () {
+                        pageLogic.getAllDepartments();
+                    }
+                },
+
+                //获取所有部门信息
+                getAllDepartments: function (pageIndex, pageSize) {
+                    var param = {
+                        departmentName: $("#queryDeptName").val() || null,
+                        organizationName: $("#queryOrgName").val() || null,
+                        pageIndex: pageIndex || 1,
+                        pageSize: pageSize || pageLogic.deptGrid.pageSize
+                    };
+
+                    ui.ajax.ajaxPost(
+                        "/Organization/GetAllDepartments",
+                        JSON.stringify(param),
+                        function (success) {
+                            if (pageIndex == 1)
+                                pageLogic.deptGrid.pageIndex = pageIndex;
+                            if (success) {
+                                pageLogic.deptGrid.createGridBody(success.Result, success.RowCount);
+                            } else {
+                                pageLogic.deptGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载部门信息失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                //保存部门信息
+                saveDeparement: function (data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "deptSave",
+                        "/Organization/SaveDepartment",
+                        JSON.stringify(data),
+                        function (success) {
+                            caller = caller || pageLogic;
+                            if (success.Result) {
+                                data.DepartmentId = success.ID;
+                                callback.call(caller, data);
+                            } else {
+                                if (success.ErrorMessage) {
+                                    ui.msgshow(success.ErrorMessage);
+                                } else {
+                                    ui.msgshow("没有任何数据改变");
+                                }
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("保存部门失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+            var deptManager = {
+                onAdding: function () {
+                    this.formReset();
+
+                    this.isUpdate = false;
+                    pageLogic.deptGrid.cancelSelection();
+                    pageLogic.deptCtrlPanel.show();
+                },
+
+                onUpdating: function (data) {
+                    this.dataToForm(data);
+
+                    this.isUpdate = true;
+                    pageLogic.deptCtrlPanel.show();
+                },
+
+                onSave: function () {
+                    if (!pageLogic.deptValidate.form()) {
+                        return;
+                    }
+
+                    var data;
+                    var row, callback;
+                    var belongOrg = $("#belongOrg").selectOption(),
+                        parentDept = $("#parentDept").selectOption();
+                    if (this.isUpdate) {
+                        row = pageLogic.deptGrid.getCurrentSelection();
+                        data = ui.obj.clone({}, row.rowData);
+
+                        data.DepartmentId = $("#deptId").val();
+                        data.DepartmentName = $("#deptName").val();
+                        data.DepartmentType = $("#deptType").val();
+                        data.ParentId = parentDept.value;
+                        data.ParentName = parentDept.text;
+                        data.OrganizationId = belongOrg.value;
+                        data.OrganizationName = belongOrg.text;
+
+                        callback = (function (d) {
+                            pageLogic.deptGrid.updateRowByIndex(row.rowIndex, d);
+                            pageLogic.deptGrid.cancelSelection();
+                        });
+                    } else {
+                        data = {
+                            DepartmentId: $("#deptId").val(),
+                            DepartmentName: $("#deptName").val(),
+                            DepartmentType: $("#deptType").val(),
+                            ParentId: parentDept.value,
+                            ParentName: parentDept.text,
+                            OrganizationId: belongOrg.value,
+                            OrganizationName: belongOrg.text
+                        };
+
+                        callback = (function (d) {
+                            pageLogic.deptGrid.insertRow(0, d);
+                            this.formReset();
+                        });
+                    }
+                    
+                    pageLogic.saveDeparement(data, callback, this);
+                },
+
+                formReset: function () {
+                    $("#deptForm")[0].reset();
+                    $("#deptId").val("");
+                    pageLogic.deptValidate.clearErrorStyle();
+                },
+
+                dataToForm: function (data) {
+                    $("#deptForm")[0].reset();
+                    $("#deptId").val(data["DepartmentId"]);
+                    $("#deptName").val(data["DepartmentName"]);
+                    $("#deptType").val(data["DepartmentType"]);
+                    $("#parentDept").val(data["ParentId"]);
+                    $("#belongOrg").val(data["OrganizationId"]);
+                }
+            };
+        })();
+    </script>
+}
+

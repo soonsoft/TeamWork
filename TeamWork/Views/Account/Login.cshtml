@@ -1,0 +1,559 @@
+﻿<!DOCTYPE html>
+@using STIM.Modules.Widget
+@{
+    ViewBag.Title = "系统登录";
+    Layout = null;
+    LoginImage image = ViewData["Image"] as LoginImage;
+    string infoData = "[]";
+    string imageName = String.Empty;
+    if (image != null)
+    {
+        infoData = image.Hotspots;
+        imageName = image.ImageName;
+    }
+}
+<html>
+<head>
+    <meta name="viewport" content="width=pixel_value" />
+    <title>@ViewBag.Title</title>
+    <link href="/Content/Site.css" rel="stylesheet" />
+    <link type="text/css" rel="stylesheet" href="/Content/themes/metro.dark/ui.Site.metro.Dark.css" />
+    <script type="text/javascript" src="/Scripts/jquery-1.11.3.min.js"></script>
+    <script type="text/javascript" src="/Scripts/UI/ui.core.js"></script>
+    <script type="text/javascript" src="/Scripts/Page/ui.messagebox.js"></script>
+    <style type="text/css">
+        html, body {
+            height: 100%;
+        }
+        body {
+            color: #ffffff;
+            background-color: #585858;
+        }
+
+        #loginWindow {
+            position: absolute;
+            background-color: #9eacb3;
+            border: 1px solid #D0D9DD;
+        }
+
+        #loginWindow .bgImage {
+            position: absolute;
+        }
+
+        #loginWindow #dynamicBG {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0px;
+            left: 0px;
+        }
+
+        #loginWindow .text-shadow {
+            position: absolute;
+            left: 0px;
+            bottom: 0px;
+            right: 0px;
+            height: 123px;
+            background-image: url(/Content/images/login-text-shadow.png);
+            background-repeat: repeat-x;
+        }
+
+        #loginWindow .image-name {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            width: auto;
+            height: auto;
+            font-size: 1.25em;
+        }
+
+        #loginWindow .logo {
+            position: absolute;
+            width: 156px;
+            height: 80px;
+            top: 0px;
+            left: 50%;
+            margin-left: -76px;
+            background-image: url(/Content/images/login-logo.png);
+            background-position: 0px 0px;
+            background-repeat: no-repeat;
+        }
+
+        .login-panel {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            top: 0px;
+            margin-top: 0px;
+            margin-left: auto;
+            margin-right: auto;
+            overflow: hidden;
+        }
+
+        .panel-background {
+            position: absolute;
+            width: 100%;
+            top: 0px;
+            bottom: 0px;
+            background-color: #000000;
+            filter: Alpha(opacity=0);
+            opacity: 0;
+        }
+
+        .panel-content {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .form-content {
+            position: absolute;
+            bottom: 65px;
+            width: 200px;
+            left: 50%;
+            margin-left: -100px;
+        }
+
+        .form-content label {
+            line-height: 30px;
+        }
+
+        .button-panel {
+            width: 100%;
+            margin-top: 30px;
+        }
+
+        input[type='text'], 
+        input[type='password'] {
+            width: 198px;
+            border: none 0px;
+            height: 26px;
+            line-height: 26px;
+            color: #333333;
+            background-color: #BFBFBF;
+            filter: Alpha(opacity=60);
+            opacity: .6;
+        }
+
+        input[type='text']:hover,
+        input[type='text']:focus,
+        input[type='password']:hover,
+        input[type='password']:focus {
+            background-color: #E6E5E5;
+            color: #000000;
+            text-decoration: none;
+            filter: Alpha(opacity=100);
+            opacity: 1;
+        }
+
+        .button {
+            width: 100%;
+            height: 26px;
+            line-height: 26px;
+        }
+
+        .button:active {
+            background-color: #FFFFFF !important;
+            color: #666666;
+        }
+        
+    </style>
+    <link href="/Content/themes/metro.color/ui.metro.Default.css" rel="stylesheet" />
+    <script type="text/javascript">
+        $(document).ready(function () {
+            loginWindow.initial();
+
+            @JavascriptCodeHelper.StringStatement("errorMessage", (string)ViewData["ErrorInfo"])
+            loginWindow.showError(errorMessage);
+        });
+    </script>
+</head>
+<body>
+    <div id="loginWindow">
+        <img class="bgImage" src="/Account/BGImage" alt="@imageName" />
+        <div id="dynamicBG" class="dynamicBG"></div>
+        <div class="login-panel">
+            <div class="panel-background"></div>
+            <div class="panel-content">
+                <div class="logo"></div>
+                <div class="form-content">
+                    @using (Html.BeginForm("Login", "Account", new { returnUrl = ViewBag.ReturnUrl }, FormMethod.Post))
+                    {
+                        <label>用户名:</label>
+                        <br />
+                        <input class="input-text" type="text" id="username" name="username" tabindex="1" />
+                        <br />
+                        <label>密码:</label>
+                        <br />
+                        <input class="input-text" type="password" id="password" name="password" tabindex="2" />
+                        <br />
+                        <div class="button-panel">
+                            <input class="button background-highlight" type="submit" value="登录" tabindex="3" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="image-name">@imageName</div>
+    </div>
+
+    <script type="text/javascript">
+        ; (function () {
+            var dynamicBackgroundName = "璀璨";
+            var parallax = function(view, image, width, height) {
+                this.imageScale = 1.1;
+                this.view = view;
+                this.image = image;
+                this.enabled = true;
+
+                if(ui.core.type(width) === "number") {
+                    this.width = width;
+                } else {
+                    this.width = this.view.width();
+                }
+                if(ui.core.type(height) === "number") {
+                    this.height = height;
+                } else {
+                    this.height = this.view.height();
+                }
+                this.initial();
+            };
+            parallax.prototype = {
+                initial: function() {
+                    var that = this;
+                    this.view.css({
+                        "position": "relative",
+                        "overflow": "hidden"
+                    });
+                    this.image.css("position", "absolute");
+                    this._initialImageAnimator();
+                    this.view.mouseenter(function (e) {
+                        if (that.enabled) {
+                            that.changeImageLocation(e.clientX, e.clientY, true);
+                        }
+                    });
+                    this.view.mousemove(function (e) {
+                        if (that.enabled) {
+                            that.changeImageLocation(e.clientX, e.clientY);
+                        }
+                    });
+                    this.view.mouseleave(function (e) {
+                        if (that.enabled) {
+                            that.stopImageLocation();
+                        }
+                    });
+                },
+                _initialImageAnimator: function() {
+                    var that = this;
+                    this.imageAnimator = ui.animator({
+                        target: this.image,
+                        ease: ui.AnimationStyle.easeFromTo,
+                        onChange: function(val) {
+                            this.target.css("top", val + "px");
+                        }
+                    }).addTarget({
+                        target: this.image,
+                        ease: ui.AnimationStyle.easeFromTo,
+                        onChange: function(val) {
+                            this.target.css("left", val + "px");
+                        }
+                    });
+                    this.imageAnimator.onEnd = function() {
+                        that.beginAnimation = false;
+                    };
+                    this.imageAnimator.duration = 200;
+                },
+                resize: function(width, height) {
+                    this.width = width;
+                    this.height = height;
+                    this.resetImageLocation();
+                },
+                resetImageLocation: function() {
+                    this.imageWidth = this.width * this.imageScale;
+                    this.imageHeight = this.height * this.imageScale;
+                    this.imageMoveWidth = this.imageWidth - this.width;
+                    this.imageMoveHeight = this.imageHeight - this.height;
+
+                    this.image.css({
+                        "width": this.imageWidth + "px",
+                        "height": this.imageHeight + "px",
+                        "top": -(this.imageMoveHeight / 2) + "px",
+                        "left": -(this.imageMoveWidth / 2) + "px"
+                    });
+                },
+                changeImageLocation: function(x, y) {
+                    if(this.beginAnimation) {
+                        return;
+                    }
+                    var p = this.view.offset(),
+                        option;
+                    x -= p.left + 1;
+                    y -= p.top + 1;
+                    var currentLeft = parseFloat(this.image.css("left")),
+                        currentTop = parseFloat(this.image.css("top")),
+                        left = -(this.imageMoveWidth * (x / this.width)),
+                        top = -(this.imageMoveHeight * (y / this.height));
+                    if(Math.abs(currentLeft - left) > 20 || Math.abs(currentTop - top) > 20) {
+                        option = this.imageAnimator[0];
+                        option.begin = currentTop;
+                        option.end = top;
+                        option = this.imageAnimator[1];
+                        option.begin = currentLeft;
+                        option.end = left;
+                        this.beginAnimation = true;
+                        this.imageAnimator.start();
+                    } else {
+                        this.image.css({
+                            "top": top + "px",
+                            "left": left + "px"
+                        });
+                    }
+                },
+                stopImageLocation: function() {
+                    if(this.beginAnimation) {
+                        this.beginAnimation = false;
+                        this.imageAnimator.stop();
+                    }
+                }
+            };
+
+            var loginWindow = {
+                size: {
+                    small: {
+                        width: 958,
+                        height: 512,
+                        startWidth: 0,
+                        startHeight: 0,
+                        logoTop: 60,
+                        formTop: 284
+                    },
+                    middle: {
+                        width: 1366,
+                        height: 768,
+                        startWidth: 1440,
+                        startHeight: 960,
+                        logoTop: 100,
+                        formTop: 500
+                    },
+                    large: {
+                        width: 1920,
+                        height: 1080,
+                        startWidth: 2560,
+                        startHeight: 1440,
+                        logoTop: 200,
+                        formTop: 712
+                    }
+                },
+                initial: function () {
+                    this.loginWindow = $("#loginWindow");
+                    this.loginPanel = this.loginWindow.children(".login-panel");
+                    this.bgImg = this.loginWindow.children(".bgImage");
+                    this.dynamicPanel = $("#dynamicBG");
+                    this.logo = this.loginPanel.find(".logo");
+                    this.loginContent = this.loginPanel.find(".form-content");
+
+                    if ("@(imageName)" === dynamicBackgroundName) {
+                        this.dynamicBackground();
+                    } else {
+                        this.parallax = new parallax(this.loginWindow, this.bgImg);
+                    }
+                    this.initFocus();
+
+                    this.onResize();
+                    var that = this;
+                    ui.resize(function () {
+                        that.onResize();
+                    }, ui.eventPriority.bodyResize);
+                    //$("#username").focus();
+                },
+                initFocus: function () {
+                    var userNameInput = $("#username");
+                    var passwordInput = $("#password");
+
+                    this.onSpotlightHandle = null;
+                    this.offSpotlightHandle = null;
+                    this.spotlightAnimator = ui.animator({
+                        target: $(".panel-background"),
+                        ease: ui.AnimationStyle.easeTo,
+                        onChange: function (val) {
+                            this.target.css({
+                                "filter": "Alpha(opacity=" + val + ")",
+                                "opacity": val / 100
+                            });
+                        }
+                    });
+                    this.spotlightAnimator.duration = 500;
+
+                    var that = this;
+                    var onFocus = function (e) {
+                        that.parallax.enabled = false;
+                        clearTimeout(that.offSpotlightHandle);
+                        that.offSpotlightHandle = null;
+                        if (that.spotlightAnimator.isStarted) {
+                            that.spotlightAnimator.stop();
+                        }
+                        that.onSpotlightHandle = setTimeout(function () {
+                            that.onSpotlightHandle = null;
+                            that.onSpotlight();
+                        }, 200);
+                    };
+                    var onBlur = function (e) {
+                        that.parallax.enabled = true;
+                        clearTimeout(that.onSpotlightHandle);
+                        that.onSpotlightHandle = null;
+                        if (that.spotlightAnimator.isStarted) {
+                            that.spotlightAnimator.stop();
+                        }
+                        that.offSpotlightHandle = setTimeout(function () {
+                            that.offSpotlightHandle = null;
+                            that.offSpotlight();
+                        }, 200);
+                    };
+
+                    userNameInput.focus(onFocus).blur(onBlur);
+                    passwordInput.focus(onFocus).blur(onBlur);
+                },
+                onResize: function () {
+                    this.clientWidth = ui.core.root.clientWidth;
+                    this.clientHeight = ui.core.root.clientHeight;
+
+                    var size = this.getSize();
+                    var flag = size !== this.currentSize;
+                    this.currentSize = size;
+
+                    this.panelWidth = size.width;
+                    this.panelHeight = size.height;
+
+                    this.setLocation();
+                    if (flag) {
+                        this.setSize();
+                        this.elementAnimate(size.logoTop, size.formTop);
+                    }
+                },
+                getSize: function() {
+                    var width = this.clientWidth;
+                    var height = this.clientHeight;
+
+                    var size = null,
+                        sizeArray = ["small", "middle", "large"];
+                    for (var i = sizeArray.length - 1; i >= 0; i--) {
+                        size = this.size[sizeArray[i]];
+                        if (width >= size.startWidth || height >= size.startHeight) {
+                            return size;
+                        }
+                    }
+                },
+                setLocation: function () {
+                    var left = (this.clientWidth - this.panelWidth) / 2,
+                        top = (this.clientHeight - this.panelHeight) / 2;
+                    if (left < 0) {
+                        left = 0;
+                    }
+                    this.loginWindow.css({
+                        "top": top + "px",
+                        "left": left + "px"
+                    });
+                },
+                setSize: function () {
+                    this.loginWindow.css({
+                        "width": this.panelWidth + "px",
+                        "height": this.panelHeight + "px"
+                    });
+                    if (this.parallax) {
+                        this.parallax.resize(this.panelWidth, this.panelHeight);
+                    }
+                },
+                elementAnimate: function (logoTop, formTop) {
+                    if (!this.elemAnimator) {
+                        this.elemAnimator = ui.animator({
+                            target: this.logo,
+                            ease: ui.AnimationStyle.easeTo,
+                            onChange: function (val) {
+                                this.target.css("top", val + "px");
+                            }
+                        }).addTarget({
+                            target: this.logo,
+                            ease: ui.AnimationStyle.easeFrom,
+                            onChange: function (val) {
+                                this.target.css({
+                                    "filter": "Alpha(opacity=" + val + ")",
+                                    "opacity": val / 100
+                                });
+                            }
+                        }).addTarget({
+                            target: this.loginContent,
+                            ease: ui.AnimationStyle.easeTo,
+                            onChange: function (val) {
+                                this.target.css("top", val + "px");
+                            }
+                        }).addTarget({
+                            target: this.loginContent,
+                            ease: ui.AnimationStyle.easeFrom,
+                            onChange: function (val) {
+                                this.target.css({
+                                    "filter": "Alpha(opacity=" + val + ")",
+                                    "opacity": val / 100
+                                });
+                            }
+                        });
+                        this.elemAnimator.duration = 500;
+                    }
+
+                    this.elemAnimator.stop();
+                    var option = this.elemAnimator[0];
+                    option.begin = parseFloat(option.target.css("top"), 10);
+                    option.end = logoTop;
+                    option = this.elemAnimator[1];
+                    option.begin = 0;
+                    option.end = 100;
+                    option = this.elemAnimator[2];
+                    option.begin = formTop + 200;
+                    option.end = formTop;
+                    option = this.elemAnimator[3];
+                    option.begin = 0;
+                    option.end = 100;
+                    this.elemAnimator.start();
+                },
+                onSpotlight: function() {
+                    var option = this.spotlightAnimator[0];
+                    option.begin = Math.floor(parseFloat(option.target.css("opacity")) * 100) || 0;
+                    option.end = 40;
+                    this.spotlightAnimator.start();
+                },
+                offSpotlight: function() {
+                    var option = this.spotlightAnimator[0];
+                    option.begin = Math.floor(parseFloat(option.target.css("opacity")) * 100) || 0;
+                    option.end = 0;
+                    this.spotlightAnimator.start();
+                },
+                showError: function (errorMessage) {
+                    if (ui.core.type(errorMessage) === "string" && errorMessage.length > 0) {
+                        ui.msgshow(errorMessage);
+                    }
+                }
+            };
+
+            loginWindow.dynamicBackground = function () {
+                if (ui.core.isSupportCanvas()) {
+                    if (ui.core.isSupportCanvas()) {
+                        $.getScript("/Scripts/UI/ui.effect.js", function () {
+                            var dynamicDiv = $("#dynamicBG"),
+                                canvas = $("<canvas style='width:100%; height: 100%' />");
+                            dynamicDiv.append(canvas);
+                            imageInfo.brilliant = ui.createEffects(canvas, "brilliant", {
+                                lightColor: "#3E5A99",
+                                darkColor: "#19243D"
+                            });
+                            imageInfo.brilliant.start();
+                        });
+                    }
+                }
+            };
+
+            window.loginWindow = loginWindow;
+        })();
+
+    </script>
+</body>
+</html>

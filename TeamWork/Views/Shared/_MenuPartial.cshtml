@@ -1,0 +1,396 @@
+﻿@using STIM.Modules.Menu
+@{
+    bool noMenu = false;
+    if (ViewBag.NoMenu != null)
+    {
+        noMenu = true;
+    }
+
+    IUserData user = UserContext.CurrentUser;
+    List<IFunction> menus = null;
+    if (user != null)
+    {
+        if (!noMenu)
+        {
+            menus = (List<IFunction>)user.GetMenuTree();
+        }
+    }
+    else
+    {
+        if (!noMenu)
+        {
+            menus = new List<IFunction>();
+        }
+    }
+
+    string currFuncCode = Functions.CurrentFunctionCode;
+    string currPFuncCode = Functions.GetParentFunctionCode(currFuncCode);
+    bool isHomePage = (currFuncCode == "00");
+
+    MvcHtmlString currentClass = null;
+}
+<script type="text/javascript">
+    ; (function (mp) {
+        @JavascriptCodeHelper.BooleanStatement("noMenu", noMenu)
+        @JavascriptCodeHelper.BooleanStatement("isHomePage", isHomePage)
+
+        mp.isHomePage = isHomePage;
+        mp.noMenu = noMenu;
+        
+        var showClass = "menu-show"
+            itemHeight = 30,
+            isInitElements = false;
+        
+        var setRule = function(selector, css) {
+            var rule = this.getRule(selector);
+            if(!rule) {
+                this.addRule(selector, css);
+            } else {
+                rule.css(css);
+            }
+        };
+        
+        var initElements = mp.initElements;
+        mp.initElements = function () {
+            initElements.apply(mp, arguments);
+
+            this.navigatorWidth = 200;
+            this.navigator = $(".navigation-panel");
+            this.pageContent = $(".page-content");
+            this.menuIcon = $("<a class='menu-icon' href='javascript:void(0)' />");
+            this.menuIcon.append("<img src='/Content/icons/menu.png' style='border:none 0px;' alt='' />");
+
+            $("#buttonPanel").append(this.menuIcon);
+            
+            this.menuPanelAnimator = ui.animator(this.navigator, {
+                ease: ui.AnimationStyle.easeTo,
+                onChange: function (val, elem) {
+                    elem.css("left", val + "px");
+                }
+            });
+            this.menuPanelAnimator.duration = 500;
+
+            this.menuItemAnimator = ui.animator({
+                ease: ui.AnimationStyle.easeTo,
+                onChange: function (val, elem) {
+                    elem.css("height", parseInt(val, 10) + "px");
+                }
+            });
+            this.menuItemAnimator.addTarget({
+                ease: ui.AnimationStyle.easeTo,
+                onChange: function (val, elem) {
+                    elem.css("top", parseInt(val, 10) + "px");
+                }
+            });
+        };
+        mp.initMenuTheme = function(data) {
+            var themeStyle = $("#GlobalThemeChangeStyle");
+            if(themeStyle.length == 0) {
+                return;
+            }
+            data = data || ui.theme.getCurrentThemeInfo();
+            var color = data.Color,
+                sheet = themeStyle.sheet();
+            setRule.call(sheet, "dl.menu-list dd li.selected-menu", {
+                "color": color
+            });
+            setRule.call(sheet, "dl.menu-list dt.current-menu b", {
+                "background-color": color
+            });
+            setRule.call(sheet, "dl.menu-list dd.current-menu b", {
+                "background-color": color
+            });
+            setRule.call(sheet, "dl.menu-list dt.selected-menu", {
+                "color": color
+            });
+            setRule.call(sheet, "dl.menu-list dt i", {
+                "background-image": "url(/Content/icons/" + data.Id + "_32.png)"
+            });
+        };
+
+        masterpage.ready(function() {
+            mp.initMenuTheme();
+            var that = mp;
+            ui.themeChanged(function(e, info) {
+                that.initMenuTheme(info);
+            });
+
+            if (!mp.noMenu) {
+                mp.initMenuList();
+            } else {
+                mp.menuIcon.css("display", "none");
+                mp.navigator.css("display", "none");
+                mp.pageContent.css({
+                    "left": "0px",
+                    "width": "100%"
+                });
+            }
+        }, ui.eventPriority.masterReady);
+
+        var initContentSize = mp.initContentSize;
+        mp.initContentSize = function() {
+            initContentSize.apply(mp, arguments);
+
+            if (this.noMenu) {
+                return;
+            }
+            var left;
+            if (this.contentBodyWidth <= 1024) {
+                this.pageContent.css({
+                    "left": "0px",
+                    "width": this.contentBodyWidth + "px",
+                    "height": this.contentBodyHeight + "px"
+                });
+                this.navigator.css({
+                    "width": this.navigatorWidth + "px",
+                    "height": this.contentBodyHeight + "px"
+                });
+                if (this.hideState !== true) {
+                    this.navigatorHide();
+                    this.menuIcon.removeClass(showClass);
+                    this.menuIcon.show();
+                    this.hideState = true;
+                }
+            } else {
+                left = this.navigatorWidth + 1;
+                this.contentBodyWidth -= left;
+                this.pageContent.css({
+                    "width": this.contentBodyWidth + "px",
+                    "height": this.contentBodyHeight + "px"
+                });
+                this.menuPanelAnimator.stop();
+                this.navigator.css("height", this.contentBodyHeight + "px");
+                if (this.hideState !== false) {
+                    this.pageContent.css("left", left + "px");
+                    this.navigator.css({
+                        "width": this.navigatorWidth + "px",
+                        "left": "0px"
+                    });
+                    this.menuIcon.addClass(showClass);
+                    this.menuIcon.hide();
+                    this.hideState = false;
+                }
+            }
+        };
+
+        mp.initMenuList = function() {
+            var currentClass = "current-menu",
+                nextdd;
+            this.currentMenu = this.navigator.find("dt." + currentClass);
+            if (this.currentMenu.length == 0) {
+                this.currentMenu = null;
+            } else {
+                nextdd = this.currentMenu.next();
+                if (nextdd.nodeName() === "DD") {
+                    this.menuOpen(nextdd);
+                }
+            }
+
+            this.onMenuItemClick = $.proxy(function (e) {
+                var elem = $(e.target),
+                    nodeName = null,
+                    dd = null;
+                while ((nodeName = elem.nodeName()) !== "DT") {
+                    if (nodeName === "DL" || nodeName === "A") {
+                        return;
+                    }
+                    elem = elem.parent();
+                }
+                var openFunc = $.proxy(function () {
+                    this.currentMenu = elem;
+                    this.currentMenu.addClass(currentClass);
+                    var dd = this.currentMenu.next();
+                    if (dd.length > 0 && dd.nodeName() === "DD") {
+                        dd.addClass(currentClass);
+                        this.menuOpen(dd);
+                    }
+                }, this);
+
+                var closeFunc = $.proxy(function () {
+                    this.currentMenu.removeClass(currentClass);
+                    var dd = this.currentMenu.next();
+                    dd.removeClass(currentClass);
+                    dd.css("display", "none");
+                    if (this.currentMenu[0] != elem[0]) {
+                        this.currentMenu = null;
+                        openFunc();
+                    } else {
+                        this.currentMenu = null;
+                    }
+                }, this);
+
+                if (this.currentMenu) {
+                    dd = this.currentMenu.next();
+                    if (dd.length > 0 && dd.nodeName() === "DD") {
+                        this.menuClose(dd, closeFunc);
+                        return;
+                    } else {
+                        this.currentMenu.removeClass(currentClass);
+                    }
+                }
+
+                openFunc();
+            }, this);
+            this.navigator.find("dl").click(this.onMenuItemClick);
+
+            this.menuIcon.click($.proxy(function (e) {
+                var elem = $(e.target);
+                if (elem.hasClass(showClass)) {
+                    elem.removeClass(showClass);
+                    this.navigatorHide();
+                } else {
+                    elem.addClass(showClass);
+                    this.navigatorShow();
+                }
+            }, this));
+        };
+        mp.menuOpen = function(elem, animation) {
+            var maxHeight = 0,
+                ul = elem.find("ul"),
+                count = ul.children().length;
+            if (count == 0) {
+                return;
+            }
+            maxHeight = count * itemHeight;
+
+            if (animation) {
+                elem.css({
+                    "display": "block",
+                    "height": maxHeight + "px"
+                });
+                return;
+            }
+
+            var animator = this.menuItemAnimator,
+                option = animator[0];
+            animator.stop();
+            elem.css("display", "block");
+            option.target = elem;
+            animator.duration = 500;
+            option.begin = elem.height();
+            option.change = maxHeight - option.begin;
+            
+            var beginVal = option.change;
+            option = animator[1];
+            option.target = ul;
+            option.target.css("top", -beginVal + "px");
+            option.begin = -beginVal;
+            option.change = 0 - (-beginVal);
+
+            animator.onEnd = null;
+            animator.start();
+        };
+        mp.menuClose = function(elem, endFunc) {
+            var animator = this.menuItemAnimator,
+                option = animator[0];
+
+            animator.stop();
+
+            option.target = elem;
+            animator.duration = 300;
+            option.begin = elem.height();
+            option.change = -option.begin;
+
+            var ul = elem.find("ul"),
+                count = ul.children().length,
+                height = count * itemHeight;
+            option = animator[1];
+            option.target = ul;
+            option.begin = parseFloat(option.target.css("top"), 10);
+            option.change = -height - option.begin;
+
+            animator.onEnd = endFunc;
+            animator.start();
+        };
+        mp.navigatorShow = function() {
+            var animator = this.menuPanelAnimator,
+                elem = animator[0].target;
+
+            animator.stop();
+            var left = parseInt(elem.css("left"), 10);
+            if (left >= 0) {
+                elem.css("left", "0px");
+                return;
+            }
+            animator[0].begin = left;
+            animator[0].change = -left;
+            animator.start();
+        };
+        mp.navigatorHide = function() {
+            var animator = this.menuPanelAnimator,
+                elem = animator[0].target;
+
+            animator.stop();
+            var left = parseInt(elem.css("left"), 10);
+            if (left <= -this.navigatorWidth) {
+                elem.css("left", -this.navigatorWidth + "px");
+                return;
+            }
+            animator[0].begin = left;
+            animator[0].change = Math.abs(left) - this.navigatorWidth;
+            animator.start();
+        };
+    })(masterpage);
+</script>
+<div class="navigation-panel">
+    <dl class="menu-list">
+        @if (isHomePage)
+        {
+            currentClass = MvcHtmlString.Create("class=\"current-menu selected-menu\"");
+        }
+        <dt @currentClass>
+            <b></b>
+            <i>
+                <img src="/Content/icons/icon16-home.png" alt="" />
+            </i>
+            <span>首页</span>
+            <a href="/Home/Index"></a>
+        </dt>
+        @if (menus != null)
+        {
+            SystemMenu m = null;
+            SystemMenu cm = null;
+            foreach (var f in menus)
+            {
+                m = (SystemMenu)f;
+                if (String.IsNullOrEmpty(currPFuncCode))
+                {
+                    currentClass = m.FunctionCode == currFuncCode ? MvcHtmlString.Create("class=\"current-menu selected-menu\"") : MvcHtmlString.Empty;
+                }
+                else
+                {
+                    currentClass = m.FunctionCode == currFuncCode ? MvcHtmlString.Create("class=\"current-menu\"") : MvcHtmlString.Empty;
+                }
+
+                <dt @(currentClass)>
+                    <b></b>
+                    <i>
+                        <img src="@m.Icon" alt="" />
+                    </i>
+                    <span>@m.FunctionName</span>
+                    @if (m.Children == null)
+                    {
+                        <a href="@m.Url"></a>
+                    }
+                </dt>
+                if (m.Children != null)
+                {
+                    <dd @(currentClass)>
+                        <ul>
+                            @foreach (var cf in m.Children)
+                            {
+                                cm = (SystemMenu)cf;
+                                currentClass = cm.FunctionCode == currFuncCode ? MvcHtmlString.Create("class=\"selected-menu\"") : MvcHtmlString.Empty;
+                                <li @(currentClass)>
+                                    <b></b>
+                                    <span>@cm.FunctionName</span>
+                                    <a href="@cm.Url"></a>
+                                </li>
+                            }
+                        </ul>
+                    </dd>
+                }
+            }
+        }
+    </dl>
+</div>

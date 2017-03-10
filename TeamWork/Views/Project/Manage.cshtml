@@ -1,0 +1,1296 @@
+﻿
+@{
+    ViewBag.Title = "项目管理";
+}
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+
+    @this.RegisterCtrls(
+        "tabPanel",
+        "columnStyle",
+        "gridview",
+        "dateChooser",
+        "selectionList",
+        "selectionTree",
+        "list",
+        "groupList",
+        "form",
+        "validate"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style type="text/css">
+        .ctrl-form {
+            width: 240px;
+        }
+
+            .ctrl-form input[type='text'] {
+                width: 240px;
+            }
+
+            .ctrl-form textarea {
+                width: 240px;
+                height: 84px;
+            }
+
+            .ctrl-form select {
+                width: 242px;
+            }
+
+        .project-fold {
+            width: 10px;
+            height: 10px;
+            display: inline-block;
+            border-width: 1px;
+            border-style: solid;
+            color: #FFFFFF;
+            margin-top: 5px;
+            margin-left: 5px;
+            vertical-align: top;
+            overflow: hidden;
+            line-height: 8px;
+            cursor: pointer;
+            font-style: normal;
+        }
+
+        .project-unfold {
+        } 
+
+        .toolbar input {
+            width: 100px;
+        }
+
+        .toolbar select {
+            width: 100px;
+        }
+
+        h2.project-title {
+            font-size: 16px;
+            font-weight: normal;
+        } 
+        
+        ul.function-tree {
+            width: 100%;
+            height: auto;
+            background-color: #F1F1F1;
+        }
+
+            ul.function-tree li {
+                list-style: none;
+                width: auto;
+                margin-left: 10px;
+            }
+
+                ul.function-tree li span {
+                    line-height: 24px;
+                }
+
+        i.pm-star {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background-image: url(/Content/images/star.png);
+            background-repeat: no-repeat;
+        }
+
+        div.div-list-panel li {
+            height: auto;
+            line-height: 1em;
+        }
+
+            div.div-list-panel li > .budget-title {
+                margin-left: 5px;
+                font-size: 16px;
+                line-height: 24px;
+            }
+
+            div.div-list-panel li > .budget-info-text {
+                margin-left: 5px;
+                line-height: 16px;
+                color: #888888;
+            }
+
+            div.div-list-panel li.selection-item > .budget-info-text {
+                color: #FFFFFF;
+            }
+
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul id="tabPanel" class="tools" style="display: none;">
+        <li class="tab-item tab-button"></li>
+        <li class="tab-item tab-button"></li>
+    </ul>
+    <ul id="projectTool" class="tools" style="float:right;">
+        <li>
+            <span>项目名称:</span>
+            <input id="queryProName" type="text" />
+        </li>
+        <li>
+            <span>项目类型:</span>
+            @Html.DropDownList("queryProType", (SelectList)ViewBag.QueryProjectTypes)
+        </li>
+        <li>
+            <span>状态:</span>
+            @Html.DropDownList("queryProStatus", (SelectList)ViewBag.QueryProjectStatus)
+        </li>
+        <li>
+            <span>开始时间:</span>
+            <input id="queryProBeginTime" type="text" class="date-text" />
+            ~
+            <input id="queryProEndTime" type="text" class="date-text" />
+        </li>
+        <li>
+            <button id="queryProject" class="tool-button">查询</button>
+        </li>
+        <li>
+            <button id="newProject" class="tool-button button-highlight">新项目</button>
+        </li>
+        <li style="display:none">
+            <button id="projectStages" class="tool-button button-highlight">项目阶段</button>
+        </li>
+    </ul>
+    <ul id="stageTitle" class="tools">
+        <li>
+            <h2 id="stageProjectName" class="project-title font-highlight"></h2>
+        </li>
+    </ul>
+    <ul id="stageTool" class="tools" style="float: right">
+        <li>
+            <button id="newStage" class="tool-button button-highlight">新阶段</button>
+        </li>
+        <li>
+            <button id="stageUp" class="tool-button">上移</button>
+        </li>
+        <li>
+            <button id="stageDown" class="tool-button">下移</button>
+        </li>
+        <li>
+            <button id="stageSave" class="tool-button">保存</button>
+        </li>
+    </ul>
+    <br style="clear:both;" />
+</div>
+<div id="tabBodyPanel" class="tab-body-panel">
+    <div id="projectPanel" class="tab-body">
+        <div id="projectGrid" class="grid-view"></div>
+        <div id="projectTabBodyPanel" class="tab-body-panel">
+            <div class="tab-body" style="overflow: auto;">
+                <div class="ctrl-form">
+                    <form id="projectForm">
+                        <input id="PM" name="PM" type="text" style="display:none;" />
+                        <label>项目名称</label><span class="required">*</span>
+                        <br />
+                        <input id="ProjectName" name="ProjectName" type="text" />
+                        <br />
+                        <label>项目类型</label>
+                        <br />
+                        @Html.DropDownList("ProjectType", (SelectList)ViewBag.ProjectTypes)
+                        <br />
+                        <label>主项目</label>
+                        <br />
+                        <input id="ParentId" name="ParentId" type="text" class="select-text" readonly="readonly" />
+                        <br />
+                        <label>开始日期</label><span class="required">*</span>
+                        <br />
+                        <input id="ProjectBeginTime" name="ProjectBeginTime" type="text" class="date-text" />
+                        <br />
+                        <label>结束日期</label>
+                        <br />
+                        <input id="ProjectEndTime" name="ProjectEndTime" type="text" class="date-text" />
+                        <br />
+                        <label>项目状态</label>
+                        <br />
+                        @Html.DropDownList("ProjectStatus", (SelectList)ViewBag.ProjectStatus)
+                        <br />
+                        <label>项目描述</label>
+                        <br />
+                        <textarea id="ProjectDescription" name="ProjectDescription"></textarea>
+                    </form>
+                </div>
+            </div>
+            <div class="tab-body" style="overflow: auto;">
+                <div class="ctrl-form" style="position:relative;">
+                    <button id="addEmployee" class="icon-button" style="margin-right: 5px;" onclick="javascript:return false" title="添加">
+                        <i class="fa fa-plus"></i>
+                    </button>
+                    <button id="removeEmployee" class="icon-button" style="margin-right: 5px;" onclick="javascript:return false" title="移除">
+                        <i class="fa fa-minus"></i>
+                    </button>
+                    <button id="setPM" class="icon-button" onclick="javascript:return false" title="设为项目经理">
+                        <i class="fa fa-star"></i>
+                    </button>
+                    <br />
+                    <div id="projectTeamList" style="margin-top:5px; border:solid 1px #DCDCDC;" class="theme-toolbar-color"></div>
+                </div>
+            </div>
+            <div class="tab-body">
+                <div class="ctrl-form">
+                    <form id="budgetForm">
+                        <label>预算种类</label>
+                        <br />
+                        @Html.DropDownList("BudgetCategory", (SelectList)ViewBag.BudgetCategory)
+                        <br />
+                        <label>预算资金</label>
+                        <br />
+                        <input id="Capital" name="Capital" type="text" />
+                        <br />
+                        <label>人月时间</label>
+                        <br />
+                        <input id="RDTime" name="RDTime" type="text" />
+                        <br /><br />
+                        <button id="addBudget" class="icon-button" style="margin-right: 5px;" onclick="javascript:return false">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                        <button id="removeBudget" class="icon-button" onclick="javascript:return false">
+                            <i class="fa fa-minus"></i>
+                        </button>
+                        <br />
+                        <div id="budgetList" style="margin-top:5px; border:solid 1px #DCDCDC;" class="theme-toolbar-color"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <input id="projectSave" type="button" class="button background-highlight" value="保存" />
+    </div>
+    <div id="stagePanel" class="tab-body">
+        <div id="stageData" class="ctrl-form">
+            <form id="stageForm">
+                <label>阶段</label><span class="required">*</span>
+                <br />
+                <input id="StageName" name="StageName" type="text" />
+                <br />
+                <label>负责人</label>
+                <br />
+                <input id="Manager" name="Manager" type="text" class="select-text" />
+                <br />
+                <label>预计开始时间</label><span class="required">*</span>
+                <br />
+                <input id="StageBeginTime" name="StageBeginTime" type="text" class="date-text" />
+                <br />
+                <label>预计结束时间</label>
+                <br />
+                <input id="StageEndTime" name="StageEndTime" type="text" class="date-text" />
+                <br />
+                <label>阶段状态</label>
+                <br />
+                @Html.DropDownList("StageStatus", (SelectList)ViewBag.StageStatus)
+                <br />
+                <label>描述</label>
+                <br />
+                <textarea id="StageDescription" name="StageDescription"></textarea>
+            </form>
+        </div>
+        <input id="removeStage" type="button" class="button" value="移除" style="margin-right:5px;" />
+        <input id="updateStage" type="button" class="button background-highlight" value="应用" />
+        <div id="stageGrid" class="grid-view"></div>
+    </div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            @JavascriptCodeHelper.JsonStatement("empList", ViewBag.AllEmployees)
+            var tabManager = null;
+            var pageLogic = window.pageLogic = {
+                init: {
+                    themes: function () {
+
+                    },
+                    beforeCtrls: function () {
+                        tabManager = ui.tab.createTabManager(
+                            function (e, index) {
+                                if (index === 1) {
+                                    pageLogic.stageGrid.empty();
+                                }
+                                this.showTools(index);
+                            },
+                            function (e, index) {
+                                if (index === 0) {
+                                    this.tryCallLoadFunc(index, pageLogic.loadProjects, pageLogic, 1, pageLogic.projectGrid.pageSize);
+                                } else if (index === 1) {
+                                    stageManager.onLoad();
+                                }
+                            }
+                        );
+                        tabManager.addTools("projectTool", ["stageTitle", "stageTool"]);
+                        this.tab = ui.tab.createTabs({
+                            tabPanelId: "tabPanel",
+                            bodyPanelId: "tabBodyPanel"
+                        });
+                        this.tab.changing($.proxy(tabManager.tabChanging, tabManager));
+                        this.tab.changed($.proxy(tabManager.tabChanged, tabManager));
+
+                        this.projectCtrlPanel = $("#projectTabBodyPanel").toCtrlPanel({
+                            parent: "projectPanel",
+                            width: 300
+                        });
+                        this.projectCtrlPanel.contentPanel.css("overflow", "hidden");
+                        this.projectCtrlPanel.buttonAppend("projectSave");
+                        this.projectCtrlPanel.showing(function() {
+                            if(!pageLogic.isProjectTabInitial) {
+                                //设置项目编辑面板的tab页位置
+                                pageLogic.projectTab.setBodiesLocation();
+                                pageLogic.isProjectTabInitial = true;
+                            }
+                            pageLogic.projectTab.setIndex(0, false);
+                        });
+                        this.projectCtrlPanel.hided(function () {
+                            pageLogic.projectGrid.cancelSelection();
+                        });
+                        this.projectCtrlPanel
+                            .titleAppend("<ul id='projectTabPanel' class='tools'><li class='tab-item'><a href='javascript:void(0)' class='tab-button'>项目信息</a></li><li class='tab-item'><a href='javascript:void(0)' class='tab-button'>项目团队</a></li><li class='tab-item'><a href='javascript:void(0)' class='tab-button'>项目预算</a></li><br clear='left' /></ul>")
+                            .titlePanel.addClass("toolbar").css("background-color", "transparent");
+
+                        this.projectTab = ui.tab.createTabs({
+                            tabPanelId: "projectTabPanel",
+                            bodyPanelId: "projectTabBodyPanel"
+                        });
+                        //修正tab页的宽度，无法自行获取
+                        this.projectTab.bodyPanel.css("width", this.projectCtrlPanel.width + "px");
+                        //修正tab页的动画速度
+                        this.projectTab.animator.duration = 400;
+                        this.projectTab.changed(function (e, index) {
+                            var projectId = null;
+                            if (projectManager.isUpdate) {
+                                projectId = pageLogic.projectGrid.getCurrentSelection().rowData.ProjectId;
+                                if (index == 1) {
+                                    projectManager.tryGetTeamData(projectId);
+                                } else if (index == 2) {
+                                    projectManager.setBudgets(projectId);
+                                }
+                            }
+                        });
+
+                        this.teamList = $("#projectTeamList").setGroupList({
+                            width: 240,
+                            multiple: false,
+                            groupField: "DepartmentName",
+                            h1Field: "RealName",
+                            h2Field: "PositionName",
+                            data: null
+                        });
+                        this.teamList._formatItemSuper = this.teamList._formatItem;
+                        this.teamList._formatItem = function (li, data) {
+                            li.css("position", "relative");
+                            this._formatItemSuper.apply(this, arguments);
+                            if (data.EmployeeId === this.pmValue) {
+                                this.pmItem = {
+                                    itemData: data,
+                                    li: li
+                                };
+                                li.append("<i class='pm-star'></i>");
+                            }
+                        };
+                        this.teamList._emptySuper = this.teamList.empty;
+                        this.teamList.empty = function () {
+                            this._emptySuper.apply(this, arguments);
+                            this.pmItem = null;
+                        };
+
+                        this.budgetList = $("#budgetList").setList({
+                            width: 240,
+                            formatText: formatBudget
+                        });
+
+                        var treeGrid = new ui.ctrls.TreeGrid();
+                        treeGrid.isTreeNode = function (item) {
+                            return item.ChildrenCount > 1;
+                        };
+                        treeGrid.lazy = true;
+                        treeGrid.loadChildrenHandler = function (rowData, rowIndex) {
+                            pageLogic.loadSubprojects(rowData, rowIndex);
+                        };
+                        var gridOption = {
+                            promptText: "没有项目信息",
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "ProjectName", text: "项目名称", len: 320, handler: treeGrid.formatTreeNode },
+                                { column: "ProjectTypeName", text: "项目类型", len: 100 },
+                                { column: "PMName", text: "项目经理", len: 120 },
+                                { column: "BeginTime", text: "开始时间", len: 100, align: "center", handler: ui.ColumnStyle.cfn.formatDate },
+                                { column: ["EndTime", "ChildrenCount"], text: "结束时间", len: 100, align: "center", handler: projectManager.formatter.endtime },
+                                { column: "StatusName", text: "项目状态", len: 80, align: "center" },
+                                { column: "Description", text: "项目描述", len: 360, handler: ui.ColumnStyle.cfn.formatParagraph },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "i",
+                                multiple: false
+                            },
+                            pager: {
+                                pageIndex: 1,
+                                pageSize: 30
+                            }
+                        };
+                        pageLogic.projectGrid = $("#projectGrid").setGridview(gridOption);
+                        treeGrid.setGridView(pageLogic.projectGrid);
+                        pageLogic.projectGrid.selecting(function (e, element, data) {
+                            var btn;
+                            if (data.rowData.ChildrenCount > 0) {
+                                this.cancelSelection();
+                                btn = $(element[0].cells[1]).children("i");
+                                this.treeGrid.onFoldButtonClick({
+                                    target: btn.get(0)
+                                });
+                                return false;
+                            }
+                        });
+                        pageLogic.projectGrid.selected(function (e, element, data) {
+                            $("#projectStages").parent().show();
+                            if (projectManager.needMaster) {
+                                pageLogic.loadMasterProjects(function () {
+                                    this.onUpdating(data.rowData);
+                                }, projectManager);
+                            } else {
+                                projectManager.onUpdating(data.rowData);
+                            }
+                        });
+                        pageLogic.projectGrid.deselected(function (e, element, data) {
+                            $("#projectStages").parent().hide();
+                            if (projectManager.isUpdate) {
+                                pageLogic.projectCtrlPanel.hide();
+                            }
+                        });
+                        pageLogic.projectGrid.rebind(function (e) {
+                            $("#projectStages").parent().hide();
+                            pageLogic.projectCtrlPanel.hide();
+                        });
+                        pageLogic.projectGrid.pageTurning(function (e, pageIndex, pageSize) {
+                            pageLogic.loadProjects(pageIndex, pageSize);
+                        });
+
+                        pageLogic.stageCtrlPanel = $("#stageData").toCtrlPanel({
+                            parent: "stagePanel",
+                            width: 300
+                        });
+                        pageLogic.stageCtrlPanel
+                            .buttonAppend("removeStage")
+                            .buttonAppend("updateStage");
+                        pageLogic.stageCtrlPanel.hided(function () {
+                            pageLogic.stageGrid.cancelSelection();
+                        });
+
+                        gridOption = {
+                            promptText: "没有设定项目阶段",
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "StageName", text: "阶段", len: 160 },
+                                { column: "ManagerName", text: "负责人", len: 120 },
+                                { column: "BeginTime", text: "开始时间", len: 100, align: "center", handler: stageManager.formatter.dateText },
+                                { column: "EndTime", text: "结束时间", len: 100, align: "center", handler: stageManager.formatter.dateText },
+                                { column: "StatusName", text: "状态", len: 80, align: "center" },
+                                { column: "Description", text: "描述", len: 360, handler: ui.ColumnStyle.cfn.formatParagraph },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                multiple: false
+                            },
+                            pager: false
+                        };
+                        pageLogic.stageGrid = $("#stageGrid").setGridview(gridOption);
+                        pageLogic.stageGrid.selected(function (e, element, data) {
+                            stageManager.onUpdating(data.rowData);
+                        });
+                        pageLogic.stageGrid.deselected(function (e, element, data) {
+                            if (stageManager.isUpdate) {
+                                pageLogic.stageCtrlPanel.hide();
+                            }
+                        });
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.tab.setBodyHeight(height);
+                            pageLogic.projectGrid.setHeight(height);
+                            pageLogic.stageGrid.setHeight(height);
+
+                            pageLogic.projectCtrlPanel.setSizeLocation();
+                            pageLogic.stageCtrlPanel.setSizeLocation();
+
+                            var tabHeight = height - 40 - 30 - 30 - 24;
+                            pageLogic.projectTab.setBodyHeight(tabHeight);
+                            pageLogic.teamList.setHeight(tabHeight - 38);
+                            pageLogic.budgetList.setHeight(tabHeight - 210);
+
+                            pageLogic.tab.setBodiesLocation();
+                            pageLogic.tab.restore();
+                        });
+
+                    },
+                    afterCtrls: function () {
+                        $("#queryProBeginTime").dateChooser();
+                        $("#queryProEndTime").dateChooser();
+                        $("#ProjectBeginTime").dateChooser();
+                        $("#ProjectEndTime").dateChooser();
+                        $("#StageBeginTime").dateChooser();
+                        $("#StageEndTime").dateChooser();
+
+                        pageLogic.masterList = $("#ParentId").setSelectList({
+                            multiple: false,
+                            valueField: "ProjectId",
+                            textField: "ProjectName",
+                            layoutPanel: "projectTabBodyPanel"
+                        });
+                        pageLogic.masterList.selected(function (e, elem, data) {
+                            this.element.val(data.ProjectName);
+                        });
+                        pageLogic.masterList.canceled(function(e) {
+                            this.element.val("");
+                        });
+
+                        this.empTree = $("#addEmployee").setSelectTree({
+                            multiple: true,
+                            width: 236,
+                            valueField: "EmployeeId",
+                            textField: "RealName",
+                            childField: "children",
+                            data: groupList(empList, "Deparetment", function (item) {
+                                return {
+                                    EmployeeId: item.Department,
+                                    RealName: item.DepartmentName
+                                };
+                            }),
+                            defaultOpen: true
+                        });
+                        this.empTree.selected(function (e, elem, treeData) {
+                            pageLogic.teamList.setData(this.getMultipleSelection());
+                        });
+
+                        pageLogic.managerTree = $("#Manager").setSelectTree({
+                            width: 203,
+                            valueField: "EmployeeId",
+                            textField: "RealName",
+                            childField: "children",
+                            defaultOpen: true
+                        });
+                        pageLogic.managerTree.selected(function (e, elem, treeData) {
+                            this.element.val(treeData.data.RealName);
+                        });
+
+                        pageLogic.projectValidate = $("#projectForm").setValidate({
+                            rules: {
+                                ProjectName: { required: true, maxlength: 100 },
+                                ProjectBeginTime: { required: true },
+                                ProjectDescription: { maxlength: 500 }
+                            }
+                        });
+                        pageLogic.stageValidate = $("#stageForm").setValidate({
+                            rules: {
+                                StageName: { required: true, maxlength: 50 },
+                                StageBeginTime: { required: true },
+                                EndBeginTime: { required: true },
+                                StageDescription: { maxlength: 200 }
+                            }
+                        });
+                    },
+                    events: function () {
+                        $("#queryProject").click(function (e) {
+                            pageLogic.loadProjects(1, pageLogic.projectGrid.pageSize);
+                        });
+                        $("#newProject").click(function(e){
+                            if(projectManager.needMaster) {
+                                pageLogic.loadMasterProjects(function () {
+                                    this.onAdding();
+                                }, projectManager);
+                            } else {
+                                projectManager.onAdding();
+                            }
+                        });
+                        $("#projectStages").click(function (e) {
+                            $("#stageProjectName").text(
+                                pageLogic.projectGrid.getCurrentSelection().rowData.ProjectName);
+                            masterpage.pushBack(function () {
+                                pageLogic.stageCtrlPanel.hide(false);
+                                pageLogic.tab.setIndex(0);
+                            });
+                            pageLogic.tab.setIndex(1);
+                        });
+                        
+                        var empTree = pageLogic.empTree;
+                        empTree.element.off();
+                        empTree.element.click(function (e) {
+                            e.stopPropagation();
+                            ui.hideAll(empTree);
+                            empTree.show();
+                        });
+                        $("#removeEmployee").click(function (e) {
+                            var removeItem = pageLogic.teamList.getCurrentSelection(),
+                                data = [],
+                                i, j, flag;
+                            if (removeItem) {
+                                for (i = 0; i < pageLogic.teamList.data.length; i++) {
+                                    if (removeItem.index == i) {
+                                        continue;
+                                    }
+                                    data.push(pageLogic.teamList.data[i]);
+                                }
+                                if (data.length > 0) {
+                                    pageLogic.empTree.setMultipleSelection(data);
+                                } else {
+                                    pageLogic.teamList.empty();
+                                    pageLogic.empTree.cancelSelection();
+                                }
+                            }
+                        });
+                        $("#addBudget").click(function (e) {
+                            var bcOpt = $("#BudgetCategory").selectOption();
+                            var i;
+                            for (i = 0; i < pageLogic.budgetList.dataList.length; i++) {
+                                if (pageLogic.budgetList.dataList[i].BudgetCategory === bcOpt.value) {
+                                    ui.msgshow("已经添加了该预算类型");
+                                    return;
+                                }
+                            }
+                            var budget = {
+                                BudgetCategory: bcOpt.value,
+                                BudgetCategoryName: bcOpt.text,
+                                Capital: $("#Capital").val() || null,
+                                RDTime: $("#RDTime").val() || null
+                            };
+                            if (budget.Capital && !$.isNumeric(budget.Capital)) {
+                                ui.msgshow("预算资金必须填数字");
+                                return;
+                            }
+                            if (budget.RDTime && !$.isNumeric(budget.RDTime)) {
+                                ui.msgshow("人月时间必须填数字");
+                                return;
+                            }
+                            pageLogic.budgetList.add(budget);
+                        });
+                        $("#removeBudget").click(function (e) {
+                            var item = pageLogic.budgetList.getSelection();
+                            if (item) {
+                                pageLogic.budgetList.removeAt(item.index);
+                                projectManager.budgetsDirty = true;
+                            }
+                        });
+                        $("#setPM").click(function (e) {
+                            var selectItem = pageLogic.teamList.getCurrentSelection(),
+                                pmItem = pageLogic.teamList.pmItem,
+                                i;
+                            if (selectItem) {
+                                if (pmItem) {
+                                    pmItem.itemData.isPM = false;
+                                    i = pmItem.li.children(".pm-star");
+                                } else {
+                                    pmItem = pageLogic.teamList.pmItem = {
+                                        isPM: false,
+                                        itemData: null,
+                                        li: null
+                                    };
+                                    i = $("<i class='pm-star'></i>");
+                                }
+                                
+                                pmItem.li = pageLogic.teamList.current;
+                                pmItem.itemData = selectItem.itemData;
+                                pmItem.isPM = true;
+                                pmItem.li.append(i);
+                                $("#PM").val(pmItem.itemData.EmployeeId);
+                                pageLogic.teamList.pmValue = pmItem.itemData.EmployeeId;
+                            }
+                        });
+                        $("#projectSave").click(function (e) {
+                            projectManager.onSave();
+                        });
+
+                        $("#newStage").click(function (e) {
+                            stageManager.onAdding();
+                        });
+                        $("#stageUp").click(function (e) {
+                            pageLogic.stageGrid.currentUp();
+                        });
+                        $("#stageDown").click(function (e) {
+                            pageLogic.stageGrid.currentDown();
+                        });
+                        $("#managerClear").click(function (e) {
+                            pageLogic.managerTree.cancelSelection();
+                        });
+                        $("#updateStage").click(function (e) {
+                            stageManager.onUpdate();
+                        });
+                        $("#removeStage").click(function (e) {
+                            stageManager.onDelete();
+                        });
+                        $("#stageSave").click(function (e) {
+                            stageManager.onSave();
+                        });
+                    },
+                    datas: function () {
+                        pageLogic.loadMasterProjects();
+                        pageLogic.tab.setIndex(0, false);
+                    }
+                },
+                loadProjects: function (pageIndex, pageSize) {
+                    var data = {
+                        projectName: $("#queryProName").val() || null,
+                        projectType: $("#queryProType").val() || null,
+                        status: $("#queryProStatus").val() || null,
+                        beginTime: $("#queryProBeginTime").val() || null,
+                        endTime: $("#queryProEndTime").val() || null,
+                        pageIndex: pageIndex,
+                        pageSize: pageSize
+                    };
+
+                    ui.ajax.ajaxPost(
+                        "/Project/QueryProjects",
+                        data,
+                        function (success) {
+                            if (pageIndex == 1)
+                                pageLogic.projectGrid.pageIndex = pageIndex;
+                            if (success) {
+                                pageLogic.projectGrid.createGridBody(success.Result, success.RowCount);
+                            } else {
+                                pageLogic.projectGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载项目信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                loadSubprojects: function (project, rowIndex) {
+                    var data = {
+                        projectId: project.ProjectId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Project/GetSubprojects",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success && success.length > 0) {
+                                pageLogic.projectGrid.treeGrid.addChildren(project, rowIndex, success);
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载项目信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                loadMasterProjects: function(callback, caller) {
+                    ui.ajax.ajaxPost(
+                        "/Project/GetMasterProjects",
+                        null,
+                        function (success) {
+                            if (success) {
+                                projectManager.needMaster = false;
+                                pageLogic.masterList.setData(success);
+                            }
+                            if (callback) {
+                                callback.call(caller);
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("获取主项目失败，" + error.message, true);
+                        }
+                    );
+                },
+                getTeam: function(projectId, callback, caller) {
+                    var data = {
+                        projectId: projectId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Project/GetTeam",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success) {
+                                projectManager.setTeamData(projectId, success);
+                                if ($.isFunction(callback)) {
+                                    callback.call(caller, success);
+                                }
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("获取项目团队失败，" + error.message, true);
+                        }
+                    );
+                },
+                getBudgets: function(projectId, callback, caller) {
+                    var data = {
+                        projectId: projectId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Project/GetBudgets",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success) {
+                                if ($.isFunction(callback)) {
+                                    callback.call(caller, projectId, success, true);
+                                }
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("获取项目预算失败，" + error.message, true);
+                        }
+                    );
+                },
+                newProject: function (data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "projectSave",
+                        "/Project/NewProject",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success.Result) {
+                                callback.call(caller);
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("新建项目失败，" + error.message, true);
+                        }
+                    );
+                },
+                editProject: function (data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "projectSave",
+                        "/Project/EditProject",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success.Result) {
+                                callback.call(caller);
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("修改项目失败，" + error.message, true);
+                        }
+                    );
+                },
+                loadStages: function () {
+                    var projectId = pageLogic.projectGrid.getCurrentSelection().rowData.ProjectId;
+                    var data = {
+                        projectId: projectId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Project/GetStages",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success && success.length > 0) {
+                                pageLogic.stageGrid.createGridBody(success);
+                            } else {
+                                pageLogic.stageGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("修改项目失败，" + error.message, true);
+                        }
+                    );
+                },
+                updateStages: function (projectId, stages) {
+                    var data = {
+                        projectId: projectId,
+                        stages: stages
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Project/UpdateStages",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success.Result) {
+                                ui.msgshow("项目阶段已成功保存");
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("修改项目失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+            var groupList = function (list, group, groupItemAction) {
+                var data = [];
+                if (!$.isArray(list)) {
+                    return data;
+                }
+                if (!$.isFunction(groupItemAction)) {
+                    groupItemAction = ui.core.noop;
+                }
+                var temp = {};
+                var i, j, item;
+                for (i = 0; i < list.length; i++) {
+                    item = list[i];
+                    if (!temp.hasOwnProperty(item[group])) {
+                        temp[item[group]] = groupItemAction(item);
+                        temp[item[group]].children = [];
+                    }
+                    temp[item[group]].children.push(item);
+                }
+                for (var key in temp) {
+                    data.push(temp[key]);
+                }
+                return data;
+            };
+            var formatBudget = function (item, index) {
+                var title = $("<span class='budget-title' />").text(item.BudgetCategoryName),
+                    result = [];
+                result.push(title[0], "<br />");
+                var span = $("<span class='budget-info-text' />");
+                result.push(span[0]);
+                if ($.isNumeric(item.Capital)) {
+                    span.text("资金：" + ui.str.formatMoney(item.Capital));
+                } else {
+                    span.text("资金：未知");
+                }
+                span = $("<span class='budget-info-text' />");
+                result.push("<br />", span[0]);
+                if($.isNumeric(item.RDTime)) {
+                    span.text("人月时间：" + item.RDTime);
+                } else {
+                    span.text("人月时间：未知");
+                }
+                return result;
+            };
+
+            var projectManager = {
+                needMaster: true,
+                teamCache: {},
+                budgetCache: {},
+                formatter: {
+                    endtime: function (content, columnObj, index, td) {
+                        if (content[1] > 1) {
+                            return null;
+                        } else {
+                            return ui.ColumnStyle.cfn.formatDate.call(this, content[0], columnObj, index, td);
+                        }
+                    }
+                },
+                setTeamData: function (projectId, team) {
+                    projectManager.teamCache[projectId] = team;
+                    pageLogic.teamList.pmValue = $("#PM").val();
+                    pageLogic.empTree.setMultipleSelection(team);
+                },
+                tryGetTeamData: function (projectId, nullCallback, caller) {
+                    if (!projectId) {
+                        return null;
+                    }
+                    var team;
+                    if (!this.teamCache.hasOwnProperty(projectId)) {
+                        pageLogic.getTeam(projectId, nullCallback, caller);
+                        return null;
+                    } else {
+                        team = this.teamCache[projectId];
+                        pageLogic.teamList.pmValue = $("#PM").val();
+                        pageLogic.empTree.setMultipleSelection(team);
+                        return team;
+                    }
+                },
+                setBudgets: function() {
+                    if (!this.isUpdate) {
+                        return;
+                    }
+                    var projectId = pageLogic.projectGrid.getCurrentSelection().rowData.ProjectId;
+                    var budgets = this.budgetCache[projectId],
+                        i,
+                        callback = function (pid, b, update) {
+                            if (update) {
+                                this.budgetCache[pid] = b;
+                            }
+                            for (i = 0; i < b.length; i++) {
+                                pageLogic.budgetList.add(b[i]);
+                            }
+                        };
+                    if (!budgets) {
+                        pageLogic.getBudgets(projectId, callback, this);
+                    } else {
+                        callback.call(this, projectId, budgets);
+                    }
+                },
+                formReset: function () {
+                    this.budgetsDirty = false;
+                    $("#projectForm")[0].reset();
+                    $("#budgetForm")[0].reset();
+                    pageLogic.masterList.cancelSelection();
+                    pageLogic.empTree.cancelSelection();
+                    pageLogic.teamList.empty();
+                    pageLogic.budgetList.clear();
+                    pageLogic.projectValidate.clearErrorStyle();
+
+                    if(pageLogic.projectCtrlPanel.isShow()) {
+                        pageLogic.projectTab.setIndex(0, false);
+                    }
+                },
+                dataToForm: function (data) {
+                    $("#ProjectName").val(data.ProjectName);
+                    $("#ProjectType").val(data.ProjectType);
+                    if (data.BeginTime) {
+                        $("#ProjectBeginTime").val(ui.str.dateFormat(ui.str.jsonToDate(data.BeginTime), "yyyy-MM-dd"));
+                    }
+                    if (data.EndTime) {
+                        $("#ProjectEndTime").val(ui.str.dateFormat(ui.str.jsonToDate(data.EndTime), "yyyy-MM-dd"));
+                    }
+                    $("#ProjectStatus").val(data.Status);
+                    $("#PM").val(data.PM);
+                    if (data.ParentId) {
+                        pageLogic.masterList.setCurrentSelection(data.ParentId);
+                    }
+                    $("#ProjectDescription").val(data.Description);
+                },
+                onAdding: function () {
+                    this.isUpdate = false;
+                    this.formReset();
+                    pageLogic.projectGrid.cancelSelection();
+                    pageLogic.projectCtrlPanel.show();
+                },
+                onUpdating: function (data) {
+                    this.isUpdate = true;
+                    this.formReset();
+                    this.dataToForm(data);
+                    pageLogic.projectCtrlPanel.show();
+                },
+                onSave: function () {
+                    if (!pageLogic.projectValidate.form()) {
+                        return;
+                    }
+                    var data = {
+                        ProjectName: $("#ProjectName").val(),
+                        ProjectType: $("#ProjectType").val(),
+                        BeginTime: $("#ProjectBeginTime").val(),
+                        EndTime: $("#ProjectEndTime").val() || null,
+                        Status: $("#ProjectStatus").val(),
+                        PM: $("#PM").val() || null,
+                        ParentId: null,
+                        Description: $("#ProjectDescription").val() || null
+                    };
+                    var master = pageLogic.masterList.getCurrentSelection();
+                    if (master) {
+                        data.ParentId = master.ProjectId;
+                    }
+                    data = {
+                        project: data,
+                        teamEmployees: null,
+                        budgets: null
+                    };
+                    var team = pageLogic.teamList.data,
+                        i;
+                    if ($.isArray(team) && team.length > 0) {
+                        data.teamEmployees = [];
+                        for (i = 0; i < team.length; i++) {
+                            data.teamEmployees.push(team[i].EmployeeId);
+                        }
+                    }
+                    var budgets = pageLogic.budgetList.getAll();
+                    if (budgets.length > 0) {
+                        data.budgets = budgets;
+                    } else {
+                        if (this.budgetsDirty) {
+                            data.budgets = [];
+                            data.clearBudgets = true;
+                        }
+                    }
+
+                    var callback,
+                        row,
+                        that = this;
+                    if (this.isUpdate) {
+                        row = pageLogic.projectGrid.getCurrentSelection();
+                        data.project.ProjectId = row.rowData.ProjectId;
+                        callback = function () {
+                            if (data.teamEmployees) {
+                                that.teamCache[row.rowData.ProjectId] = team;
+                            }
+                            if (data.budgets) {
+                                that.budgetCache[row.rowData.ProjectId] = data.budgets;
+                            }
+                            this.loadProjects(this.projectGrid.pageIndex, this.projectGrid.pageSize);
+                        };
+                        pageLogic.editProject(data, callback, pageLogic);
+                    } else {
+                        this.needMaster = true;
+                        if (!data.project.PM) {
+                            ui.msgshow("请先选择项目团队成员并指定项目经理");
+                            return;
+                        }
+                        callback = function () {
+                            if (this.projectGrid.pageIndex != 1) {
+                                that.teamCache = {};
+                                that.budgetCache = {};
+                            }
+                            this.loadProjects(1, this.projectGrid.pageSize);
+                        };
+                        pageLogic.newProject(data, callback, pageLogic);
+                    }
+                },
+                onDelete: function () {
+                }
+            };
+
+            var stageManager = {
+                formatter: {
+                    dateText: function (content, columnObj, index, tr) {
+                        var data = this.dataTable[index];
+                        var date = content;
+                        if (!date) {
+                            return null;
+                        }
+                        var span = $("<span />");
+                        if (typeof date === "string") {
+                            date = ui.str.jsonToDate(date);
+                        }
+                        var val, temp = [];
+                        if (!isNaN(date)) {
+                            val = date.getFullYear();
+                            temp.push(val, "-");
+                            val = date.getMonth() + 1;
+                            temp.push(val < 10 ? "0" + val : val, "-");
+                            val = date.getDate();
+                            temp.push(val < 10 ? "0" + val : val);
+                            data[columnObj.column] = temp.join("");
+                            span.text(data[columnObj.column]);
+                        } else {
+                            span.text(date);
+                        }
+                        return span;
+                    }
+                },
+                formReset: function () {
+                    $("#stageForm")[0].reset();
+                    pageLogic.managerTree.cancelSelection();
+                    pageLogic.stageValidate.clearErrorStyle();
+                },
+                dataToForm: function (data) {
+                    $("#StageName").val(data.StageName);
+                    if(data.Manager) {
+                        pageLogic.managerTree.setCurrentSelection(data.Manager);
+                    }
+                    if (data.BeginTime) {
+                        $("#StageBeginTime").val(ui.str.dateFormat(ui.str.jsonToDate(data.BeginTime), "yyyy-MM-dd"));
+                    }
+                    if (data.EndTime) {
+                        $("#StageEndTime").val(ui.str.dateFormat(ui.str.jsonToDate(data.EndTime), "yyyy-MM-dd"));
+                    }
+                    $("#StageStatus").val(data.Status);
+                    $("#StageDescription").val(data.Description);
+                },
+                onAdding: function () {
+                    this.isUpdate = false;
+                    this.formReset();
+                    pageLogic.stageGrid.cancelSelection();
+                    pageLogic.stageCtrlPanel.show();
+                },
+                onUpdating: function (data) {
+                    this.isUpdate = true;
+                    this.formReset();
+                    this.dataToForm(data);
+                    pageLogic.stageCtrlPanel.show();
+                },
+                onUpdate: function() {
+                    if (!pageLogic.stageValidate.form()) {
+                        return;
+                    }
+                    var projectId = pageLogic.projectGrid.getCurrentSelection().rowData.ProjectId;
+                    var data = null,
+                        row;
+                    if (this.isUpdate) {
+                        row = pageLogic.stageGrid.getCurrentSelection();
+                        data = row.rowData;
+                    } else {
+                        data = {
+                            StageId: ui.guid.newGuid(),
+                            PrevStage: null,
+                            NextStage: null
+                        };
+                    }
+                    data.StageName = $("#StageName").val();
+                    var manager = pageLogic.managerTree.getCurrentSelection();
+                    if (manager) {
+                        data.Manager = manager.EmployeeId;
+                        data.ManagerName = manager.RealName;
+                    }
+                    data.BeginTime = $("#StageBeginTime").val();
+                    data.EndTime = $("#StageEndTime").val();
+                    var ssopt = $("#StageStatus").selectOption()
+                    data.Status = ssopt.value;
+                    data.StatusName = ssopt.text;
+                    data.Description = $("#StageDescription").val();
+
+                    var i, options, item;
+                    if (!this.statusDict) {
+                        this.statusDict = {};
+                        options = $("#StageStatus").children();
+                        for (i = 0; i < options.length; i++) {
+                            item = $(options[i]);
+                            this.statusDict[item.val()] = item.text();
+                        }
+                    }
+                    for (i = 0; i < pageLogic.stageGrid.dataTable.length; i++) {
+                        item = pageLogic.stageGrid.dataTable[i];
+                        if (item.Status === "103-01" && item.StageId !== data.StageId) {
+                            item.Status = "103-02";
+                            item.StatusName = this.statusDict[item.Status];
+                            pageLogic.stageGrid.updateRowByIndex(i, item);
+                            break;
+                        }
+                    }
+                    if (this.isUpdate) {
+                        pageLogic.stageGrid.updateRowByIndex(row.rowIndex, data);
+                    } else {
+                        pageLogic.stageGrid.appendRow(data);
+                    }
+                    $("#stageSave").addClass("button-highlight");
+                    pageLogic.stageCtrlPanel.hide();
+                },
+                onSave: function() {
+                    var stages = pageLogic.stageGrid.dataTable,
+                        i, len,
+                        s, newStages = [],
+                        projectId;
+                    if (stages && stages.length > 0) {
+                        projectId = pageLogic.projectGrid.getCurrentSelection().rowData.ProjectId;
+                        len = stages.length;
+                        for (i = 0; i < len; i++) {
+                            s = stages[i];
+                            newStages.push({
+                                StageId: s.StageId,
+                                StageName: s.StageName,
+                                Manager: s.Manager,
+                                ProjectId: projectId,
+                                BeginTime: s.BeginTime,
+                                EndTime: s.EndTime,
+                                Status: s.Status,
+                                Description: s.Description
+                            });
+                        }
+                        pageLogic.updateStages(projectId, newStages);
+                    }
+                },
+                onDelete: function () {
+                    var row = pageLogic.stageGrid.getCurrentSelection();
+                    pageLogic.stageGrid.removeRowByIndex(row.rowIndex);
+                    $("#stageSave").addClass("button-highlight");
+                    pageLogic.stageCtrlPanel.hide();
+                },
+                onLoad: function () {
+                    $("#stageSave").removeClass("button-highlight");
+                    var projectId = pageLogic.projectGrid.getCurrentSelection().rowData.ProjectId,
+                        callback = function (team) {
+                            pageLogic.managerTree.setData(groupList(team, "Deparetment", function (item) {
+                                return {
+                                    EmployeeId: item.Department,
+                                    RealName: item.DepartmentName
+                                };
+                            }));
+                        };
+                    var team = projectManager.tryGetTeamData(projectId, callback, this);
+                    if (team) {
+                        callback.call(this, team);
+                    }
+                    pageLogic.loadStages();
+                }
+            };
+        })();
+    </script>
+}

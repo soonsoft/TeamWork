@@ -1,0 +1,537 @@
+﻿
+@{
+    ViewBag.Title = "请假申请";
+}
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+    
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "contentWindow",
+        "dateChooser",
+        "selectionList",
+        "selectionTree",
+        "form",
+        "tools",
+        "validate"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style type="text/css">
+        .toolbar .toolbar-extend .extend-spliter {
+            height: 64px;
+            margin-top: 8px;
+        }
+
+        #editorContent label {
+            line-height: 36px;
+        }
+
+        .from-text {
+            width: 211px;
+        }
+
+        .from-area {
+            width:765px;
+            height:240px;
+        }
+
+        .from-required {
+            line-height: 36px;
+            color: #F00921;
+            margin-left: 3px;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul class="tools">
+        <li style="margin-right:20px;">
+            <a id="filterEmployees" class="tool-text-button font-highlight" href="javascript:void(0)">
+                <span>选择员工</span>
+                <i class="fa fa-angle-down"></i>
+            </a>
+        </li>
+    </ul>
+    <ul class="tools" style="float:right;">
+        <li class="action-buttons">
+            <a id="addBtn" class="tool-action-button" href="javascript:void(0)" title="申请">
+                <i class="fa fa-plus"></i>
+            </a>
+            <a id="printBtn" class="tool-action-button" href="javascript:void(0)" title="打印">
+                <i class="fa fa-print"></i>
+            </a>
+        </li>
+    </ul>
+    <div class="toolbar-extend" style="height:80px;">
+        <ul class="tools">
+            <li>
+                <span>请假日期</span>
+                <input id="beginLeaveStartTime" type="text" class="date-text" />
+                ~
+                <input id="beginLeaveEndTime" type="text" class="date-text" />
+            </li>
+            <li>
+                <hr class="extend-spliter" />
+            </li>
+            <li>
+                <button id="queryBtn" class="tool-button button-highlight">
+                    <i class="fa fa-search"></i><span>查询</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+</div>
+<div id="billView" class="grid-view"></div>
+
+<div id="editorContent" style="padding-left:16px; padding-right:17px;">
+    <form id="billForm">
+        <label>选择假种</label><span class="from-required">*</span>
+        <br />
+        <input type="text" id="LeaveType" name="LeaveType" readonly="readonly" class="from-text select-text" />
+        <br />
+        <label>请假时间</label><span class="from-required">*</span>
+        <div style="width:100%;height:auto;line-height:24px;">
+            <div style="width:auto;height:auto;float:left;">
+                <input type="text" id="LeaveStart" name="LeaveStart" readonly="readonly" style="width:100px" class="from-text date-text" />
+            </div>
+            <div style="width:111px;height:24px;float:left;margin-left:10px;">
+                <input id="amStart" name="ampmStart" type="radio" value="am" checked="checked" /><label for="amStart" style="line-height:24px;">上午</label>
+                <span style="margin-left:2px;margin-right:2px;">/</span>
+                <input id="pmStart" name="ampmStart" type="radio" value="pm" /><label for="pmStart" style="line-height:24px;">下午</label>
+            </div>
+            <div style="width:auto;height:auto;float:left;">
+                <span style="margin-left:10px;margin-right:10px;">~</span>
+            </div>
+            <div style="width:auto;height:auto;float:left;">
+                <input type="text" id="LeaveEnd" name="LeaveEnd" readonly="readonly" style="width:100px" class="from-text date-text" />
+            </div>
+            <div style="width:111px;height:24px;float:left;margin-left:10px;">
+                <input id="amEnd" name="ampmEnd" type="radio" value="am" checked="checked" /><label for="amEnd" style="line-height:24px;">上午</label>
+                <span style="margin-left:2px;margin-right:2px;">/</span>
+                <input id="pmEnd" name="ampmEnd" type="radio" value="pm" /><label for="pmEnd" style="line-height:24px;">下午</label>
+            </div>
+            <br clear="left" />
+        </div>
+        <label>事由</label><span class="from-required">*</span>
+        <br />
+        <textarea id="LeaveReason" name="LeaveReason" class="from-area"></textarea>
+    </form>
+
+    <button id="billRemove" class="button">删除</button>
+    <button id="billSave" class="button background-highlight">保存</button>
+</div>
+
+<form id="printForm" action="/RequestBill/LeavePrint" method="post">
+    <input id="billIdList" name="billIdList" value="" />
+</form>
+
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            @JavascriptCodeHelper.BooleanStatement("isHighLevel", (bool)ViewBag.IsHighLevel)
+            @JavascriptCodeHelper.JsonStatement("leaveTypeData", ViewBag.LeaveTypeList)
+            @JavascriptCodeHelper.JsonStatement("allEmployees", ViewBag.Employees)
+            @JavascriptCodeHelper.StringStatement("employeeId", ViewBag.EmployeeId)
+            var pageLogic = window.pageLogic = {
+                init: {
+                    theme: function () {
+                    },
+                    before: function () {
+                        $(document.body).append($("#printForm"));
+                        $("#printForm").css("margin-left", "-1000px");
+
+                        masterpage.initToolbar("toolbar");
+
+                        var option = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { text: "申请人", column: "EmployeeName", len: 120 },
+                                { text: "部门", column: "DepartmentName", len: 160, formatter: ui.ColumnStyle.cfn.formatParagraph },
+                                { text: "假种", column: "LeaveTypeName", len: 100 },
+                                {
+                                    text: "请假时间", column: ["LeaveStart", "LeaveEnd"], len: 300, align: "center",
+                                    formatter: function (values, column) {
+                                        var span = null;
+                                        var date = null,
+                                            time = null,
+                                            text = "";
+                                        if (!values.LeaveStart || !values.LeaveEnd) {
+                                            return span;
+                                        }
+                                        span = $("<span />");
+                                        if (values) {
+                                            date = ui.str.jsonToDate(values.LeaveStart);
+                                            text = ui.str.dateFormat(date, "yyyy-MM-dd HH:mm");
+
+                                            date = ui.str.jsonToDate(values.LeaveEnd);
+                                            if (date) {
+                                                date = ui.str.dateFormat(date, "yyyy-MM-dd HH:mm");
+                                                text += " ~ " + date;
+                                            }
+                                            span.text(text);
+                                        }
+                                        return span;
+                                    }
+                                },
+                                { text: "请假天数", column: "WorkDayCount", len: 120, align: "right", sort: true },
+                                { text: "申请日期", column: "CreateTime", len: 160, align: "center", formatter: ui.ColumnStyle.cfn.formatDateTime },
+                                { text: "事由", column: "LeaveReason", len: 320, formatter: ui.ColumnStyle.cfn.formatParagraph },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            pager: {
+                                pageButtonCount: 10
+                            }
+                        };
+                        if (isHighLevel) {
+                            option.columns.splice(1, 0, { column: "Id", text: ui.ColumnStyle.cnfn.columnCheckboxAll, len: 40, align: "center", formatter: ui.ColumnStyle.cfn.createCheckbox });
+                        }
+                        this.billView = $("#billView").setGridview(option);
+                        this.billView.selecting(function (e, elem, row) {
+                            if (isHighLevel) return false;
+                        });
+                        this.billView.selected(function (e, elem, row) {
+                            leaveBillManager.onUpdating(row.rowData);
+                        });
+                        this.billView.pageTurning(function (e, pageIndex, pageSize) {
+                            pageLogic.getLeaveData(pageIndex);
+                        });
+
+                        this.billWindow = $("#editorContent").putWindow({
+                            title: "请假单",
+                            width: 800,
+                            height: 600,
+                            isRespond: false,
+                            resizeable: false,
+                            draggable: true
+                        });
+                        this.billWindow
+                            .buttonAppend("billRemove")
+                            .buttonAppend("billSave");
+                        this.billWindow.closed(function (e) {
+                            if (leaveBillManager.isUpdate) {
+                                pageLogic.billView.cancelSelection();
+                            }
+                        });
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight,
+                                width = masterpage.contentBodyWidth;
+                            pageLogic.billView.setHeight(height - masterpage.toolbar.height);
+
+                            pageLogic.billWindow.setSizeLocation(800, 600, width, height);
+                        });
+                    },
+                    after: function () {
+                        var layoutPanel;
+                        if (isHighLevel) {
+                            this.filterEmployees = $("#filterEmployees").setSelectTree({
+                                lazy: false,
+                                multiple: false,
+                                width: 240,
+                                valueField: "EmployeeId",
+                                textField: "RealName",
+                                childField: "children",
+                                canSelectNode: false,
+                                defaultOpen: true
+                            });
+                            this.filterEmployees.selected(function (e, elem, nodeData) {
+                                if (nodeData.data.EmployeeId === "none") {
+                                    this.cancelSelection();
+                                } else {
+                                    this.element.children("span").text(nodeData.data.RealName);
+                                }
+                                pageLogic.getLeaveData();
+                            });
+                            this.filterEmployees.canceled(function () {
+                                this.element.children("span").text("选择员工");
+                            });
+                            this.filterEmployees.setData(masterpage.data.employeeList(allEmployees, true));
+                        } else {
+                            $("#filterEmployees").css("display", "none");
+                        }
+
+                        $("#beginLeaveStartTime").dateChooser();
+                        $("#beginLeaveEndTime").dateChooser();
+
+                        layoutPanel = $("#editorContent").parent();
+                        this.leaveTypeList = $("#LeaveType").setSelectList({
+                            data: leaveTypeData,
+                            valueField: "DictItemId",
+                            textField: "DictItemValue",
+                            layoutPanel: layoutPanel
+                        });
+                        this.leaveTypeList.selected(function (e, elem, treeData) {
+                            this.element.val(treeData.data.DictItemValue);
+                        });
+                        this.leaveTypeList.canceled(function (e) {
+                            this.element.val("");
+                        });
+                        this.leaveTypeList._clearClass = null;
+                        this.leaveTypeList.setCurrentSelection(leaveTypeData[0]);
+
+                        $("#LeaveStart").dateChooser({
+                            layoutPanel: layoutPanel
+                        });
+                        $("#LeaveEnd").dateChooser({
+                            layoutPanel: layoutPanel
+                        });
+                        $("#amStart").metroRadio();
+                        $("#pmStart").metroRadio();
+                        $("#amEnd").metroRadio();
+                        $("#pmEnd").metroRadio();
+
+                        this.leaveValidate = $("#billForm").setValidate({
+                            rules: {
+                                LeaveType: { required: true },
+                                LeaveStart: { required: true },
+                                LeaveEnd: { required: true },
+                                LeaveReason: { required: true, maxlength: 500 }
+                            }
+                        });
+                    },
+                    events: function () {
+                        $("#queryBtn").click(function (e) {
+                            pageLogic.getLeaveData();
+                        });
+                        if (isHighLevel) {
+                            $("#addBtn").css("display", "none");
+                            $("#printBtn").click(function (e) {
+                                pageLogic.printBills();
+                            });
+                        } else {
+                            $("#printBtn").css("display", "none");
+                            $("#addBtn").click(function (e) {
+                                leaveBillManager.onAdding();
+                            });
+                        }
+                        $("#billSave").click(function (e) {
+                            leaveBillManager.onSave();
+                        });
+                        $("#billRemove").confirmClick({
+                            backgroundColor: "#C62828",
+                            handler: function () {
+                                leaveBillManager.onDeleting();
+                            }
+                        });
+                    },
+                    load: function () {
+                        this.getLeaveData();
+                    }
+                },
+
+                getLeaveData: function (pageIndex) {
+                    if (ui.core.type(pageIndex) !== "number" || pageIndex === 1) {
+                        pageLogic.billView.pageIndex = 1;
+                    }
+                    var param = {
+                        employeeID: null,
+                        beginTime: $("#beginLeaveStartTime").val() || null,
+                        endTime: $("#beginLeaveEndTime").val() || null,
+                        pageIndex: pageLogic.billView.pageIndex,
+                        pageSize: pageLogic.billView.pageSize
+                    };
+                    if (isHighLevel) {
+                        param.employeeID = pageLogic.filterEmployees.getCurrentSelection() || null;
+                        if (param.employeeID) {
+                            param.employeeID = param.employeeID.EmployeeId;
+                        }
+                    } else {
+                        param.employeeID = employeeId;
+                    }
+                    ui.ajax.ajaxPost(
+                        "/RequestBill/GetLeaveBills",
+                        param,
+                        function (jsonResult) {
+                            if (jsonResult.Result) {
+                                pageLogic.billView.createGridBody(jsonResult.Result, jsonResult.RowCount);
+                            } else {
+                                pageLogic.billView.empty();
+                            }
+                        },
+                        function (e) {
+                            ui.errorShow(e.message);
+                        });
+                },
+                addLeaveData: function (param, callback, caller) {
+                    ui.ajax.ajaxPost(
+                        "/RequestBill/AddLeaveData",
+                        param,
+                        function (jsonResult) {
+                            if (jsonResult.Result) {
+                                if (callback) {
+                                    callback.call(caller || pageLogic);
+                                }
+                            }
+                        },
+                        function (e) {
+                            ui.errorShow(e.message);
+                        });
+                },
+                editLeaveData: function (param, callback, caller) {
+                    ui.ajax.ajaxPost(
+                        "/RequestBill/EditLeaveData",
+                        param,
+                        function (jsonResult) {
+                            if (jsonResult.Result) {
+                                if (callback) {
+                                    callback.call(caller || pageLogic, jsonResult.Data);
+                                }
+                            } else {
+                                ui.messageShow("没有数据发生变化");
+                            }
+                        },
+                        function (e) {
+                            ui.errorShow(e.message);
+                        });
+                },
+                deleteLeaveData: function (id, callback, caller) {
+                    ui.ajax.ajaxPost(
+                        "/RequestBill/DeleteLeaveData",
+                        { billId: id },
+                        function (jsonResult) {
+                            if (jsonResult.Result) {
+                                if (callback) {
+                                    callback.call(caller || pageLogic, jsonResult.Data);
+                                }
+                            } else {
+                                ui.messageShow("没有删除数据，可能Id不对");
+                            }
+                        },
+                        function (e) {
+                            ui.errorShow(e.message);
+                        });
+                },
+                printBills: function () {
+                    var billIdList = pageLogic.billView.getSelectedValue();
+                    if (billIdList.length == 0) {
+                        ui.messageShow("没有选择要打印的请假单");
+                        return;
+                    } else if (billIdList.length > 20) {
+                        ui.messageShow("最多支持一次打印20个请假单");
+                        return;
+                    }
+                    
+                    $("#billIdList").val(billIdList.join(","));
+                    $("#printForm").submit();
+                }
+            };
+
+            var leaveBillManager = {
+                formReset: function() {
+                    $("#billForm").get(0).reset();
+                    pageLogic.leaveTypeList.setCurrentSelection(leaveTypeData[0]);
+                    $("#amStart").setMRChecked(true);
+                    $("#amEnd").setMRChecked(true);
+                },
+                dataToForm: function(data) {
+                    var datetime;
+                    pageLogic.leaveTypeList.setCurrentSelection(data.LeaveType);
+                    datetime = ui.str.jsonToDate(data.LeaveStart);
+                    $("#LeaveStart").val(ui.str.dateFormat(datetime, "yyyy-MM-dd"));
+                    if (datetime.getHours() < 13) {
+                        $("#amStart").setMRChecked(true);
+                    } else {
+                        $("#pmStart").setMRChecked(true);
+                    }
+                    datetime = ui.str.jsonToDate(data.LeaveEnd);
+                    $("#LeaveEnd").val(ui.str.dateFormat(datetime, "yyyy-MM-dd"));
+                    if (datetime.getHours() < 13) {
+                        $("#amEnd").setMRChecked(true);
+                    } else {
+                        $("#pmEnd").setMRChecked(true);
+                    }
+                    $("#LeaveReason").val(data.LeaveReason);
+                },
+                onAdding: function () {
+                    this.formReset();
+
+                    $("#billRemove").css("display", "none");
+                    this.isUpdate = false;
+                    pageLogic.billWindow.setTitle("创建请假单");
+                    pageLogic.billWindow.show();
+                },
+                onUpdating: function (data) {
+                    this.formReset();
+                    this.dataToForm(data);
+
+                    $("#billRemove").css("display", "inline-block");
+                    this.isUpdate = true;
+                    pageLogic.billWindow.setTitle("编辑请假单");
+                    pageLogic.billWindow.show();
+                },
+                onSave: function () {
+                    if (!pageLogic.leaveValidate.form()) {
+                        return;
+                    }
+
+                    var param = {
+                        leaveType: null,
+                        leaveStart: $("#LeaveStart").val() || null,
+                        leaveEnd: $("#LeaveEnd").val() || null,
+                        amStart: $("#amStart").prop("checked"),
+                        amEnd: $("#amEnd").prop("checked"),
+                        leaveReason: $("#LeaveReason").val() || null
+                    };
+                    var leaveType = pageLogic.leaveTypeList.getCurrentSelection();
+                    var temp;
+                    var row;
+                    if (leaveType) {
+                        param.leaveType = leaveType.DictItemId;
+                    }
+                    if (param.leaveEnd < param.leaveStart) {
+                        temp = param.LeaveStart;
+                        param.leaveStart = param.leaveEnd;
+                        param.leaveEnd = temp;
+                        $("#LeaveStart").val(param.leaveStart);
+                        $("#LeaveReason").val(param.leaveEnd);
+                    } else if (param.leaveStart === param.leaveEnd) {
+                        if (!param.amStart && param.amEnd) {
+                            ui.warnShow(ui.str.stringFormat("{0}不能下午开始请假，上午结束请假。", param.leaveStart));
+                            return;
+                        }
+                    }
+
+                    if (this.isUpdate) {
+                        row = pageLogic.billView.getCurrentSelection();
+                        param.billId = row.rowData.Id;
+                        pageLogic.editLeaveData(param, function (d) {
+                            row.rowData.LeaveType = d.LeaveType;
+                            row.rowData.LeaveTypeName = leaveType.DictItemValue;
+                            row.rowData.LeaveStart = d.LeaveStart;
+                            row.rowData.LeaveEnd = d.LeaveEnd;
+                            row.rowData.WorkDayCount = d.WorkDayCount;
+                            row.rowData.LeaveReason = d.LeaveReason;
+                            pageLogic.billView.updateRowByIndex(row.rowIndex, row.rowData);
+                            pageLogic.billWindow.done();
+                        });
+                    } else {
+                        pageLogic.addLeaveData(param, function () {
+                            pageLogic.getLeaveData();
+                            pageLogic.billWindow.done();
+                        });
+                    }
+                },
+                onDeleting: function () {
+                    var row = pageLogic.billView.getCurrentSelection();
+                    if (!row) {
+                        return;
+                    }
+
+                    pageLogic.deleteLeaveData(row.rowData.Id, function () {
+                        pageLogic.getLeaveData();
+                        pageLogic.billWindow.done();
+                    });
+                }
+            };
+        })();
+    </script>
+}

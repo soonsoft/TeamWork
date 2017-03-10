@@ -1,0 +1,282 @@
+﻿@{
+    ViewBag.Title = "职位管理";
+}
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "form",
+        "validate"
+    )
+}
+
+@section scriptsHead{
+}
+
+@section styles {
+    <style type="text/css">
+        form input[type='text'] {
+            width: 188px;
+        }
+
+        form select {
+            width: 188px;
+        }
+
+        form textarea {
+            width: 188px;
+            height: 84px;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul class="tools" style="float:right;">
+        <li>
+            <label>职位名称:</label>
+            <input id="queryPositionName" type="text" />
+        </li>
+        <li>
+            <label>所属部门:</label>
+            <input id="queryDeptName" type="text" />
+        </li>
+        <li>
+            <button id="queryPosition" class="tool-button">查询</button>
+        </li>
+        <li>
+            <button id="newPosition" class="tool-button button-highlight">新职位</button>
+        </li>
+    </ul>
+    <br style="clear:right;" />
+</div>
+<div id="positionPanel" class="content-panel" style="position:relative;">
+    <div id="positionGrid" class="grid-view"></div>
+    <div id="positionData" class="ctrl-form">
+        <form id="positionForm">
+            <input id="positionId" type="hidden" />
+            <label>职位名称</label><span class="required">*</span>
+            <br />
+            <input id="positionName" name="positionName" type="text" />
+            <br />
+            <label>职位级别</label>
+            <br />
+            @Html.DropDownList("positionLevel", (SelectList)ViewBag.PositionLevel)
+            <br />
+            <label>所属部门</label><span class="required">*</span>
+            <br />
+            @Html.DropDownList("belongDept", (SelectList)ViewBag.Departments)
+            <br />
+        </form>
+    </div>
+    <input id="positionSave" type="button" class="button background-highlight" value="保存" />
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        //列表
+                        gridOption = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "PositionName", text: "职位名称", len: 120 },
+                                { column: "PositionLevelName", text: "职位级别", len: 150 },
+                                { column: "DepartmentName", text: "所属部门", len: 200 },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "a",
+                                multiple: false
+                            },
+                            pager: {
+                                pageIndex: 1,
+                                pageSize: 100
+                            }
+                        };
+                        var positionGrid = pageLogic.positionGrid = $("#positionGrid").setGridview(gridOption);
+
+                        pageLogic.positionGrid.selected(function (e, element, data) {
+                            positionManager.onUpdating(data.rowData);
+                        });
+                        pageLogic.positionGrid.deselected(function (e, element, data) {
+                            if (positionManager.isUpdate) {
+                                pageLogic.positionCtrlPanel.hide();
+                            }
+                        });
+                        pageLogic.positionGrid.rebind(function (e) {
+                            pageLogic.positionCtrlPanel.hide();
+                        });
+                        pageLogic.positionGrid.pageTurning(function (e, pageIndex, pageSize) {
+                            pageLogic.getAllPositions(pageIndex, pageSize);
+                        });
+
+                        //表单面板
+                        var positionCtrlPanel = pageLogic.positionCtrlPanel =
+                        $("#positionData").toCtrlPanel({
+                            parent: $("#positionPanel")
+                        });
+                        positionCtrlPanel.buttonAppend($("#positionSave"));
+                        positionCtrlPanel.hided(function () {
+                            pageLogic.positionGrid.cancelSelection();
+                        });
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.positionGrid.setHeight(height);
+                            pageLogic.positionCtrlPanel.setSizeLocation();
+                        });
+                    },
+                    afterCtrls: function () {
+                        pageLogic.positionValidate = $("#positionForm").setValidate({
+                            rules: {
+                                positionName: { required: true, maxlength: 50 }
+                            }
+                        });
+                    },
+                    events: function () {
+                        $("#queryPosition").click(function () {
+                            pageLogic.getAllPositions(1, pageLogic.positionGrid.pageSize);
+                        });
+                        $("#newPosition").click($.proxy(positionManager.onAdding, positionManager));
+                        $("#positionSave").click($.proxy(positionManager.onSave, positionManager));
+                    },
+                    loadData: function () {
+                        pageLogic.getAllPositions();
+                    }
+                },
+
+                //获取所有职位信息
+                getAllPositions: function (pageIndex, pageSize) {
+                    var param = {
+                        positionName: $("#queryPositionName").val() || null,
+                        departmentName: $("#queryDeptName").val() || null,
+                        pageIndex: pageIndex || 1,
+                        pageSize: pageSize || pageLogic.positionGrid.pageSize
+                    };
+
+                    ui.ajax.ajaxPost(
+                        "/Organization/GetAllPositions",
+                        JSON.stringify(param),
+                        function (success) {
+                            if (pageIndex == 1)
+                                pageLogic.positionGrid.pageIndex = pageIndex;
+                            if (success) {
+                                pageLogic.positionGrid.createGridBody(success.Result, success.RowCount);
+                            } else {
+                                pageLogic.positionGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载职位信息失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                //保存职位信息
+                savePostion: function (data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "positionSave",
+                        "/Organization/SavePostion",
+                        JSON.stringify(data),
+                        function (success) {
+                            caller = caller || pageLogic;
+                            if (success.Result) {
+                                data.PositionId = success.ID;
+                                callback.call(caller, data);
+                            } else {
+                                ui.msgshow("没有任何数据改变");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("保存职位失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+            var positionManager = {
+                onAdding: function () {
+                    this.formReset();
+
+                    this.isUpdate = false;
+                    pageLogic.positionGrid.cancelSelection();
+                    pageLogic.positionCtrlPanel.show();
+                },
+
+                onUpdating: function (data) {
+                    this.dataToForm(data);
+
+                    this.isUpdate = true;
+                    pageLogic.positionCtrlPanel.show();
+                },
+
+                onSave: function () {
+                    if (!pageLogic.positionValidate.form()) {
+                        return;
+                    }
+
+                    var data;
+                    var row, callback;
+                    var positionLevel = $("#positionLevel").selectOption(),
+                        belongDept = $("#belongDept").selectOption();
+                    if (this.isUpdate) {
+                        row = pageLogic.positionGrid.getCurrentSelection();
+                        data = ui.obj.clone({}, row.rowData);
+
+                        data.PositionId = $("#positionId").val();
+                        data.PositionName = $("#positionName").val();
+                        data.PositionLevel = positionLevel.value;
+                        data.PositionLevelName = positionLevel.text;
+                        data.DepartmentId = belongDept.value;
+                        data.DepartmentName = belongDept.text;
+
+                        callback = (function (d) {
+                            pageLogic.positionGrid.updateRowByIndex(row.rowIndex, d);
+                            pageLogic.positionGrid.cancelSelection();
+                        });
+                    } else {
+                        data = {
+                            PositionId: $("#positionId").val(),
+                            PositionName: $("#positionName").val(),
+                            PositionLevel: positionLevel.value,
+                            PositionLevelName: positionLevel.text,
+                            DepartmentId: belongDept.value,
+                            DepartmentName: belongDept.text
+                        };
+
+                        callback = (function (d) {
+                            pageLogic.positionGrid.insertRow(0, d);
+                            this.formReset();
+                        });
+                    }
+
+                    pageLogic.savePostion(data, callback, this);
+                },
+
+                formReset: function () {
+                    $("#positionForm")[0].reset();
+                    $("#positionId").val("");
+                    pageLogic.positionValidate.clearErrorStyle();
+                },
+
+                dataToForm: function (data) {
+                    $("#positionForm")[0].reset();
+                    $("#positionId").val(data["PositionId"]);
+                    $("#positionName").val(data["PositionName"]);
+                    $("#positionLevel").val(data["PositionLevel"]);
+                    $("#belongDept").val(data["DepartmentId"]);
+                }
+            };
+        })();
+    </script>
+}
+

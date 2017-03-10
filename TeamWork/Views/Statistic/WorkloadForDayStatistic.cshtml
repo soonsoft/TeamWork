@@ -1,0 +1,302 @@
+﻿
+@{
+    ViewBag.Title = "工作量统计日视图";
+}
+
+@section scriptslink {
+    @this.RegisterCtrls(
+        "columnStyle",
+        "reportView",
+        "form"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style type="text/css">
+       .report-view div.report-head th {
+            text-align: center !important;
+        }
+
+       span.date-week {
+           color: #999;
+       }
+
+       .record-total {
+           position: absolute;
+           left: 0px;
+           bottom: 0px;
+           font-size: 10px;
+           color: #999;
+       }
+
+       .report-view div.report-body td.cell-selected .record-total {
+           color: #fff;
+       }
+
+       div.job-content-children {
+           border-radius: 5px;
+           color: #fff;
+           margin: 10px 0px;
+           padding: 5px;
+       }
+
+    </style>
+}
+
+<div class="toolbar">
+    <ul class="tools">
+        <li>
+            <span id="recordInfo" class="font-highlight" style="width:100%;">@ViewBag.projectName</span>
+        </li>
+        <li>
+            <span id="recordTotal"></span>
+            <span>(小时)</span>
+        </li>
+    </ul>
+    <br style="clear:both;" />
+</div>
+<div id="contentPanel" style="position:relative;">
+    <div id="recordGrid" class="report-view"></div>
+    <div id="jobContentCtrlPanel" class="ctrl-form">
+        <div id="jobContent"></div>
+    </div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            var projectId = "@ViewBag.projectId";
+            var start = "@ViewBag.startTime";
+            var end = "@ViewBag.endTime";
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        var startTime = ui.str.convertDate(start, "yyyy-MM-dd HH:mm:ss");
+                        var endTime = ui.str.convertDate(end, "yyyy-MM-dd HH:mm:ss");
+                        var dateStr;
+                        var dates = this.dateList = [];
+                        while (ui.str.dateFormat(startTime, "yyyy-MM-dd") <= ui.str.dateFormat(endTime, "yyyy-MM-dd")) {
+                            dateStr = ui.str.dateFormat(startTime, "yyyy-MM-dd");
+                            dates.push(dateStr);
+                            startTime.setDate(startTime.getDate() + 1);
+                        }
+                        if (dates.length == 8) {
+                            dates.pop();
+                        }
+
+                        pageLogic.jobContentCtrlPanel = $("#jobContentCtrlPanel").toCtrlPanel({
+                            parent: "contentPanel",
+                            width: 240
+                        });
+                        pageLogic.jobContentCtrlPanel.showing(function (e) {
+
+                        });
+                        pageLogic.jobContentCtrlPanel.hided(function (e) {
+
+                        });
+
+                        var gridOption = {
+                            fixedGroupColumns: [
+                                [{
+                                    column: "EmployeeName",
+                                    text: "员工名称",
+                                    len: 80
+                                }]
+                            ],
+                            dataGroupColumns: [
+                            ],
+                            selection: {
+                                type: "cell",
+                                exclude: "span"
+                            },
+                            pager: false
+                        };
+                        var i, item, column;
+                        for (i = 0; i < dates.length; i++) {
+                            item = dates[i];
+                            column = {
+                                column: [item, "EmployeeId"],
+                                text: formatters.formatDateText,
+                                len: 70,
+                                align: "right",
+                                handler: formatters.formatDateValue
+                            };
+                            gridOption.dataGroupColumns.push(column);
+                        }
+                        gridOption.dataGroupColumns.push({text: ui.ColumnStyle.cnfn.empty, handler: ui.ColumnStyle.cfn.empty});
+                        gridOption.dataGroupColumns = [ gridOption.dataGroupColumns ];
+                        var recordGrid = pageLogic.recordGrid = $("#recordGrid").setReportView(gridOption);
+                        recordGrid.selecting(function (e, elem, rowData) {
+                            var time = rowData.columns[0];
+                            var data = rowData.rowData[time];
+                            if (data.num == 0) {
+                                return false;
+                            }
+                            
+                        });
+                        recordGrid.selected(function (e, elem, rowData) {
+                            var dateArr = rowData.columns[0].split("-");
+                            var newdate = new Date(dateArr[0], dateArr[1] - 1, dateArr[2]);
+                            pageLogic.loadRecordForDay(newdate, rowData.rowData.EmployeeId);
+                        });
+                        recordGrid.deselected(function () {
+                            pageLogic.jobContentCtrlPanel.hide();
+                        });
+                        
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+                            pageLogic.recordGrid.setSize(width, height);
+                            pageLogic.jobContentCtrlPanel.setSizeLocation();
+                        });
+                    },
+                    afterCtrls: function () {
+                    },
+                    events: function () {
+                        masterpage.pushBack(function () {
+                            window.history.go(-1);
+                        });
+                    },
+                    datas: function () {
+                        pageLogic.loadRecordData();
+                    }
+                },
+                   
+                loadRecordData: function () {
+                    var date = pageLogic.currentDate;
+                    var data = {
+                        start: start,
+                        end: end,
+                        projectId: projectId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Statistic/GetRecordByWeek",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success.length > 0) {
+                                var dates = [], map = {}, item = null;
+                                var gridData = [];
+                                var j, total = 0;
+                                for (var i = 0; i < success.length; i++) {
+                                    item = success[i];
+                                    if (!map.hasOwnProperty(item.EmployeeId)) {
+                                        map[item.EmployeeId] = {
+                                            EmployeeId: item.EmployeeId,
+                                            EmployeeName: item.EmployeeName
+                                        };
+                                        for (j = 0; j < pageLogic.dateList.length; j++) {
+                                            map[item.EmployeeId][pageLogic.dateList[j]] = {
+                                                num: 0,
+                                                sum: 0
+                                            };
+                                        }
+                                    }
+                                    map[item.EmployeeId][item.DateStr].num = item.SumHour;
+                                    map[item.EmployeeId][item.DateStr].sum += item.TotalHour;
+                                    total += item.SumHour;
+                                }
+                                for (var key in map) {
+                                    gridData.push(map[key]);
+                                }
+                                pageLogic.recordGrid.createReportBody(gridData);
+                                $("#recordTotal").text(total);
+                            } else {
+                                pageLogic.recordGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("查询工时信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                loadRecordForDay: function (currentDate, empId) {
+                    var year = currentDate.getFullYear();
+                    var mon = currentDate.getMonth();
+                    var day = currentDate.getDate();
+                    var start = new Date(year, mon, day, 0, 0, 0);
+                    var end = new Date(year, mon, day + 1, 0, 0, 0)
+                    var data = {
+                        empId: empId,
+                        projectId: projectId,
+                        start: start,
+                        end: end
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Statistic/GetRecordByDay",
+                        JSON.stringify(data),
+                        function (success) {
+                            var i, item;
+                            var parent = $("#jobContent");
+                            parent.empty();
+                            var start, end;
+                            var child, time, content;
+                            for (i = 0; i < success.length; i++) {
+                                item = success[i];
+                                child = $("<div class='job-content-children background-highlight' />");
+                                start = ui.str.jsonToDate(item.BeginTime);
+                                end = ui.str.jsonToDate(item.EndTime);
+                                start = ui.str.dateFormat(start, "MM/dd HH:mm");
+                                end = ui.str.dateFormat(end, "MM/dd HH:mm");
+                                time = $("<p />");
+                                time.text(start + "-" + end);
+                                content = $("<p>" + item.JobContent + "</p>");
+                                child.append(time)
+                                     .append(content);
+                                parent.append(child);
+                            }
+                            pageLogic.jobContentCtrlPanel.show();
+                        },
+                        function (error) {
+                            ui.msgshow("查询工时信息详情失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+	        var formatters = {
+	            formatDateText: function (value) {
+	                var dateArr = value.column[0].split("-");
+	                var newdate = new Date(dateArr[0], dateArr[1] - 1, dateArr[2]);
+	                var dateText = ui.str.dateFormat(newdate, "MM/dd (wk)",
+                        formatters.formatWeek);
+	                var span = $("<span>" + dateText + "</span>");
+	                var day = newdate.getDay();
+	                if (day == 0 || day == 6) {
+	                    span.addClass("date-week");
+	                }
+	                return span;
+	            },
+	            formatWeek: function(wk) {
+	                var name = "日一二三四五六";
+	                return name.charAt(wk);
+	            },
+	            formatDateValue: function (content, column, index, elem) {
+	                var span;
+	                var dateArr = column.column[0].split("-");
+	                var newdate = new Date(dateArr[0], dateArr[1] - 1, dateArr[2]);
+	                var week = newdate.getDay();
+	                var total;
+	                if (content[0].num == 0) {
+	                    span = $("<span />");
+	                } else {
+	                    span = $("<a href='javascript:void(0)' />");
+	                }
+	                if (week == 0 || week == 6) {
+	                    span.addClass("date-week");
+	                }
+	                total = $("<span class='record-total' />");
+	                total.text(content[0].sum);
+	                elem.css("position", "relative");
+	                span.text(content[0].num);
+	                return [span, total];
+	            }
+	        };
+    })();
+    </script>
+}
+

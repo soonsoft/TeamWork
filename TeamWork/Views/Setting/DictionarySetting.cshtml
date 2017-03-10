@@ -1,0 +1,651 @@
+﻿@{
+    ViewBag.Title = "字典设置";
+    bool isAdminPage = ViewBag.IsAdminPage != null ? ViewBag.IsAdminPage : false;
+
+    IUserData user = UserContext.CurrentUser;
+    var setting = user.PersonalizeSettings();
+    string bgColor = "#E1E1E1";
+    string borderColor = "#E5E5E5";
+    if(user.IsBackgroundDark())
+    {
+        bgColor = "#4B4D4F";
+        borderColor = "#3C3F41";
+    }
+}
+
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+    
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "form",
+        "tools",
+        "validate"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style id="dictionaryStyle" type="text/css">
+        div#leftBar {
+            position:absolute;
+            top:0px;
+            left:0px;
+            bottom:0px;
+            width:240px;
+            border-top: solid 1px @borderColor;
+            border-right: solid 1px @borderColor;
+            overflow:auto;
+        }
+
+        div#rightPanel {
+            position:absolute;
+            top:0px;
+            left:241px;
+            bottom:0px;
+            right:0px;
+        }
+
+        div#leftBar li.group-item {
+            height:40px;
+            line-height:40px;
+            font-size:14px;
+            overflow:hidden;
+            cursor:pointer;
+        }
+
+            div#leftBar li.group-item:hover {
+                background-color: @bgColor;
+            }
+
+            div#leftBar li.group-item-selected {
+            }
+
+            div#leftBar li.group-item span {
+                display:inline-block;
+                height: 24px;
+                line-height: 22px;
+                vertical-align: top;
+                margin-top: 7px;
+                margin-left:10px;
+                margin-right:10px;
+                border-bottom-width: 2px;
+                border-bottom-style: solid;
+                border-bottom-color: transparent;
+            }
+
+            div#leftBar li.group-item-selected span{
+            }
+
+        div.dictitem-panel {
+            position:absolute;
+            top:0px;
+            left:240px;
+            bottom:0px;
+            right:0px;
+        }
+
+        form input[type='text'] {
+            width:188px;
+        }
+
+        form select {
+            width:188px;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul id="dictTool" class="tools" style="float:right;">
+        @if (isAdminPage)
+        {
+        <li>
+            <button id="addDictGroupBtn" class="tool-button">新分组</button>
+        </li>
+        <li>
+            <button id="deleteDictGroupBtn" class="tool-button">删除分组</button>
+        </li>
+        }
+        <li>
+            <button id="addDictBtn" class="tool-button button-highlight">新字典</button>
+        </li>
+        @if (isAdminPage)
+        {
+        <li>
+            <button id="deleteDictItemBtn" class="tool-button">删除</button>
+        </li>
+        <li>
+            <button id="rebuildCacheBtn" class="tool-button">重建缓存</button>
+        </li>
+        }
+    </ul>
+    <br style="clear:both;" />
+</div>
+
+<div id="dictPanel" class="content-panel" style="position:relative;">
+    <div id="leftBar"></div>
+    <div id="rightPanel">
+        <div id="dictGrid" class="grid-view"></div>
+        <div id="dictGroupPanel" class="ctrl-form">
+            <form id="dictGroupForm">
+                <label>分组编号</label><span class="required">*</span>
+                <br />
+                <input id="dictGroupId" name="dictGroupId" type="text" />
+                <br />
+                <label>分组名称</label><span class="required">*</span>
+                <br />
+                <input id="dictGroupName" name="dictGroupName" type="text" />
+                <br /><br />
+                <input id="isTree" name="isTree" type="checkbox" style="vertical-align: middle;" />
+                <label for="isTree">树形字典分组</label>
+            </form>
+        </div>
+        <input id="groupSave" type="button" class="button background-highlight" value="保存" />
+        <div id="dictItemPanel" class="ctrl-form">
+            <form id="dictItemForm">
+                <label>字典编号</label><span class="required">*</span>
+                <br />
+                <input id="dictItemKey" name="dictItemKey" type="text" />
+                <br />
+                <label>字典值</label><span class="required">*</span>
+                <br />
+                <input id="dictItemValue" name="dictItemValue" type="text" />
+                <br />
+                <label>状态</label>
+                <br />
+                <input id="dictItemEnabled" type="checkbox" checked="checked" />
+                <label for="dictItemEnabled" class="switch-text">启用</label>
+            </form>
+        </div>
+        <input id="itemSave" type="button" class="button background-highlight" value="保存" />
+    </div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            @JavascriptCodeHelper.BooleanStatement("isAdminPage", isAdminPage)
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        var groupCtrlPanel = pageLogic.groupCtrlPanel = 
+                            $("#dictGroupPanel").toCtrlPanel({
+                                parent: "rightPanel"
+                            });
+                        groupCtrlPanel.buttonAppend($("#groupSave"));
+
+                        var itemCtrlPanel = pageLogic.itemCtrlPanel =
+                            $("#dictItemPanel").toCtrlPanel({
+                                parent: "rightPanel"
+                            });
+                        itemCtrlPanel.buttonAppend($("#itemSave"));
+                        itemCtrlPanel.hided(function () {
+                            pageLogic.dictGrid.cancelSelection();
+                        });
+
+                        var dictGridOption = {
+                            columns: [
+                                { column: "DictItemId", text: ui.ColumnStyle.cnfn.columnCheckboxAll, len: 40, align: "center", handler: ui.ColumnStyle.cfn.createCheckbox },
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "DictItemId", text: "字典ID", len: 120 },                                
+                                { column: "DictItemKey", text: "字典编号", len: 120 },
+                                { column: "DictItemValue", text: "字典值", len: 200, sort: true },
+                                { column: "Enabled", text: "状态", align: "center", len: 100, handler: ui.ColumnStyle.cfnp.getFormatBoolean("启用", "禁用") },
+                                { handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "input[checkbox]",
+                                multiple: false
+                            },
+                            pager: false
+                        };
+                        if (!isAdminPage) {
+                            dictGridOption.columns.splice(0, 1);
+                        }
+                        var dictGrid = pageLogic.dictGrid = $("#dictGrid").setGridview(dictGridOption);
+                        dictGrid.selected(function (e, element, data) {
+                            dictionaryManager.onUpdating(data.rowData)
+                        });
+                        dictGrid.deselected(function (e, element, data) {
+                            if (dictionaryManager.isUpdate) {
+                                pageLogic.itemCtrlPanel.hide();
+                            }
+                        });
+                        dictGrid.rebind(function (e) {
+                            pageLogic.itemCtrlPanel.hide();
+                        });
+                    },
+                    layout: function () {
+                        var resizeFunc = function () {
+                            var height = masterpage.contentBodyHeight - 40;
+
+                            $("#dictPanel").css("height", height + "px");
+                            pageLogic.dictGrid.setHeight(height);
+
+                            pageLogic.groupCtrlPanel.setSizeLocation();
+                            pageLogic.itemCtrlPanel.setSizeLocation();
+                        };
+                        masterpage.resize(resizeFunc);
+                        resizeFunc();
+                    },
+                    afterCtrls: function () {
+                        this.dictItemEnabled = $("#dictItemEnabled").switchButton();
+                        this.dictItemEnabled.changed(function() {
+                            if(this.checked()) {
+                                this.switchBox.next().text("启用");
+                            } else {
+                                this.switchBox.next().text("禁用");
+                            }
+                        });
+
+                        pageLogic.dictGroupValidate = $("#dictGroupForm").setValidate({
+                            rules: {
+                                dictGroupId: {
+                                    required: true, custom: {
+                                        method: $.proxy(dictionaryManager.checkDictGroupId, dictionaryManager)
+                                    }
+                                },
+                                dictGroupName: { required: true, maxlength: 50 }
+                            },
+                            messages: {
+                                dictGroupId: {
+                                    custom: "分组编号不能重复"
+                                }
+                            }
+                        });
+
+                        pageLogic.dictItemValidate = $("#dictItemForm").setValidate({
+                            rules: {
+                                dictItemKey: {
+                                    required: true, custom: {
+                                        method: $.proxy(dictionaryManager.checkDictItemKey, dictionaryManager)
+                                    }
+                                },
+                                dictItemValue: { required: true, maxlength: 50 }
+                            },
+                            messages: {
+                                dictItemKey: {
+                                    custom: "字典编号不能重复"
+                                }
+                            }
+                        });
+                    },
+                    events: function () {
+                        $("#addDictBtn").click(function() {
+                            dictionaryManager.onAdding();
+                        });
+                        if (isAdminPage) {
+                            $("#addDictGroupBtn").click(function(e) {
+                                dictionaryManager.onGroupAdding();
+                            });
+                            $("#deleteDictGroupBtn").click(function(e) {
+                                dictionaryManager.onGroupDelete();
+                            });
+                            $("#groupSave").click(function(e) {
+                                dictionaryManager.onGroupSave();
+                            });
+                            $("#deleteDictItemBtn").click(dictionaryManager.onDelete);
+                            $("#rebuildCacheBtn").click(function(e) {
+                                pageLogic.rebuild();
+                            });
+                        }
+                        $("#itemSave").click(function(e) {
+                            dictionaryManager.onSave();
+                        });
+                    },
+                    datas: function() {
+                        pageLogic.loadDictionaryGroup();
+                    }
+                },
+                rebuild: function(caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "rebuildCacheBtn",
+                        "/Setting/RebuildCacheData",
+                        null,
+                        function (success) {
+                            if(success.Result) {
+                                pageLogic.loadDictionaryGroup();
+                            } else {
+                                ui.msgshow("字典缓存并没有开启");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("字典缓存重建失败，" + error.message, true);
+                        }
+                    );
+                },
+                loadDictionaryGroup: function () {
+                    ui.ajax.ajaxPost(
+                        "/Setting/GetDictionaryGroup",
+                        null,
+                        function (success) {
+                            if (success) {
+                                dictionaryManager.initDictGroups(success);
+                            } else {
+                                dictionaryManager.dictGroupsClear();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载字典分组失败，" + error.message, true);
+                        }
+                    );
+                },
+                addDictionaryGroup: function(data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "groupSave",
+                        "/Setting/AddDictionaryGroup",
+                        JSON.stringify(data),
+                        function (success) {
+                            if(success.Result) {
+                                callback.call(caller, success.Data);
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("保存字典分组失败，" + error.message, true);
+                        }
+                    );
+                },
+                deleteDictionaryGroup: function(groupId) {
+                    var data = {
+                        dictGroupId: groupId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Setting/DeleteDictionaryGroup",
+                        JSON.stringify(data),
+                        function (success) {
+                            if(success.Result) {
+                                pageLogic.loadDictionaryGroup();
+                            } else {
+                                ui.msgshow("没有删除任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("删除字典分组失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                loadDictionaryItem: function (groupId) {
+                    var data = {
+                        groupId: groupId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Setting/GetDictionaryItems",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success) {
+                                pageLogic.dictGrid.createGridBody(success);
+                            } else {
+                                pageLogic.dictGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("获取字典项失败，" + error.message, true);
+                        }
+                    );
+                },
+                saveDictionaryItem: function (data, callback, caller) {
+                    ui.ajax.ajaxPostOnce(
+                        "itemSave",
+                        "/Setting/SaveDictionaryItem",
+                        JSON.stringify(data),
+                        function (success) {
+                            caller = caller || pageLogic;
+                            if (success.Result) {
+                                callback.call(caller, success.Data);
+                            } else {
+                                ui.msgshow("没有保存任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("保存字典项失败，" + error.message, true);
+                        }
+                    );
+                },
+                deleteDictionaryItems: function (data) {
+                    ui.ajax.ajaxPost(
+                        "/Setting/DeleteDictionaryItems",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success.Result) {
+                                pageLogic.loadDictionaryItem(dictionaryManager.currentGroupId);
+                            } else {
+                                ui.msgshow("没有删除任何数据");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("删除字典项失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+            var dictionaryManager = {
+                initDictGroups: function (groups) {
+                    this.dictGroupsClear();
+                    var content = $("#leftBar");
+                    var ul = $("<ul />").prop("id", "groupList");
+                    var item = null;
+                    for (var i = 0; i < groups.length; i++) {
+                        item = groups[i];
+                        ul.append(this._createGroupItem(item));
+                    }
+                    content.append(ul);
+                    ul.click($.proxy(this.getDictItems, this));
+
+                    this.selectDictGroup(0);
+                },
+                _createGroupItem: function(group) {
+                    var li = $("<li />").addClass("group-item");
+                    li.append($("<span />").text(group.DictGroupName));
+                    li.data("DictGroupId", group.DictGroupId);
+                    return li;
+                },
+                dictGroupsClear: function() {
+                    var content = $("#leftBar");
+                    content.html("");
+                },
+                insertDictGroup: function(index, group) {
+                    var groupList = $("#groupList");
+                    if(groupList.length == 0) {
+                        this.initDictGroups([group]);
+                        return;
+                    }
+                    var groups = groupList.children();
+                    if(index < 0) {
+                        index = 0;
+                    }
+                    var li = this._createGroupItem(group);
+                    if(index < groups.length) {
+                        $(groups[index]).before(li);
+                    } else {
+                        groupList.append(li);
+                    }
+                    return li;
+                },
+                selectDictGroup: function (index) {
+                    var elem;
+                    var groupList = $("#groupList");
+                    if(groupList.length == 0) {
+                        return;
+                    }
+                    var items = groupList.children();
+                    if (items.length > 0 && index >= 0 && index < items.length) {
+                        elem = $(items[index]);
+                        this._selectGroupItem(elem);
+                    }
+                },
+                _selectGroupItem: function (elem) {
+                    var groupId = elem.data("DictGroupId");
+                    this.currentGroupId = groupId;
+                    var li = elem.parent().find("li.group-item-selected")
+                        .removeClass("group-item-selected font-highlight");
+                    li.find("span").removeClass("border-highlight");
+                    elem.addClass("group-item-selected font-highlight");
+                    elem.find("span").addClass("border-highlight");
+                    pageLogic.loadDictionaryItem(groupId);
+                },
+
+                getDictItems: function (e) {
+                    var elem = $(e.target),
+                        nodeName;
+                    while((nodeName = elem.nodeName()) !== "LI") {
+                        if(nodeName === "UL") {
+                            return;
+                        }
+                        elem = elem.parent();
+                    }
+                    this._selectGroupItem(elem);
+                },
+                checkDictGroupId: function(value, element) {
+                    var groupList = $("#groupList");
+                    if(groupList.length == 0) {
+                        return true;
+                    }
+                    var groups = groupList.children();
+                    var i, len = groups.length,
+                        item;
+                    for(i = 0; i < len; i++) {
+                        item = $(groups[i]);
+                        if(item.data("DictGroupId") === value) {
+                            return false;
+                        }
+                    }
+                    return true;
+                },
+                checkDictItemKey: function (value, element) {
+                    var i, len;
+                    var dataTable = pageLogic.dictGrid.dataTable;
+                    if(!dataTable) {
+                        return true;
+                    }
+                    var selectRow = pageLogic.dictGrid.getCurrentSelection(),
+                        item;
+                    for (i = 0, len = dataTable.length; i < len; i++) {
+                        item = dataTable[i];
+                        if(this.isUpdate && selectRow.rowData === item) {
+                            continue;
+                        }
+                        if (item.DictItemKey === value) {
+                            return false;
+                        }
+                    }
+                    return true;
+                },
+                onGroupAdding: function() {
+                    $("#dictGroupForm")[0].reset();
+                    pageLogic.groupCtrlPanel.show();
+                    pageLogic.itemCtrlPanel.hide();
+                },
+                onGroupSave: function() {
+                    if(!pageLogic.dictGroupValidate.form()) {
+                        return;
+                    }
+                    var data = {
+                        dictGroupId: $("#dictGroupId").val(),
+                        dictGroupName: $("#dictGroupName").val(),
+                        isTree: $("#isTree").prop("checked")
+                    };
+
+                    var callback = function(d) {
+                        var elem = this.insertDictGroup(0, d);
+                        this._selectGroupItem(elem);
+                        pageLogic.groupCtrlPanel.hide();
+                    };
+                    pageLogic.addDictionaryGroup(data, callback, this);
+                },
+                onGroupDelete: function() {
+                    var groupId = this.currentGroupId;
+                    if(!groupId) {
+                        ui.msgshow("还没有选择需要删除的字典分组");
+                        return;
+                    }
+                    if(!window.confirm("删除字典分组将会同时删除分组下所有的字典项，是否仍然删除？")) {
+                        return;
+                    }
+                    this.currentGroupId = null;
+                    pageLogic.deleteDictionaryGroup(groupId);
+                },
+
+                formReset: function() {
+                    $("#dictItemForm")[0].reset();
+                    $("#dictItemKey").prop("readonly", false);
+                    pageLogic.dictItemEnabled.checked(true);
+                },
+                dataToForm: function(data) {
+                    var itemKey = $("#dictItemKey");
+                    itemKey.val(data.DictItemKey);
+                    itemKey.prop("readonly", true);
+                    $("#dictItemValue").val(data.DictItemValue);
+                    pageLogic.dictItemEnabled.checked(data.Enabled);
+                    
+                },
+                onAdding: function () {
+                    this.formReset();
+                    
+                    dictionaryManager.isUpdate = false;
+                    pageLogic.dictItemValidate.clearErrorStyle();
+                    pageLogic.dictGrid.cancelSelection();
+                    pageLogic.itemCtrlPanel.show();
+                },
+                onUpdating: function (data) {
+                    this.dataToForm(data);
+
+                    pageLogic.dictItemValidate.clearErrorStyle();
+                    dictionaryManager.isUpdate = true;
+                    pageLogic.itemCtrlPanel.show();
+                },
+                onSave: function () {
+                    if (!pageLogic.dictItemValidate.form()) {
+                        return;
+                    }
+
+                    var data;
+                    var row, callback;
+                    if (this.isUpdate) {
+                        row = pageLogic.dictGrid.getCurrentSelection();
+                        data = ui.obj.clone(row.rowData);
+                        data.DictItemKey = $("#dictItemKey").val();
+                        data.DictItemValue = $("#dictItemValue").val();
+                        data.Enabled = pageLogic.dictItemEnabled.checked();
+
+                        callback = (function (d) {
+                            pageLogic.dictGrid.updateRowByIndex(row.rowIndex, d);
+                            pageLogic.dictGrid.cancelSelection();
+                        });
+                    } else {
+                        data = {
+                            DictItemKey: $("#dictItemKey").val(),
+                            DictItemValue: $("#dictItemValue").val(),
+                            DictGroupId: this.currentGroupId,
+                            Enabled: pageLogic.dictItemEnabled.checked()
+                        };
+
+                        callback = (function (d) {
+                            pageLogic.dictGrid.insertRow(0, d);
+                            this.formReset();
+                        });
+                    }
+                    pageLogic.saveDictionaryItem(data, callback, this);
+                },
+                onDelete: function () {
+                    var idList = pageLogic.dictGrid.getSelectedValue();
+                    if (!idList || idList.length == 0) {
+                        ui.msgshow("没有选择需要删除的字典项！");
+                        return;
+                    }
+                    if (!window.confirm("您确定要删除这些字典项吗？")) {
+                        return;
+                    }
+                    pageLogic.deleteDictionaryItems(idList);
+                }
+            };
+        })();
+    </script>
+}

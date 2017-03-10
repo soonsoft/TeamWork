@@ -1,0 +1,322 @@
+﻿@using Newtonsoft.Json
+@{
+    ViewBag.Title = "确认工时";
+}
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/jquery.validate.min.js"></script>
+    @this.RegisterCtrls(
+        "columnStyle",
+        "gridview",
+        "form",
+        "tools",
+        "dateChooser",
+        "validate"
+    )
+}
+
+@section styles {
+    <style type="text/css">
+        .toolbar input {
+            width: 100px;
+        }
+
+        .toolbar select {
+            width: 100px;
+        }
+
+        form textarea {
+            width: 188px;
+            height: 84px;
+        }
+    </style>
+}
+
+<div id="toolbar" class="toolbar">
+    <ul class="tools">
+       <li>
+           <div id="recordFilter" style="margin-top:8px;"></div>
+        </li>
+    </ul>
+    <ul class="tools" style="float:right;">
+        <li>
+            <span>项目:</span>
+            @Html.DropDownList("queryProject", (SelectList)ViewBag.Projects)
+        </li>
+        <li>
+            <span>人员:</span>
+            @Html.DropDownList("queryEmployee", (SelectList)ViewBag.Employees)
+        </li>
+        <li>
+            <span>开始时间:</span>
+            <input id="startTime" type="text" class="date-text" />
+        </li>
+        <li>
+            <span>结束时间:</span>
+            <input id="endTime" type="text" class="date-text" />
+        </li>
+        <li>
+            <button id="queryBtn" class="tool-button">查询</button>
+        </li>
+        <li>
+            <button id="confirmBtn" class="tool-button button-highlight">确认工时</button>
+        </li>
+        <li>
+            <button id="confirmWrongBtn" class="tool-button button-highlight">有异常</button>
+        </li>
+    </ul>
+    <br style="clear:right;" />
+</div>
+<div id="recordPanel" class="content-panel" style="position:relative;">
+    <div id="recordGrid" class="grid-view"></div>
+    <div id="recordData" class="ctrl-form">
+        <form id="recordForm">
+            <label>原因</label><span class="required">*</span>
+            <br />
+            <textarea id="faultReason" name="faultReason"></textarea>
+        </form>
+    </div>
+    <input id="saveBtn" type="button" class="button background-highlight" value="保存" />
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            @JavascriptCodeHelper.JsonStatement("attendTypes", ViewBag.AttendanceTypes);
+            var columnFormatters = {
+                formatTimes: function (values, column) {
+                    var span = $("<span />");
+                    var date = null,
+                        time = null,
+                        text = "";
+                    if (values) {
+                        date = ui.str.jsonToDate(values.BeginTime);
+                        text = ui.str.dateFormat(date, "yyyy-MM-dd (HH:mm");
+
+                        date = ui.str.jsonToDate(values.EndTime);
+                        if (date) {
+                            date = ui.str.dateFormat(date, "HH:mm");
+                            text += " - " + date;
+                        }
+                        text += ")";
+                        span.text(text);
+                    }
+                    return span;
+                },
+                jobContent: function (content, column) {
+                    var p = $("<p />");
+                    if (content) {
+                        p.html(content.replace(/\n/g, "<br />"));
+                    }
+                    return p;
+                }
+            };
+
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        //列表
+                        gridOption = {
+                            columns: [
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: "WorkTimeId", text: ui.ColumnStyle.cnfn.columnCheckboxAll, len: 40, align: "center", handler: ui.ColumnStyle.cfn.createCheckbox },
+                                { column: "EmployeeName", text: "姓名", len: 120 },
+                                { column: "AttendanceTypeName", text: "出勤类型", len: 80, align: "center" },
+                                { column: ["BeginTime", "EndTime"], text: "时间", len: 200, align: "center", handler: columnFormatters.formatTimes },
+                                { column: "Hour", text: "耗时", len: 60, align: "right", handler: ui.ColumnStyle.cfnp.getFormatNumber(1) },
+                                { column: "ProjectName", text: "所属项目", len: 240 },
+                                { column: "StageName", text: "所属阶段", len: 120 },
+                                { column: "JobContent", text: "工作内容", len: 400, handler: columnFormatters.jobContent },
+                                { text: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "a",
+                                multiple: true
+                            },
+                            pager: {
+                                pageIndex: 1,
+                                pageSize: 100
+                            }
+                        };
+                        var recordGrid = pageLogic.recordGrid = $("#recordGrid").setGridview(gridOption);
+
+                        pageLogic.recordGrid.selected(function (e, element, data) {
+                            element.find("td input[type='checkbox']").prop("checked", true);
+                        });
+                        pageLogic.recordGrid.deselected(function (e, element, data) {
+                            element.find("td input[type='checkbox']").prop("checked", false);
+                        });
+                        pageLogic.recordGrid.pageTurning(function (e, pageIndex, pageSize) {
+                            pageLogic.getAllRecords(pageIndex, pageSize);
+                        });
+                        pageLogic.getAllRecords(1, pageLogic.recordGrid.pageSize);
+
+                        //表单面板
+                        var recordCtrlPanel = pageLogic.recordCtrlPanel =
+                        $("#recordData").toCtrlPanel({
+                            parent: $("#recordPanel")
+                        });
+                        recordCtrlPanel.buttonAppend($("#saveBtn"));
+                    },
+
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.recordGrid.setHeight(height);
+                            pageLogic.recordCtrlPanel.setSizeLocation();
+                        });
+                    },
+
+                    afterCtrls: function () {
+                        var i, item, filterItem, filterList = [];
+                        for (i = 0; i < attendTypes.length; i++) {
+                            item = attendTypes[i];
+                            filterItem = {
+                                text: item.DictItemValue,
+                                value: item.DictItemId
+                            };
+                            if (i == 0) {
+                                filterItem["selected"] = true;
+                            }
+                            filterList.push(filterItem);
+                        }
+                        this.recordFilter = $("#recordFilter").createFilterTools({
+                            data: filterList
+                        });
+                        this.recordFilter.selected(function (e, item) {
+                            pageLogic.recordGrid.pageIndex = 1;
+                            pageLogic.getAllRecords(pageLogic.recordGrid.pageIndex, pageLogic.recordGrid.pageSize);
+                        });
+
+                        $("#startTime").dateChooser();
+                        $("#endTime").dateChooser();
+                        pageLogic.recordValidate = $("#recordForm").setValidate({
+                            rules: {
+                                faultReason: { required: true, maxlength: 50 }
+                            }
+                        });
+                    },
+
+                    events: function () {
+                        $("#queryBtn").click(function () {
+                            pageLogic.getAllRecords(1, pageLogic.recordGrid.pageSize);
+                        });
+                        $("#confirmBtn").click($.proxy(recordManager.onConfirm, recordManager));
+                        $("#confirmWrongBtn").click($.proxy(recordManager.onCnfirmWrong, recordManager));
+                        $("#saveBtn").click($.proxy(recordManager.onSave, recordManager));
+                    }
+                },
+
+                //获取所有未确认工时记录
+                getAllRecords: function (pageIndex, pageSize) {
+                    var attendType = null;
+                    if (pageLogic.recordFilter) {
+                        attendType = pageLogic.recordFilter.getCurrent().value;
+                    } else {
+                        attendType = "3-01";
+                    }
+                    var param = {
+                        projectId: $("#queryProject").val() || null,
+                        stageId: null,
+                        employeeId: $("#queryEmployee").val() || null,
+                        beginTime: $("#startTime").val() || null,
+                        endTime: $("#endTime").val() || null,
+                        attendTypes: attendType,
+                        pageIndex: pageIndex,
+                        pageSize: pageSize
+                    };
+
+                    ui.ajax.ajaxPost(
+                        "/WorkTime/GetUnConfirmWorkTimes",
+                        JSON.stringify(param),
+                        function (success) {
+                            if (pageIndex == 1)
+                                pageLogic.recordGrid.pageIndex = pageIndex;
+                            if (success) {
+                                pageLogic.recordGrid.createGridBody(success.Result, success.RowCount);
+                            } else {
+                                pageLogic.recordGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载工时记录信息失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                //确认工时
+                workTimeApproved: function (data, btnName) {
+                    ui.ajax.ajaxPostOnce(
+                        btnName,
+                        "/WorkTime/WorkTimeApproved",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success.Result) {
+                                pageLogic.getAllRecords(pageLogic.recordGrid.pageIndex, pageLogic.recordGrid.pageSize);
+                            } else {
+                                ui.msgshow("没有任何数据改变");
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("确认失败，" + error.message, true);
+                        }
+                    );
+                }
+
+            };
+
+            var recordManager = {
+                onConfirm: function () {
+                    var data = {
+                        workTimeArray: pageLogic.recordGrid.getSelectedValue(),
+                        approved: true,
+                        faultFlag: null,
+                        faultReason: null
+                    };
+                    if (data.workTimeArray.length > 0) {
+                        pageLogic.workTimeApproved(data, "confirmBtn");
+                    } else {
+                        ui.msgshow("没有选择要确认的目标！");
+                    }
+                },
+
+                onCnfirmWrong: function (data) {
+                    $("#recordForm")[0].reset();
+                    pageLogic.recordCtrlPanel.show();
+                },
+
+                onSave: function () {
+                    if (!pageLogic.recordValidate.form()) {
+                        return;
+                    }
+
+                    var data = {
+                        workTimeArray: pageLogic.recordGrid.getSelectedValue(),
+                        approved: false,
+                        faultFlag: true,
+                        faultReason: $("#faultReason").val()
+                    };
+
+                    if (data.workTimeArray.length > 0) {
+                        this.formReset();
+                        pageLogic.workTimeApproved(data, "saveBtn");
+                    } else {
+                        ui.msgshow("没有选择要确认的目标！");
+                    }
+                },
+
+                formReset: function () {
+                    $("#recordForm")[0].reset();
+                    pageLogic.recordValidate.clearErrorStyle();
+                }
+            };
+        })();
+    </script>
+}
+
+
+
+
+

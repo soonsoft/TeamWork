@@ -1,0 +1,24 @@
+﻿@{
+    ViewBag.Title = "Building";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section scriptsHead
+{
+    @this.RegisterCtrls()
+    <script type="text/javascript">
+        masterpage.ready(function () {
+            var resizeFunc = function () {
+                var height = masterpage.contentBodyHeight;
+                $("#contentPanel").css("height", height + "px");
+                $("#textInfo").css("margin-top", (height - 74) / 2 + "px");
+            };
+            resizeFunc();
+            masterpage.resize(resizeFunc);
+        });
+    </script>
+}
+
+<div id="contentPanel" class="content-panel" style="overflow:hidden">
+    <div id="textInfo" style="background-image:url('/Content/images/Building.png'); width:762px; height:74px; margin-left:auto; margin-right:auto;"></div>
+</div>

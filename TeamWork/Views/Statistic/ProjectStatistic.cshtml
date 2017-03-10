@@ -1,0 +1,541 @@
+﻿@{
+    ViewBag.Title = "项目统计";
+}
+@section scriptslink {
+    <script type="text/javascript" src="/Scripts/UI/Highcharts/highcharts.js"></script>
+    @{
+        if (UserContext.CurrentUser.IsBackgroundDark())
+        {
+            @MvcHtmlString.Create("<script type=\"text/javascript\" src=\"/Scripts/UI/Highcharts/themes/metro-dark.js\"></script>")
+        }
+        else
+        {
+            @MvcHtmlString.Create("<script type=\"text/javascript\" src=\"/Scripts/UI/Highcharts/themes/metro.js\"></script>")
+        }
+    }
+
+    @this.RegisterCtrls(
+        "tabPanel",
+        "columnStyle",
+        "gridview",
+        "selectionList",
+        "tools",
+        "dateChooser"
+    )
+}
+@section scriptsHead {
+}
+@section styles {
+    <style type="text/css">
+        .toolbar input {
+            width: 100px;
+        }
+
+        .toolbar select {
+            width: 100px;
+        }
+    </style>
+}
+
+<div id="tabBodyPanel" class="tab-body-panel">
+    <div id="projectListPanel" class="tab-body">
+        <div id="toolbar" class="toolbar">
+            <ul class="tools">
+                <li>
+                    <a id="filterStatus" class="tool-text-button font-highlight" href="javascript:void(0)">
+                        <span>选择状态</span>
+                        <i class="fa fa-angle-down"></i>
+                    </a>
+                </li>
+            </ul>
+            <ul class="tools" style="float:right;">
+                <li class="action-buttons">
+                    <a id="statisticProject" class="tool-action-button" href="javascript:void(0)" title="对比">
+                        <i class="fa fa-tasks"></i>
+                    </a>
+                </li>
+            </ul>
+            <div class="toolbar-extend" style="height:80px;">
+                <ul class="tools">
+                    <li>
+                        <span>项目名称</span>
+                        <input id="queryProName" type="text" />
+                        <br />
+                        <span>项目类型</span>
+                        <input id="queryProType" type="text" class="select-text" />
+                    </li>
+                    <li>
+                        <hr class="extend-spliter" />
+                    </li>
+                    <li>
+                        <span>开始时间</span>
+                        <input id="queryProBeginTime" type="text" class="date-text" />
+                        ~
+                        <input id="queryProEndTime" type="text" class="date-text" />
+                    </li>
+                    <li>
+                        <hr class="extend-spliter" />
+                    </li>
+                    <li>
+                        <button id="queryProject" class="tool-button button-highlight">
+                            <i class="fa fa-search"></i><span>查询</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div id="projectGrid" class="grid-view"></div>
+    </div>
+    <div id="projectStatisticPanel" class="tab-body">
+        <div id="chartPanel"></div>
+    </div>
+</div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            @JavascriptCodeHelper.JsonStatement("queryProType", ViewBag.QueryProjectTypes)
+            @JavascriptCodeHelper.JsonStatement("queryProStatus", ViewBag.QueryProjectStatus)
+            var tabManager = null;
+            var totalHour = Math.abs(@ViewBag.TotalHour);
+            var pageLogic = window.pageLogic = {
+                init: {
+                    before: function () {
+                        masterpage.initToolbar("toolbar");
+
+                        this.tab = ui.tab.createViews({
+                            bodyPanelId: "tabBodyPanel"
+                        });
+                        this.tab.changed(function (e, index) {
+                            if (index === 1) {
+                                chartManager.statisticProject();
+                            }
+                        });
+
+                        var treeGrid = new ui.ctrls.TreeGrid();
+                        treeGrid.isTreeNode = function (item) {
+                            return item["ChildrenCount"] > 1;
+                        };
+                        treeGrid.lazy = true;
+                        treeGrid.loadChildrenHandler = function (rowData, rowIndex) {
+                            pageLogic.loadSubprojects(rowData, rowIndex);
+                        };
+                        treeGrid.formatTreeNodeClone = function (content, columnObj, index, td) {
+                            if (!content) {
+                                return null;
+                            }
+                            var item = this.dataTable[index];
+                            if (!$.isNumeric(item._level)) {
+                                item._level = 0;
+                            }
+                            var link,
+                                fold = null,
+                                left = 22;
+                            if (content[2] != null && content[2] == 0) {
+                                link = $("<a target='_blank' />").text(content[1]);
+                                link.prop("href", "/Statistic/ProjectDetailStatistic?projectId=" + content[0]);
+                            } else {
+                                link = $("<span />").text(content[1]);
+                                link.css("cursor", "default");
+                            }
+
+                            if (this.treeGrid.isTreeNode(item)) {
+                                item._isFolded = false;
+                                link = [null, link[0]];
+                                if (this.treeGrid.lazy) {
+                                    fold = $("<i class='fold font-highlight-hover fa fa-angle-right' />");
+                                } else {
+                                    fold = $("<i class='fold unfold font-highlight-hover fa fa-angle-down' />");
+                                }
+                                fold.css("margin-left", (item._level * (12 + 5) + 5) + "px");
+                                fold.click(this.treeGrid.onFoldButtonClickHandler);
+                                link[0] = fold[0];
+                            } else {
+                                link.css("margin-left", ((item._level + 1) * (12 + 5) + 5) + "px");
+                            }
+                            return link;
+                        };
+                        var gridOption = {
+                            promptText: "没有项目信息",
+                            columns: [
+                                { column: "ProjectId", text: ui.ColumnStyle.cnfn.columnCheckboxAll, len: 40, align: "center", handler: ui.ColumnStyle.cfn.createCheckbox },
+                                { text: "", len: 40, align: "right", handler: ui.ColumnStyle.cfn.rowNumber },
+                                { column: ["ProjectId", "ProjectName", "ChildrenCount"], text: "项目名称", len: 360, handler: treeGrid.formatTreeNodeClone },
+                                { column: "BeginTime", text: "开始时间", align: "right", len: 100, align: "center", handler: ui.ColumnStyle.cfn.formatDate },
+                                { column: "EndTime", text: "结束时间", align: "right", len: 100, align: "center", handler: ui.ColumnStyle.cfn.formatDate },
+                                { column: "SumHour", text: "小时数", align: "right", sort: true, len: 100, handler: formatter.formatHour },
+                                { column: "SumHour", text: "人天数", align: "right", len: 100, handler: formatter.formatDay },
+                                { column: "SumHour", text: "人月数", align: "right", len: 100, handler: formatter.formatMonth },
+                                { column: "SumHour", text: "占比", len: 365, handler: ui.ColumnStyle.cfnp.getProgressBar(350, totalHour) },
+                                { text: "", handler: ui.ColumnStyle.cfn.empty }
+                            ],
+                            selection: {
+                                type: "row",
+                                exclude: "i, input[type='checkbox']",
+                                multiple: false
+                            },
+                            pager: {
+                                pageIndex: 1,
+                                pageSize: 30
+                            }
+                        };
+                        var projectGrid = pageLogic.projectGrid = $("#projectGrid").setGridview(gridOption);
+                        treeGrid.setGridView(projectGrid);
+                        projectGrid.selecting(function (e, element, data) {
+                            var btn;
+                            if (data.rowData.ChildrenCount > 0) {
+                                this.cancelSelection();
+                                btn = $(element[0].cells[2]).children("i");
+                                this.treeGrid.onFoldButtonClick({
+                                    target: btn.get(0)
+                                });
+                                return false;
+                            }
+                        });
+                        projectGrid.selected(function (e, element, data) {
+                            this.cancelSelection();
+                        });
+                        projectGrid.pageTurning(function (e, pageIndex, pageSize) {
+                            pageLogic.loadProjects(pageIndex, pageSize);
+                        });
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.projectGrid.setHeight(height - 40);
+                            $("#chartPanel").css({ "height": height + "px" });
+
+                            pageLogic.tab.setBodyHeight(height);
+                            pageLogic.tab.setBodiesLocation();
+                            pageLogic.tab.restore();
+                        });
+                        chartManager.chartInit();
+                    },
+                    after: function () {
+                        if (!queryProStatus) {
+                            queryProStatus = [];
+                        }
+                        queryProStatus.splice(0, 0, {
+                            DictItemId: "none",
+                            DictItemValue: "取消选择"
+                        });
+                        this.queryProStatus = $("#filterStatus").setSelectList({
+                            width: 120,
+                            data: queryProStatus,
+                            valueField: "DictItemId",
+                            textField: "DictItemValue"
+                        });
+                        this.queryProStatus.selected(function (e, elem, nodeItem) {
+                            if (nodeItem.data.DictItemId === "none") {
+                                this.cancelSelection();
+                            } else {
+                                this.element.children("span").text(nodeItem.data.DictItemValue);
+                            }
+                            pageLogic.loadProjects();
+                        });
+                        this.queryProStatus.canceled(function (e) {
+                            this.element.children("span").text("选择状态");
+                        });
+
+                        if (!queryProType) {
+                            queryProType = [];
+                        }
+                        this.queryProType = $("#queryProType").setSelectList({
+                            data: queryProType,
+                            valueField: "DictItemId",
+                            textField: "DictItemValue"
+                        });
+                        this.queryProType.selected(function (e, elem, nodeItem) {
+                            this.element.val(nodeItem.data.DictItemValue);
+                        });
+                        this.queryProType.canceled(function (e) {
+                            this.element.val("");
+                        });
+
+                        $("#queryProBeginTime").dateChooser();
+                        $("#queryProEndTime").dateChooser();
+                    },
+                    events: function () {
+                        $("#queryProject").click(function (e) {
+                            pageLogic.loadProjects();
+                        });
+
+                        $("#statisticProject").click(function(e) {
+                            projectIds = pageLogic.projectGrid.getSelectedValue();
+                            if (projectIds.length == 0) {
+                                ui.msgshow("没有选择要进行统计的项目.");
+                                return;
+                            }
+                            masterpage.pushBack(function () {
+                                pageLogic.tab.setIndex(0);
+                            });
+                            pageLogic.tab.setIndex(1);
+                        });
+
+                        $("#returnBackBtn").click(function (e) {
+                            pageLogic.tab.setIndex(0);
+                        });
+                    },
+                    load: function () {
+                        pageLogic.tab.setIndex(0, false);
+                        pageLogic.loadProjects();
+                    }
+                },
+
+                loadProjects: function (pageIndex) {
+                    if (ui.core.type(pageIndex) !== "number" || pageIndex === 1) {
+                        pageLogic.projectGrid.pageIndex = 1;
+                    }
+                    var data = {
+                        projectName: $("#queryProName").val() || null,
+                        projectType: pageLogic.queryProType.getCurrentSelection() || null,
+                        status: pageLogic.queryProStatus.getCurrentSelection() || null,
+                        beginTime: $("#queryProBeginTime").val() || null,
+                        endTime: $("#queryProEndTime").val() || null,
+                        pageIndex: pageLogic.projectGrid.pageIndex,
+                        pageSize: pageLogic.projectGrid.pageSize
+                    };
+                    if (data.projectType) {
+                        data.projectType = data.projectType.DictItemId;
+                    }
+                    if (data.status) {
+                        data.status = data.status.DictItemId
+                    }
+                    ui.ajax.ajaxPost(
+                        "/Statistic/QueryProjects",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success) {
+                                pageLogic.projectGrid.createGridBody(success.Result, success.RowCount);
+                            } else {
+                                pageLogic.projectGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载项目信息失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                loadSubprojects: function (project, rowIndex) {
+                    var data = {
+                        projectId: project.ProjectId
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Statistic/QuerySubProjects",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success && success.Result && success.Result.length > 0) {
+                                pageLogic.projectGrid.treeGrid.addChildren(project, rowIndex, success.Result);
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("加载项目信息失败，" + error.message, true);
+                        }
+                    );
+                }
+            };
+
+            var formatter = {
+                formatHour: function (value, column) {
+                    value = ui.fixedNumber(Number(value), 2);
+                    return formatter.createSpan(value);
+                },
+
+                formatDay: function (value, column) {
+                    value = ui.fixedNumber(Number(value) / 8, 2);
+                    return formatter.createSpan(value);
+                },
+
+                formatMonth: function (value, column) {
+                    value = ui.fixedNumber(Number(value) / 8 / 22, 2);
+                    return formatter.createSpan(value);
+                },
+
+                createSpan: function (value) {
+                    var numText = value + "";
+                    var index = numText.indexOf(".");
+                    if (index < 0) {
+                        numText += ".00";
+                    } else if (numText.split(".").length == 2 && numText.split(".")[1].length == 1) {
+                        numText += "0";
+                    }
+                    var span = $("<span>" + numText + "</span>");
+                    return span;
+                }
+            };
+
+            var chartManager = {
+                statisticProject: function () {
+                    var projectIds = pageLogic.projectGrid.getSelectedValue();
+                    if (projectIds == null || projectIds.length == 0) {
+                        return;
+                    }
+                    var datas = pageLogic.projectGrid.dataTable;
+                    var params = [];
+                    for (var i in projectIds) {
+                        for (var j in datas) {
+                            if (datas[j]["ProjectId"] == projectIds[i]) {
+                                params.push({
+                                    "ProjectId": projectIds[i],
+                                    "ProjectName": datas[j]["ProjectName"],
+                                    "IsParent": Number(datas[j]["ChildrenCount"]) > 1
+                                });
+                                break;
+                            }
+                        }
+                    }
+
+                    var data = {
+                        args: params
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Statistic/GetProjectUnitValue",
+                        JSON.stringify(data),
+                        function (success) {
+                            if (success && success.Result && success.Result.length > 0) {
+                                chartManager.prepareData(success.Result)
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("统计项目失败，" + error.message, true);
+                        }
+                    );
+                },
+
+                //初始化统计图
+                chartInit: function () {
+                    var chartOption = {
+                        chart: {
+                            renderTo: "chartPanel",
+                            type: "column"
+                        },
+                        title: { text: "统计项目耗时和项目成本" },
+                        //legend: false,
+                        xAxis: {
+                            categories: [],
+                            labels: {
+                                rotation: -30,
+                                align: 'right',
+                                style: {
+                                    fontSize: '12px'
+                                }
+                            }
+                        },
+                        yAxis: [{ // 第一条 yAxis
+                            min: 0,
+                            title: { text: '耗时' },
+                            stackLabels: {
+                                enabled: true,
+                                style: {
+                                    fontWeight: 'normal'
+                                }
+                            },
+                            labels: {
+                                format: '{value}时'
+                            }
+                        }, { // 第二条 yAxis
+                                min: 0,
+                                title: { text: '成本' },
+                                stackLabels: {
+                                    enabled: true,
+                                    style: {
+                                        fontWeight: 'normal',
+                                        color: "gray"
+                                    }
+                                },
+                                labels: {
+                                    format: '{value}元'
+                                },
+                            opposite: true
+                        }],
+                        tooltip: {
+                            enabled: true,
+                            shared: true
+                            //useHTML: true,
+                            //headerFormat: '<span style="font-size:13px">{point.key}</span>',
+                            //pointFormat: '<table><tr><td style="color:{series.color};padding:1px;">{series.name}: </td>' +
+                            //                        '<td style="font-weight:normal;padding:1px;"><b>{point.y:.2f} </b></td></tr>',
+                            //footerFormat: '</table>'
+
+                            //formatter: function () {
+                            //    return '<b>' + this.x + '</b><br/>' +
+                            //            this.series.name + '：' + this.y;
+                            //}
+                        },
+                        plotOptions: {
+                            column: {
+                                //stacking: "normal",
+                                //pointWidth: 30,
+                                //pointPadding: 0.05,
+                                shadow: false,
+                                dataLabels: {
+                                    enabled: true,
+                                    color: "#gray"
+                                    //rotation: -90,
+                                    //x: 4
+                                }
+                            }
+                        },
+                        series: [{ name: " ", data: [] }]
+                    };
+                    this.cardInfoChart = new Highcharts.Chart(chartOption);
+                },
+
+                //为渲染统计图准备数据
+                prepareData: function (datas) {
+                    if (datas.length == 0) {
+                        return;
+                    }
+                    var categories = [],
+                        series = [],
+                        totalHourMap = {
+                            color: "#007EEE",
+                            name: "耗时",
+                            type: 'column',
+                            data: [],
+                            yAxis: 0,
+                            tooltip: {
+                                valueSuffix: ' 小时'
+                            }
+                        },
+                        totalValueMap = {
+                            color: "#990000",
+                            name: "成本",
+                            type: 'column',
+                            data: [],
+                            yAxis: 1,
+                            tooltip: {
+                                valueSuffix: ' 元'
+                            }
+                        },
+                        data = null;
+                    for (var i = 0; i < datas.length; i++) {
+                        data = datas[i];
+                        categories.push(data["ProjectName"]);
+                        totalHourMap.data.push(data["TotalHour"]);
+                        totalValueMap.data.push(data["TotalValue"]);
+                    }
+                    series.push(totalHourMap);
+                    series.push(totalValueMap);
+                    console.log(series);
+                    this.setChart(categories, series);
+                },
+
+                //渲染统计图
+                setChart: function (categories, series) {
+                    this.cardInfoChart.xAxis[0].setCategories(categories, false);
+                    while (this.cardInfoChart.series.length > 0) {
+                        this.cardInfoChart.series[0].remove(false);
+                    }
+                    for (var i = 0 ; i < series.length; i++) {
+                        this.cardInfoChart.addSeries(series[i], false);
+                    }
+                    this.cardInfoChart.redraw();
+                }
+            };
+        })();
+    </script>
+}

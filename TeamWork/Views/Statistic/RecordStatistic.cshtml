@@ -1,0 +1,382 @@
+﻿@{
+    ViewBag.Title = "工时登记统计";
+    IUserData user = UserContext.CurrentUser;
+    bool isPM = user.HasRole("PM");
+
+    string bgColor = user.IsBackgroundDark() ? "#5D5F60" : "#E1E1E1";
+}
+
+@section scriptslink {
+    @this.RegisterCtrls(
+        "button",
+        "columnStyle",
+        "reportView",
+        "selectionTree"
+    )
+}
+
+@section scriptsHead {
+}
+
+@section styles {
+    <style type="text/css">
+        div.progressBar {
+            margin-left:5px; 
+            margin-top:5px; 
+            float:left;
+            height: 12px;
+            width: 300px;
+            background-color: @bgColor;
+        }
+
+        div.progressBarforWorkTime {
+            margin-left:10px;
+            color:#FFFFFF;
+            height: 16px;
+            width: 80px;
+            background-color: @bgColor;
+        }
+
+        div.overtime {
+            border-style: solid;
+            border-width: 1px;
+        }
+
+        div.less {
+            border:solid 1px #FF0000;
+        }
+
+        div.progressValueforWorkTime {
+            height: 16px;
+            line-height: 16px;
+        }
+
+        .report-view div.report-body span.week {
+            margin-left: 2px;
+            margin-right: 5px;
+        }
+
+        .report-view div.report-body span.weekend {
+            color: #ff0000;
+        }
+
+        .report-view div.report-body span.nothing {
+            color: #AAAAAA;
+        }
+    </style>
+}
+
+<div class="toolbar">
+    <ul class="tools">
+        <li>
+            <a id="prev" class="image-button direct button-left" style="vertical-align: top; margin-top: 8px;"></a>
+        </li>
+        <li>
+            <a id="today" class="image-button button-today" style="vertical-align: top; margin-top: 8px;"></a>
+        </li>
+        <li>
+            <a id="next" class="image-button direct button-right" style="vertical-align: top; margin-top: 8px;"></a>
+        </li>
+        <li>
+            <span id="dateTitle" class="font-highlight" style="font-size: 16px;"></span>
+        </li>
+    </ul>
+    <ul class="tools" style="float:right;">
+        <li>
+            <input id="employeeTree" type="text" class="select-text" style="width:160px;" readonly="readonly" />
+        </li>
+    </ul>
+    <br clear="all" />
+</div>
+<div id="recordGrid" class="report-view"></div>
+
+@section scriptsBody {
+    <script type="text/javascript">
+        ; (function () {
+            @JavascriptCodeHelper.JsonStatement("allEmployees", ViewBag.Employees)
+            @JavascriptCodeHelper.BooleanStatement("isPM", isPM)
+            //hours为正常的工作时间
+            var hours = @ViewBag.WorkHours;
+            var dataColumnsDict = {};
+            var pageLogic = window.pageLogic = {
+                init: {
+                    beforeCtrls: function () {
+                        var gridOption = {
+                            fixedGroupColumns: [
+                                [{
+                                    column: "DateStr",
+                                    text: ui.ColumnStyle.cfn.empty,
+                                    len: 120,
+                                    align: "center",
+                                    handler: formatters.formatDateText
+                                }]
+                            ],
+                            dataGroupColumns: null,
+                            selection: {
+                                type: "disabled"
+                            },
+                            pager: false
+                        };
+                        var employees = allEmployees;
+                        var i, item, column;
+                        for (i = 0; i < employees.length; i++) {
+                            item = employees[i];
+                            column = {
+                                column: item.EmployeeId,
+                                text: item.RealName,
+                                len: 100,
+                                align: "center",
+                                handler: formatters.formatWorkTimeProgress
+                            };
+                            dataColumnsDict[item.EmployeeId] = column;
+                        }
+                        this.recordGrid = $("#recordGrid").setReportView(gridOption);
+                        //初始化员工下拉树
+                        this.createEmployeeTree(allEmployees);
+                    },
+                    layout: function () {
+                        masterpage.resize(function () {
+                            var height = masterpage.contentBodyHeight - 40,
+                                width = masterpage.contentBodyWidth;
+
+                            pageLogic.recordGrid.setSize(width, height);
+                        });
+                    },
+                    afterCtrls: function () {
+                        var now = new Date();
+                        this.currentDate = now;
+                        this.changeWorkTimeMonth();
+
+                        if(!isPM) {
+                            this.employeeTree.element.hide();
+                        }
+                    },
+                    events: function () {
+                        $("#prev").click(function (e) {
+                            var current = pageLogic.currentDate;
+                            pageLogic.currentDate.setMonth(current.getMonth() - 1);
+                            pageLogic.changeWorkTimeMonth();
+                        });
+                        $("#today").click(function (e) {
+                            var now = new Date();
+                            if(pageLogic.currentDate.getFullYear() === now.getFullYear()
+                                && pageLogic.currentDate.getMonth() === now.getMonth()) {
+                                return;
+                            }
+                            pageLogic.currentDate = now;
+                            pageLogic.changeWorkTimeMonth();
+                        });
+                        $("#next").click(function (e) {
+                            var current = pageLogic.currentDate;
+                            var now = new Date();
+                            if(current.getFullYear() === now.getFullYear()
+                                && current.getMonth() === now.getMonth()) {
+                                return;
+                            }
+                            pageLogic.currentDate.setMonth(current.getMonth() + 1);
+                            pageLogic.changeWorkTimeMonth();
+                        });
+                    }
+                },
+                changeWorkTimeMonth: function () {
+                    var current = pageLogic.currentDate;
+                    $("#dateTitle").text(ui.str.stringFormat("{0}年{1}月", current.getFullYear(), current.getMonth() + 1));
+                    pageLogic.loadRecordData();
+                },
+                createEmployeeTree: function(employees) {
+                    var tempData = {
+                        Organizations: []
+                    };
+                    var i = 0,
+                        len = employees.length;
+                    var emp,
+                        defaultDepartment;
+                    for(; i < len; i++) {
+                        emp = employees[i];
+                        if(!tempData.hasOwnProperty(emp.Organization)) {
+                            tempData[emp.Organization] = {
+                                ID: emp.Organization,
+                                Name: emp.OrganizationName,
+                                Children: []
+                            }
+                            tempData.Organizations.push(tempData[emp.Organization]);
+                        }
+                        if(!tempData.hasOwnProperty(emp.Department)) {
+                            tempData[emp.Department] = {
+                                ID: emp.Department,
+                                Name: emp.DepartmentName,
+                                Children: []
+                            }
+                            tempData[emp.Organization].Children.push(tempData[emp.Department]);
+                            if(emp.DepartmentName === "研发中心二部") {
+                                defaultDepartment = tempData[emp.Department];
+                            }
+                        }
+                        tempData[emp.Department].Children.push({
+                            ID: emp.EmployeeId,
+                            Name: emp.RealName,
+                            Children: null
+                        });
+                    }
+
+                    this.employeeTree = $("#employeeTree").setSelectTree({
+                        multiple: true,
+                        width: 240,
+                        valueField: "ID",
+                        textField: "Name",
+                        childField: "Children",
+                        data: tempData.Organizations,
+                        canSelectNode: false,
+                        defaultOpen: true
+                    });
+                    this.employeeTree._clearClass = "";
+                    this.employeeTree.selected(function(e, elem, treeData) {
+                        var selectedData = this.getMultipleSelection();
+                        var text = [],
+                            i = 0,
+                            len = selectedData.length;
+                        for (; i < len; i++) {
+                            text.push(selectedData[i].Name);
+                        }
+                        this.element.removeAttr("title");
+                        if (selectedData.length > 2) {
+                            this.element.val(text[0] + "...");
+                            this.element.attr("title", text.join("，"));
+                        } else {
+                            this.element.val(text.join("，"));
+                        }
+                        pageLogic.updateDataColumns();
+                    });
+
+                    if(defaultDepartment) {
+                        this.employeeTree.setMultipleSelection(defaultDepartment.Children);
+                    }
+                },
+                updateDataColumns: function() {
+                    var columns = [];
+                    var selectedEmployees = this.employeeTree.getMultipleSelection();
+                    var i,
+                        len;
+                    for(i = 0, len = selectedEmployees.length; i < len; i++) {
+                        columns.push(dataColumnsDict[selectedEmployees[i].ID]);
+                    }
+                    columns.push({
+                        text: ui.ColumnStyle.cnfn.empty,
+                        handler: ui.ColumnStyle.cfn.empty
+                    });
+                    this.recordGrid.option.dataGroupColumns = [columns];
+                    this.recordGrid.createReportHead(
+                        this.recordGrid.option.fixedGroupColumns,
+                        this.recordGrid.option.dataGroupColumns);
+                    this.recordGrid.createReportBody(this.recordGrid.dataTable);
+                },
+                loadRecordData: function () {
+                    var date = pageLogic.currentDate;
+                    var data = {
+                        start: date
+                    };
+                    ui.ajax.ajaxPost(
+                        "/Statistic/GetRecordByMonth",
+                        data,
+                        function (success) {
+                            if (success.length > 0) {
+                                pageLogic.recordGrid.createReportBody(
+                                    pageLogic.prepareData(success));
+                            } else {
+                                pageLogic.recordGrid.empty();
+                            }
+                        },
+                        function (error) {
+                            ui.msgshow("查询工时信息失败，" + error.message, true);
+                        }
+                    );
+                },
+                prepareData: function(data) {
+                    var datemap = {},
+                        item = null,
+                        data;
+                    var gridData = [],
+                        i, j, len;
+                    var dateStr = ui.str.dateFormat(this.currentDate, "yyyy-MM-");
+                    len = (new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 0)).getDate();
+                    for(i = 1; i <= len; i++) {
+                        datemap[dateStr + (i < 10 ? "0" + i : i)] = {
+                            data: []
+                        };
+                    }
+                    for (i = 0; i < data.length; i++) {
+                        item = data[i];
+                        datemap[item.DateStr].data.push(item);
+                    }
+                    for(item in datemap) {
+                        data = {
+                            DateStr: item
+                        };
+                        item = datemap[item];
+                        if(item.data.length == 0) {
+                            data.dataType = "nothing";
+                        } else {
+                            for(j = 0; j < item.data.length; j++) {
+                                data[item.data[j].EmployeeId] = {
+                                    EmployeeName: item.data[j].EmployeeName,
+                                    SumHour: item.data[j].SumHour
+                                };
+                            }
+                        }
+                        gridData.push(data);
+                    }
+                    return gridData;
+                }
+            };
+
+            var formatters = {
+                formatDateText: function (value, column, index, td) {
+                    var dateArr = value.split("-");
+                    var newdate = new Date(
+                        parseInt(dateArr[0], 10),
+                        parseInt(dateArr[1], 10) - 1,
+                        parseInt(dateArr[2], 10));
+                    var dateText = ui.str.dateFormat(newdate, "yyyy-MM-dd"),
+	                    weekText = "(" + formatters.formatWeek(newdate.getDay()) + ")";
+                    var dateSpan = $("<span>" + dateText + "</span>"),
+	                    weekSpan = $("<span class='week'>" + weekText + "</span>");
+                    if(newdate.getDay() === 0 || newdate.getDay() === 6) {
+                        weekSpan.addClass("weekend");
+                    }
+                    if(this.dataTable[index].dataType === "nothing") {
+                        dateSpan.addClass("nothing");
+                    }
+                    return [dateSpan, weekSpan];
+                },
+                formatWeek: function(wk) {
+                    var name = "日一二三四五六";
+                    return name.charAt(wk);
+                },
+                formatWorkTimeProgress: function (value, column) {
+                    if(!value)
+                        return null;
+
+                    var progressdiv = $("<div class='progressBarforWorkTime' />");
+                    if (value.SumHour < hours) {
+                        progressdiv.addClass("less");
+                    } else if (value.SumHour > hours) {
+                        progressdiv.addClass("overtime").addClass("border-highlight");
+                    }
+
+                    //16为最大的工作时间
+                    var maxWorkHours = 16;
+                    var percent = (value.SumHour / maxWorkHours);
+                    //80为滚动条宽度
+                    var width = percent * 80;
+                    var val = $("<div class='progressValueforWorkTime background-highlight' />");
+                    val.css({ "width": width + "px" });
+                    var span = $("<span>" + value.SumHour + "</span>");
+                    val.append(span);
+                    progressdiv.append(val);
+                    return progressdiv;
+                }
+            };
+        })();
+    </script>
+}
+
