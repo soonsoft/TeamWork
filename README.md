@@ -1,4 +1,7 @@
- /# TeamWork
+[![Badge](https://img.shields.io/badge/link-996.icu-%23FF4D5B.svg?style=flat-square)](https://996.icu/#/zh_CN)
+[![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg?style=flat-square)](https://github.com/996icu/996.ICU/blob/master/LICENSE) 
+ 
+# TeamWork
 TeamWork的中文名称叫工时系统。用SoonUI构建的，用于公司内部的工作时间管理系统。业务设计奇葩，但界面设计精美。支持黑白两种主题和28种个性化颜色自定义。
 ## 活泼的登录页
 为了摆脱业务系统那种沉闷，一成不变的登录页。我从bing搜索的首页获得了灵感，将登录页做成大面积的图片，并通过bing的图片接口实时同步显示每天的bing美图。为了增加趣味性和互动性，我让图片随着用户鼠标的移动而移动，呈现出一种特有的视差效果。
